@@ -1,0 +1,28 @@
+{
+  "name": "lakeside-retreat",
+  "version": "1.0.0",
+  "description": "Lakeside Retreat - Central Otago Luxury Accommodation",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "cors": "^2.8.5",
+    "helmet": "^8.1.0",
+    "dotenv": "^16.6.1"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
+  "keywords": [
+    "accommodation",
+    "glamping",
+    "central-otago",
+    "new-zealand"
+  ],
+  "author": "Lakeside Retreat",
+  "license": "MIT"
+}
