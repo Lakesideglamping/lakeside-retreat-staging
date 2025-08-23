@@ -5340,7 +5340,7 @@ Thank you for choosing Lakeside Retreat!`);
 
         // === ORIGINAL WEBSITE FUNCTIONS ===
 
-        function showPage(pageName) {
+        function showPage(pageName) {            console.log("DEBUG: Switching to page:", pageName);            console.log("DEBUG: All pages before hide:", document.querySelectorAll(".page.active"));
             document.querySelectorAll('.page').forEach(page => {
                 page.classList.remove('active');
             });
