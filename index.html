@@ -20,6 +20,18 @@
     frame-ancestors 'none';">
     <title>Central Otago Luxury Glamping Dome Accommodation in Cromwell, on Lake Dunstan by Lakeside Retreat </title>
     
+    <script>
+    // Force correct page display on load
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(function() {
+            // Force home page to show initially
+            if (typeof showPage === 'function') {
+                showPage('home');
+            }
+        }, 500);
+    });
+    </script>
+    
     <!-- Critical CSS - Inline for performance -->
     <style>
       /* Critical above-the-fold styles */
