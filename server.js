@@ -33,8 +33,14 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Serve main page for all routes
+// Serve main page for all routes  
 app.get('*', (req, res) => {
+  // Add no-cache headers to prevent caching issues
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  
+  console.log('Serving index.html for route:', req.url);
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
