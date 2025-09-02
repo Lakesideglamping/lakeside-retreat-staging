@@ -49,7 +49,7 @@
     
     <!-- Enhanced SEO Meta Tags -->
     <meta name="description" content="Experience New Zealand's first energy-positive luxury accommodation on Lake Dunstan. Just 55min from Queenstown, 30min from Wanaka. Geodesic domes & lakeside cottage with private spas, 16.72kW solar system, direct cycle trail access. Book your sustainable Central Otago escape today. ★★★★★ 4.9/5 from 127 reviews.">
-    <meta name="keywords" content="Central Otago accommodation, Lake Dunstan glamping, Cromwell luxury accommodation, solar powered glamping NZ, Central Otago wine country accommodation, Otago Rail Trail accommodation, wine tours Central Otago, eco glamping New Zealand, Tesla Powerwall accommodation, sustainable tourism NZ, Cromwell to Clyde cycle trail accommodation, Lake Dunstan views, Central Otago domes, Queenstown accommodation alternative, Wanaka nearby accommodation, Queenstown region luxury stays, accommodation near Queenstown, Wanaka day trip base, Queenstown alternative accommodation, Central Otago base for Queenstown adventures, Queenstown Wanaka accommodation packages, luxury accommodation packages Central Otago, ski accommodation packages, wine tour accommodation packages, adventure holiday packages, seasonal accommodation deals Central Otago, winter ski packages, summer adventure packages">
+    <meta name="keywords" content="Central Otago accommodation, Queenstown alternative accommodation, Wanaka alternative accommodation, Lake Dunstan glamping, solar powered glamping NZ">
     <meta name="author" content="Stephen & Sandy - Lakeside Retreat">
     
     <!-- Advanced SEO meta tags -->
@@ -2667,9 +2667,9 @@ document.addEventListener('DOMContentLoaded', () => {
                                         <li><a href="#" class="nav-link" onclick="showPage('explore')">Explore</a></li>
                         <li><a href="#" class="nav-link" onclick="showPage('contact')">Contact</a></li>
                 <li><a href="#" class="nav-link" onclick="openSearch()"><i class="fas fa-search"></i></a></li>
-                <li><a href="#" class="btn btn-primary book-now-highlight" onclick="openBookingModal()">Check Availability</a></li>
+                <li><a href="#" class="btn btn-primary book-now-highlight" onclick="openBookingModal()" aria-label="Check accommodation availability and make booking">Check Availability</a></li>
             </ul>
-            <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
+            <button class="mobile-menu-btn" onclick="toggleMobileMenu()" aria-label="Open mobile navigation menu">
                 <i class="fas fa-bars"></i>
             </button>
         </div>
@@ -2697,7 +2697,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <button class="close-search" onclick="closeSearch()">
                 <i class="fas fa-times"></i>
             </button>
-            <input type="text" class="search-input" id="searchInput" placeholder="Search accommodations, amenities, activities..." oninput="performSearch()">
+            <input type="text" class="search-input" id="searchInput" placeholder="Search accommodations, amenities, activities..." oninput="performSearch()" aria-label="Search accommodations, amenities, and activities">
             <div class="search-results" id="searchResults"></div>
         </div>
     </div>
@@ -3173,6 +3173,92 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             </section>
 
+            <!-- Accommodations Section -->
+            <section class="section">
+                <div class="container">
+                    <div class="section-header">
+                        <h2 class="section-title">Three Unique Experiences</h2>
+                        <p class="section-subtitle">Luxury domes for couples, family cottage with lake access. All sustainably powered with zero environmental impact.</p>
+                    </div>
+                    
+                    <!-- Clean accommodation cards with key highlights only -->
+                    <div class="grid grid-3">
+                        <div class="card">
+                            <img src="images/pinotinternal.jpeg" alt="Dome Pinot luxury glamping accommodation with Lake Dunstan views Central Otago" class="card-image" loading="lazy" onclick="openLightbox(this.src)">
+                            <div class="card-content">
+                                <h3 class="card-title">Dome Pinot</h3>
+                                <p class="card-text">50sqm luxury dome with panoramic Lake Dunstan views, private spa, and stargazing skylight.</p>
+                                
+                                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1rem 0; font-size: 0.85rem; color: var(--brand-teal);">
+                                    <span>• Lake Views</span>
+                                    <span>• Private Spa</span>
+                                    <span>• Breakfast Included</span>
+                                    <span>• Reliable Power</span>
+                                </div>
+                                
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem;">
+                                    <span style="font-weight: 600; color: var(--dark); font-size: 1.1rem;">From $450/night <span style="font-size: 0.75rem; color: #666;">(GST incl.)</span></span>
+                                    <div style="display: flex; gap: 0.5rem;">
+                                        <a href="#" class="btn btn-outline" onclick="showPage('stay')">View Details</a>
+                                    <a href="#" class="btn btn-primary" onclick="openBookingModal('dome-pinot')">Book Now</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <img src="images/dome-rose-spa1.jpeg" alt="Dome Rosé romantic glamping accommodation Central Otago wine country" class="card-image" loading="lazy" onclick="openLightbox(this.src)">
+                            <div class="card-content">
+                                <h3 class="card-title">Dome Rosé</h3>
+                                <p class="card-text">40sqm romantic retreat with vineyard views, private spa, and complete cooking facilities.</p>
+                                
+                                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1rem 0; font-size: 0.85rem; color: #be185d;">
+                                    <span>• Vineyard Views</span>
+                                    <span>• Private Spa</span>
+                                    <span>• Breakfast Included</span>
+                                    <span>• Always Powered</span>
+                                </div>
+                                
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem;">
+                                    <span style="font-weight: 600; color: var(--dark); font-size: 1.1rem;">From $380/night <span style="font-size: 0.75rem; color: #666;">(GST incl.)</span></span>
+                                    <div style="display: flex; gap: 0.5rem;">
+                                        <a href="#" class="btn btn-outline" onclick="showPage('stay')">View Details</a>
+                                    <a href="#" class="btn btn-primary" onclick="openBookingModal('dome-rose')">Book Now</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <img src="images/lakeside-cottage-exterior.jpeg" alt="Lakeside Cottage family accommodation Lake Dunstan Central Otago" class="card-image" loading="lazy" onclick="openLightbox(this.src)">
+                            <div class="card-content">
+                                <h3 class="card-title">Lakeside Cottage</h3>
+                                <p class="card-text">Family cottage with direct lake access, wood-fired spa, and complete cooking facilities.</p>
+                                
+                                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1rem 0; font-size: 0.85rem; color: var(--brand-teal);">
+                                    <span>• Lake Access</span>
+                                    <span>• Wood-Fired Spa</span>
+                                    <span>• Family Friendly</span>
+                                    <span>• Reliable Power</span>
+                                </div>
+                                
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem;">
+                                    <span style="font-weight: 600; color: var(--dark); font-size: 1.1rem;">From $580/night <span style="font-size: 0.75rem; color: #666;">(GST incl.)</span></span>
+                                    <div style="display: flex; gap: 0.5rem;">
+                                        <a href="#" class="btn btn-outline" onclick="showPage('stay')">View Details</a>
+                                    <a href="#" class="btn btn-primary" onclick="openBookingModal('lakeside-cottage')">Book Now</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: center; margin-top: 3rem;">
+                        <a href="#" onclick="showPage('stay')" class="btn btn-outline">View Full Details & Energy Systems</a>
+                    </div>
+                </div>
+            </section>
+
             <!-- Featured Guest Testimonials -->
             <section class="section" style="padding: 3rem 0;">
                 <div class="container">
@@ -3234,91 +3320,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             </section>
 
-            <!-- Accommodations Section -->
-            <section class="section">
-                <div class="container">
-                    <div class="section-header">
-                        <h2 class="section-title">Three Unique Experiences</h2>
-                        <p class="section-subtitle">Luxury domes for couples, family cottage with lake access. All sustainably powered with zero environmental impact.</p>
-                    </div>
-                    
-                    <!-- Clean accommodation cards with key highlights only -->
-                    <div class="grid grid-3">
-                        <div class="card">
-                            <img src="images/pinotinternal.jpeg" alt="Dome Pinot luxury glamping accommodation with Lake Dunstan views Central Otago" class="card-image" onclick="openLightbox(this.src)">
-                            <div class="card-content">
-                                <h3 class="card-title">Dome Pinot</h3>
-                                <p class="card-text">50sqm luxury dome with panoramic Lake Dunstan views, private spa, and stargazing skylight.</p>
-                                
-                                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1rem 0; font-size: 0.85rem; color: var(--brand-teal);">
-                                    <span>• Lake Views</span>
-                                    <span>• Private Spa</span>
-                                    <span>• Breakfast Included</span>
-                                    <span>• Reliable Power</span>
-                                </div>
-                                
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem;">
-                                    <span style="font-weight: 600; color: var(--dark); font-size: 1.1rem;">From $450/night <span style="font-size: 0.75rem; color: #666;">(GST incl.)</span></span>
-                                    <div style="display: flex; gap: 0.5rem;">
-                                        <a href="#" class="btn btn-outline" onclick="showPage('stay')">View Details</a>
-                                    <a href="#" class="btn btn-primary" onclick="openBookingModal('dome-pinot')">Book Now</a>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="card">
-                            <img src="images/dome-rose-spa1.jpeg" alt="Dome Rosé romantic glamping accommodation Central Otago wine country" class="card-image" onclick="openLightbox(this.src)">
-                            <div class="card-content">
-                                <h3 class="card-title">Dome Rosé</h3>
-                                <p class="card-text">40sqm romantic retreat with vineyard views, private spa, and complete cooking facilities.</p>
-                                
-                                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1rem 0; font-size: 0.85rem; color: #be185d;">
-                                    <span>• Vineyard Views</span>
-                                    <span>• Private Spa</span>
-                                    <span>• Breakfast Included</span>
-                                    <span>• Always Powered</span>
-                                </div>
-                                
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem;">
-                                    <span style="font-weight: 600; color: var(--dark); font-size: 1.1rem;">From $380/night <span style="font-size: 0.75rem; color: #666;">(GST incl.)</span></span>
-                                    <div style="display: flex; gap: 0.5rem;">
-                                        <a href="#" class="btn btn-outline" onclick="showPage('stay')">View Details</a>
-                                    <a href="#" class="btn btn-primary" onclick="openBookingModal('dome-rose')">Book Now</a>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="card">
-                            <img src="images/lakeside-cottage-exterior.jpeg" alt="Lakeside Cottage family accommodation Lake Dunstan Central Otago" class="card-image" onclick="openLightbox(this.src)">
-                            <div class="card-content">
-                                <h3 class="card-title">Lakeside Cottage</h3>
-                                <p class="card-text">Family cottage with direct lake access, wood-fired spa, and complete cooking facilities.</p>
-                                
-                                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1rem 0; font-size: 0.85rem; color: var(--brand-teal);">
-                                    <span>• Lake Access</span>
-                                    <span>• Wood-Fired Spa</span>
-                                    <span>• Family Friendly</span>
-                                    <span>• Reliable Power</span>
-                                </div>
-                                
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem;">
-                                    <span style="font-weight: 600; color: var(--dark); font-size: 1.1rem;">From $580/night <span style="font-size: 0.75rem; color: #666;">(GST incl.)</span></span>
-                                    <div style="display: flex; gap: 0.5rem;">
-                                        <a href="#" class="btn btn-outline" onclick="showPage('stay')">View Details</a>
-                                    <a href="#" class="btn btn-primary" onclick="openBookingModal('lakeside-cottage')">Book Now</a>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div style="text-align: center; margin-top: 3rem;">
-                        <a href="#" onclick="showPage('stay')" class="btn btn-outline">View Full Details & Energy Systems</a>
-                    </div>
-                </div>
-            </section>
 
             <!-- Local Area SEO Section -->
             <section class="section" style="background: rgba(251, 113, 133, 0.05); padding: 3rem 0;">
@@ -3643,14 +3644,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     <!-- Full detailed accommodation content remains the same This is the stay page-->
                     <div class="grid grid-3">
                         <div class="card">
-                            <img src="images/PinotLakeView.jpeg" alt="Dome Pinot" class="card-image" onclick="openLightbox(this.src)">
+                            <img src="images/PinotLakeView.jpeg" alt="Dome Pinot" class="card-image" loading="lazy" onclick="openLightbox(this.src)">
                             
                             <!-- Mini Gallery - 4 smaller images showing details -->
                             <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 15px; padding: 10px; background: rgba(0,0,0,0.03); border-radius: 8px;">
-                                <img src="images/dome-pinot-hero.jpeg" alt="Dome exterior" style="width: 100%; height: 80px; object-fit: cover; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: all 0.3s ease;" onclick="openLightbox(this.src)" onmouseover="this.style.border='2px solid #2d5a5a'" onmouseout="this.style.border='2px solid transparent'">
-                                <img src="images/pinotinternal.jpeg" alt="Interior luxury" style="width: 100%; height: 80px; object-fit: cover; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: all 0.3s ease;" onclick="openLightbox(this.src)" onmouseover="this.style.border='2px solid #2d5a5a'" onmouseout="this.style.border='2px solid transparent'">
-                                <img src="images/pinotspa.jpeg" alt="Private spa" style="width: 100%; height: 80px; object-fit: cover; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: all 0.3s ease;" onclick="openLightbox(this.src)" onmouseover="this.style.border='2px solid #2d5a5a'" onmouseout="this.style.border='2px solid transparent'">
-                                <img src="images/pinotsittingroom.jpeg" alt="Living area" style="width: 100%; height: 80px; object-fit: cover; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: all 0.3s ease;" onclick="openLightbox(this.src)" onmouseover="this.style.border='2px solid #2d5a5a'" onmouseout="this.style.border='2px solid transparent'">
+                                <img src="images/dome-pinot-hero.jpeg" alt="Dome exterior" style="width: 100%; height: 80px; object-fit: cover; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: all 0.3s ease;" loading="lazy" onclick="openLightbox(this.src)" onmouseover="this.style.border='2px solid #2d5a5a'" onmouseout="this.style.border='2px solid transparent'">
+                                <img src="images/pinotinternal.jpeg" alt="Interior luxury" style="width: 100%; height: 80px; object-fit: cover; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: all 0.3s ease;" loading="lazy" onclick="openLightbox(this.src)" onmouseover="this.style.border='2px solid #2d5a5a'" onmouseout="this.style.border='2px solid transparent'">
+                                <img src="images/pinotspa.jpeg" alt="Private spa" style="width: 100%; height: 80px; object-fit: cover; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: all 0.3s ease;" loading="lazy" onclick="openLightbox(this.src)" onmouseover="this.style.border='2px solid #2d5a5a'" onmouseout="this.style.border='2px solid transparent'">
+                                <img src="images/pinotsittingroom.jpeg" alt="Living area" style="width: 100%; height: 80px; object-fit: cover; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: all 0.3s ease;" loading="lazy" onclick="openLightbox(this.src)" onmouseover="this.style.border='2px solid #2d5a5a'" onmouseout="this.style.border='2px solid transparent'">
                             </div>
                             
                             <div class="card-content">
@@ -3691,14 +3692,14 @@ document.addEventListener('DOMContentLoaded', () => {
                             </div>
                         </div>
                         <div class="card">
-                            <img src="images/dome-rose-spa1.jpeg" alt="Dome Rosé" class="card-image" onclick="openLightbox(this.src)">
+                            <img src="images/dome-rose-spa1.jpeg" alt="Dome Rosé" class="card-image" loading="lazy" onclick="openLightbox(this.src)">
                             
                             <!-- Mini Gallery - 4 smaller images showing details -->
                             <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 15px; padding: 10px; background: rgba(0,0,0,0.03); border-radius: 8px;">
-                                <img src="images/dome-rose-exterior.jpeg" alt="Rose exterior" style="width: 100%; height: 80px; object-fit: cover; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: all 0.3s ease;" onclick="openLightbox(this.src)" onmouseover="this.style.border='2px solid #be185d'" onmouseout="this.style.border='2px solid transparent'">
-                                <img src="images/dome-rose-interior.jpeg" alt="Rose interior" style="width: 100%; height: 80px; object-fit: cover; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: all 0.3s ease;" onclick="openLightbox(this.src)" onmouseover="this.style.border='2px solid #be185d'" onmouseout="this.style.border='2px solid transparent'">
-                                <img src="images/rosespa.jpeg" alt="Rose spa" style="width: 100%; height: 80px; object-fit: cover; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: all 0.3s ease;" onclick="openLightbox(this.src)" onmouseover="this.style.border='2px solid #be185d'" onmouseout="this.style.border='2px solid transparent'">
-                                <img src="images/Roseinternal.jpeg" alt="Rose comfort" style="width: 100%; height: 80px; object-fit: cover; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: all 0.3s ease;" onclick="openLightbox(this.src)" onmouseover="this.style.border='2px solid #be185d'" onmouseout="this.style.border='2px solid transparent'">
+                                <img src="images/dome-rose-exterior.jpeg" alt="Rose exterior" style="width: 100%; height: 80px; object-fit: cover; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: all 0.3s ease;" loading="lazy" onclick="openLightbox(this.src)" onmouseover="this.style.border='2px solid #be185d'" onmouseout="this.style.border='2px solid transparent'">
+                                <img src="images/dome-rose-interior.jpeg" alt="Rose interior" style="width: 100%; height: 80px; object-fit: cover; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: all 0.3s ease;" loading="lazy" onclick="openLightbox(this.src)" onmouseover="this.style.border='2px solid #be185d'" onmouseout="this.style.border='2px solid transparent'">
+                                <img src="images/rosespa.jpeg" alt="Rose spa" style="width: 100%; height: 80px; object-fit: cover; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: all 0.3s ease;" loading="lazy" onclick="openLightbox(this.src)" onmouseover="this.style.border='2px solid #be185d'" onmouseout="this.style.border='2px solid transparent'">
+                                <img src="images/Roseinternal.jpeg" alt="Rose comfort" style="width: 100%; height: 80px; object-fit: cover; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: all 0.3s ease;" loading="lazy" onclick="openLightbox(this.src)" onmouseover="this.style.border='2px solid #be185d'" onmouseout="this.style.border='2px solid transparent'">
                             </div>
                             
                             <div class="card-content">
@@ -4050,7 +4051,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                     <p style="font-size: 0.9rem; opacity: 0.9; margin: 0;">Best activities for each season & weather</p>
                                 </a>
                                 
-                                <a href="#" onclick="scrollToSection('restaurant-guide'); return false;" style="background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%); color: white; padding: 1.5rem; border-radius: 15px; text-decoration: none; transition: all 0.3s ease; display: block;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 12px 30px rgba(109, 40, 217, 0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                                <a href="#" onclick="scrollToSection('photography-guide'); return false;" style="background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%); color: white; padding: 1.5rem; border-radius: 15px; text-decoration: none; transition: all 0.3s ease; display: block;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 12px 30px rgba(109, 40, 217, 0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
                                     <div style="font-size: 2rem; margin-bottom: 0.5rem;">📸</div>
                                     <h4 style="margin-bottom: 0.5rem; font-size: 1.1rem;">Photography Spots Guide</h4>
                                     <p style="font-size: 0.9rem; opacity: 0.9; margin: 0;">Instagram-worthy locations around Lake Dunstan</p>
@@ -4084,8 +4085,88 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     <!-- Collapsible Guide Sections -->
                     <div style="max-width: 1200px; margin: 0 auto; padding: 2rem 0;">
-                        <!-- Photography Spots Guide -->
+                        <!-- Restaurant Guide by Budget -->
                         <div class="guide-item" id="restaurant-guide" style="background: white; border-radius: 15px; margin-bottom: 1.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.08); overflow: hidden; border: 1px solid #e5e7eb;">
+                            <div class="guide-header" onclick="toggleGuide(this)" style="padding: 1.8rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%); user-select: none; transition: all 0.3s ease;" onmouseover="this.style.background='linear-gradient(135deg, #fed7aa 0%, #fdba74 100%)'" onmouseout="this.style.background='linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%)'">
+                                <div style="flex: 1;">
+                                    <h3 style="color: #f59e0b; margin: 0 0 0.5rem 0; font-size: 1.4rem; display: flex; align-items: center; gap: 0.5rem;">
+                                        <span style="font-size: 1.6rem;">🍽️</span>
+                                        Restaurant Guide by Budget
+                                    </h3>
+                                    <p style="color: #6b7280; margin: 0; font-size: 0.95rem;">Budget eats to fine dining experiences - Stephen & Sandy's 5 years of local dining</p>
+                                </div>
+                                <span class="guide-arrow" style="font-size: 1.5rem; color: #f59e0b; transition: transform 0.3s ease;">▼</span>
+                            </div>
+                            <div class="guide-content" style="max-height: 0; overflow: hidden; transition: max-height 0.5s ease-in-out;">
+                                <div style="padding: 2rem; border-top: 1px solid #e5e7eb;">
+                                
+                                <!-- BUDGET FRIENDLY ($10-25) -->
+                                <div style="background: rgba(34, 197, 94, 0.05); padding: 1.2rem; border-radius: 10px; margin: 1rem 0; border-left: 4px solid #22c55e;">
+                                    <h4 style="color: #22c55e; margin-bottom: 0.8rem; font-size: 1rem;">💚 BUDGET FRIENDLY ($10-25)</h4>
+                                    <div style="font-size: 0.9rem; line-height: 1.6;">
+                                        <strong>Cromwell (10min drive):</strong><br>
+                                        • <strong>Cromwell Bakery</strong> - Famous pies, fresh sandwiches, local favorite<br>
+                                        • <strong>Thai Siam</strong> - Authentic Thai, great portions, BYO wine<br>
+                                        • <strong>Subway Central Otago</strong> - Reliable, quick, healthy options<br><br>
+                                        
+                                        <strong>Bannockburn (5min drive):</strong><br>
+                                        • <strong>Bannockburn General Store</strong> - Gourmet sandwiches, local produce<br>
+                                        • <strong>Saddlers Arms Pub</strong> - Hearty pub meals, local atmosphere
+                                    </div>
+                                </div>
+                                
+                                <!-- MID-RANGE ($25-50) -->
+                                <div style="background: rgba(251, 191, 36, 0.05); padding: 1.2rem; border-radius: 10px; margin: 1rem 0; border-left: 4px solid #fbbf24;">
+                                    <h4 style="color: #f59e0b; margin-bottom: 0.8rem; font-size: 1rem;">🧡 MID-RANGE ($25-50)</h4>
+                                    <div style="font-size: 0.9rem; line-height: 1.6;">
+                                        <strong>Cromwell:</strong><br>
+                                        • <strong>The Load of Mischief</strong> - Gastropub, craft beer, wood-fired pizza<br>
+                                        • <strong>Grain & Seed Cafe</strong> - All-day dining, great coffee, healthy options<br>
+                                        • <strong>Armchair Cinema Cafe</strong> - Unique dine-in cinema experience<br><br>
+                                        
+                                        <strong>Bannockburn:</strong><br>
+                                        • <strong>Carrick Winery Restaurant</strong> - Vineyard dining, seasonal menu<br>
+                                        • <strong>Mt Difficulty Restaurant</strong> - Award-winning cellar door dining
+                                    </div>
+                                </div>
+                                
+                                <!-- FINE DINING ($50+) -->
+                                <div style="background: rgba(236, 72, 153, 0.05); padding: 1.2rem; border-radius: 10px; margin: 1rem 0; border-left: 4px solid #ec4899;">
+                                    <h4 style="color: #ec4899; margin-bottom: 0.8rem; font-size: 1rem;">💖 FINE DINING ($50+)</h4>
+                                    <div style="font-size: 0.9rem; line-height: 1.6;">
+                                        <strong>Special Occasion Dining:</strong><br>
+                                        • <strong>Aurum Restaurant</strong> - Award-winning fine dining, wine matching<br>
+                                        • <strong>Gibbston Valley Winery</strong> - Premium dining, cave tours (25min drive)<br>
+                                        • <strong>Felton Road Cellar Door</strong> - Exclusive tastings with food matching<br><br>
+                                        
+                                        <strong>Booking Essential:</strong><br>
+                                        • Peak season (Dec-Mar): Book 2-3 days ahead<br>
+                                        • Harvest season (Mar-Apr): Book 1 week ahead<br>
+                                        • Weekend dinners: Always book ahead
+                                    </div>
+                                </div>
+                                
+                                <!-- INSIDER TIPS -->
+                                <div style="background: #e0f2fe; border: 1px solid #0ea5e9; padding: 1rem; border-radius: 10px; margin: 1.5rem 0;">
+                                    <div style="font-weight: 600; color: #0c4a6e; margin-bottom: 0.5rem;">💡 Host Insider Tips:</div>
+                                    <div style="font-size: 0.85rem; color: #0c4a6e; line-height: 1.5;">
+                                        • <strong>BYO Wine:</strong> Most restaurants allow BYO with small corkage fee<br>
+                                        • <strong>Local Produce:</strong> Summer stone fruit, winter game meats are specialties<br>
+                                        • <strong>Early Bird Specials:</strong> Many places offer 5:30-6:30pm specials<br>
+                                        • <strong>Lunch Deals:</strong> Often better value than dinner at same venues<br>
+                                        • <strong>Food Trucks:</strong> Check Cromwell events - amazing gourmet trucks visit
+                                    </div>
+                                </div>
+                                
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem;">
+                                    <span style="color: var(--brand-teal); font-size: 0.9rem; font-weight: 500;">8 min read • Restaurant Guide • 500+ Local Meals</span>
+                                </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Photography Spots Guide -->
+                        <div class="guide-item" id="photography-guide" style="background: white; border-radius: 15px; margin-bottom: 1.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.08); overflow: hidden; border: 1px solid #e5e7eb;">
                             <div class="guide-header" onclick="toggleGuide(this)" style="padding: 1.8rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%); user-select: none; transition: all 0.3s ease;" onmouseover="this.style.background='linear-gradient(135deg, #e9d5ff 0%, #ddd6fe 100%)'" onmouseout="this.style.background='linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%)'">
                                 <div style="flex: 1;">
                                     <h3 style="color: #8b5cf6; margin: 0 0 0.5rem 0; font-size: 1.4rem; display: flex; align-items: center; gap: 0.5rem;">
@@ -4321,90 +4402,6 @@ document.addEventListener('DOMContentLoaded', () => {
                             </div>
                         </div>
 
-                        <!-- Seasonal Guide -->
-                        <div class="guide-item" style="background: white; border-radius: 15px; margin-bottom: 1.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.08); overflow: hidden; border: 1px solid #e5e7eb;">
-                            <div class="guide-header" onclick="toggleGuide(this)" style="padding: 1.8rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%); user-select: none; transition: all 0.3s ease;" onmouseover="this.style.background='linear-gradient(135deg, #fed7aa 0%, #fdba74 100%)'" onmouseout="this.style.background='linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%)'">
-                                <div style="flex: 1;">
-                                    <h3 style="color: #ea580c; margin: 0 0 0.5rem 0; font-size: 1.4rem; display: flex; align-items: center; gap: 0.5rem;">
-                                        <span style="font-size: 1.6rem;">🌿</span>
-                                        Seasonal Central Otago: When to Visit
-                                    </h3>
-                                    <p style="color: #6b7280; margin: 0; font-size: 0.95rem;">Your month-by-month insider guide to Central Otago's seasons</p>
-                                </div>
-                                <span class="guide-arrow" style="font-size: 1.5rem; color: #ea580c; transition: transform 0.3s ease;">▼</span>
-                            </div>
-                            <div class="guide-content" style="max-height: 0; overflow: hidden; transition: max-height 0.5s ease-in-out;">
-                                <div style="padding: 2rem; border-top: 1px solid #e5e7eb;">
-                                
-                                <!-- SPRING (SEP-NOV) -->
-                                <div style="background: rgba(34, 197, 94, 0.05); padding: 1.2rem; border-radius: 10px; margin: 1rem 0; border-left: 4px solid #22c55e;">
-                                    <h4 style="color: #22c55e; margin-bottom: 0.8rem; font-size: 1rem;">🌸 SPRING (September - November)</h4>
-                                    <div style="font-size: 0.9rem; line-height: 1.6;">
-                                        <strong>Weather:</strong> 5-20°C, occasional frost, variable<br>
-                                        <strong>Why Visit:</strong> Cherry blossoms, fewer crowds, great value<br>
-                                        <strong>Best For:</strong> Photography, cycle trails, cellar door visits<br>
-                                        <strong>Energy System:</strong> Solar production ramping up, battery cycling optimal<br>
-                                        <strong>Book Early:</strong> Oct-Nov fills up fast with locals
-                                    </div>
-                                </div>
-                                
-                                <!-- SUMMER (DEC-FEB) -->
-                                <div style="background: rgba(251, 191, 36, 0.05); padding: 1.2rem; border-radius: 10px; margin: 1rem 0; border-left: 4px solid #fbbf24;">
-                                    <h4 style="color: #f59e0b; margin-bottom: 0.8rem; font-size: 1rem;">☀️ SUMMER (December - February) - PEAK SEASON</h4>
-                                    <div style="font-size: 0.9rem; line-height: 1.6;">
-                                        <strong>Weather:</strong> 15-30°C, warm days, cool nights perfect for sleeping<br>
-                                        <strong>Why Visit:</strong> Perfect weather, all activities available, lake swimming<br>
-                                        <strong>Best For:</strong> Families, lake activities, long cycle rides<br>
-                                        <strong>Energy System:</strong> Peak solar performance (12+ hours daily)<br>
-                                        <strong>Book Early:</strong> 😨 Books out 6 months ahead!
-                                    </div>
-                                </div>
-                                
-                                <!-- AUTUMN (MAR-MAY) -->
-                                <div style="background: rgba(245, 158, 11, 0.05); padding: 1.2rem; border-radius: 10px; margin: 1rem 0; border-left: 4px solid #f59e0b;">
-                                    <h4 style="color: #f59e0b; margin-bottom: 0.8rem; font-size: 1rem;">🍂 AUTUMN (March - May) - OUR FAVORITE</h4>
-                                    <div style="font-size: 0.9rem; line-height: 1.6;">
-                                        <strong>Weather:</strong> 5-25°C, crisp mornings, golden days<br>
-                                        <strong>Why Visit:</strong> Wine harvest, stunning colors, perfect temperatures<br>
-                                        <strong>Best For:</strong> Wine enthusiasts, photographers, couples<br>
-                                        <strong>Special Events:</strong> Harvest festivals, cellar door events<br>
-                                        <strong>Energy System:</strong> Still excellent solar, longer battery use<br>
-                                        <strong>Insider Tip:</strong> 🍇 March-April is harvest time - book harvest experiences!
-                                    </div>
-                                </div>
-                                
-                                <!-- WINTER (JUN-AUG) -->
-                                <div style="background: rgba(59, 130, 246, 0.05); padding: 1.2rem; border-radius: 10px; margin: 1rem 0; border-left: 4px solid #3b82f6;">
-                                    <h4 style="color: #3b82f6; margin-bottom: 0.8rem; font-size: 1rem;">❄️ WINTER (June - August)</h4>
-                                    <div style="font-size: 0.9rem; line-height: 1.6;">
-                                        <strong>Weather:</strong> -5 to 15°C, crisp & clear, occasional snow<br>
-                                        <strong>Why Visit:</strong> Skiing, cozy dome evenings, dramatic landscapes<br>
-                                        <strong>Best For:</strong> Skiers, spa lovers, stargazing<br>
-                                        <strong>Skiing:</strong> Cardrona (45min), The Remarkables (1hr)<br>
-                                        <strong>Energy System:</strong> Lower solar but battery + grid ensure luxury<br>
-                                        <strong>Bonus:</strong> Clear skies = incredible stargazing through dome windows
-                                    </div>
-                                </div>
-                                
-                                <!-- STEPHEN & SANDY'S RECOMMENDATIONS -->
-                                <div style="background: rgba(45, 90, 90, 0.05); padding: 1rem; border-radius: 10px; margin: 1rem 0;">
-                                    <div style="font-weight: 600; color: var(--brand-teal); margin-bottom: 0.5rem;">🎆 Stephen & Sandy's Top Picks:</div>
-                                    <div style="font-size: 0.85rem; line-height: 1.5;">
-                                        • <strong>First-timers:</strong> December-February for full experience<br>
-                                        • <strong>Wine lovers:</strong> March-April during harvest<br>
-                                        • <strong>Budget-conscious:</strong> May-September (lower rates)<br>
-                                        • <strong>Photographers:</strong> April-May for golden autumn colors<br>
-                                        • <strong>Skiers:</strong> July-August for snow sports + spa combo<br>
-                                        • <strong>Energy enthusiasts:</strong> October-March for peak solar performance
-                                    </div>
-                                </div>
-                                
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem;">
-                                    <span style="color: var(--brand-teal); font-size: 0.9rem; font-weight: 500;">4 min read • Planning • Local Insights</span>
-                                </div>
-                                </div>
-                            </div>
-                        </div>
 
                         <!-- Winery Guide -->
                         <div class="guide-item" id="winery-guide" style="background: white; border-radius: 15px; margin-bottom: 1.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.08); overflow: hidden; border: 1px solid #e5e7eb;">
@@ -5440,13 +5437,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         <p style="margin-top: 0.5rem;">96 Smiths Way, Mount Pisa, Cromwell, Central Otago 9310, New Zealand</p>
                         <p style="margin-top: 0.5rem;">⚡ Powered by 16.72kW commercial-grade solar array with 16kWh battery storage</p>
                         <p style="margin-top: 0.5rem; font-size: 0.8rem; opacity: 0.8;">
-                            LAKESIDE GLAMPING LIMITED | Company No: 8584009 | GST: 138-017-834<br>
                             Licensed Tourism Operator | Consumer Guarantees Act applies | Fair Trading Act compliance
                         </p>
                     </div>
                     <div>
                         <div style="font-size: 0.8rem;">
-                            <span>Phone: </span><a href="tel:+6421368682" style="color: rgba(255, 255, 255, 0.8);">+64 21 368 682</a><br>
                             <span>Email: </span><a href="mailto:info@lakesideretreat.co.nz" style="color: rgba(255, 255, 255, 0.8);">info@lakesideretreat.co.nz</a>
                         </div>
                     </div>
@@ -7634,6 +7629,46 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
+        // WebP Detection and Image Optimization
+        function initWebPSupport() {
+            // Check WebP support
+            const webpSupport = (function() {
+                const canvas = document.createElement('canvas');
+                canvas.width = 1;
+                canvas.height = 1;
+                return canvas.toDataURL('image/webp').indexOf('data:image/webp') === 0;
+            })();
+            
+            // Add class to document for CSS feature detection
+            if (webpSupport) {
+                document.documentElement.classList.add('webp');
+            } else {
+                document.documentElement.classList.add('no-webp');
+            }
+            
+            return webpSupport;
+        }
+
+        // Performance Monitoring (Basic)
+        function initPerformanceMonitoring() {
+            // Web Vitals monitoring
+            if ('web-vital' in window) {
+                // Track Core Web Vitals when available
+                return;
+            }
+            
+            // Basic performance tracking
+            window.addEventListener('load', () => {
+                const perfData = performance.getEntriesByType('navigation')[0];
+                const loadTime = perfData.loadEventEnd - perfData.loadEventStart;
+                
+                // Track load time (for future analytics integration)
+                if (loadTime > 3000) {
+                    console.info('Page load time:', loadTime + 'ms - Consider optimization');
+                }
+            });
+        }
+
         // Critical Resource Hints
         function addResourceHints() {
             const head = document.head;
@@ -7660,6 +7695,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // Initialize performance optimizations
             initLazyLoading();
             addResourceHints();
+            initWebPSupport();
+            initPerformanceMonitoring();
             
             // Initialize back to top button
             initBackToTopButton();
