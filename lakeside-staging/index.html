@@ -7929,6 +7929,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log('Smooth scroll not supported, using instant scroll');
             }
         }
+
+        // Initialize page navigation when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize the home page as active
+            showPage('home');
+        });
     </script>
 
 </body>
