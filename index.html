@@ -238,7 +238,9 @@ function detectWebPSupport() {
     };
     webP.src = 'data:image/webp;base64,UklGRjoAAABXRUJQVlA4IC4AAACyAgCdASoCAAIALmk0mk0iIiIiIgBoSygABc6WWgAA/veff/0PP8bA//LwYAAA';
 }
+</script>
 
+<script>
 // Initialize optimizations
 document.addEventListener('DOMContentLoaded', () => {
     detectWebPSupport();
@@ -7927,6 +7929,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log('Smooth scroll not supported, using instant scroll');
             }
         }
+
+        // Initialize page navigation when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize the home page as active
+            showPage('home');
+        });
     </script>
 
 </body>
