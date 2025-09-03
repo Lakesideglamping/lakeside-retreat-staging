@@ -64,8 +64,9 @@ const generalLimiter = rateLimit({
     standardHeaders: true,
     legacyHeaders: false,
     skip: (req) => {
-        // Skip rate limiting for static assets
-        return req.path.match(/\.(css|js|jpg|jpeg|png|gif|ico|woff|woff2|ttf|svg)$/i);
+        // Skip rate limiting for static assets and health checks
+        return req.path.match(/\.(css|js|jpg|jpeg|png|gif|ico|woff|woff2|ttf|svg)$/i) ||
+               req.path === '/api/health';
     }
 });
 
