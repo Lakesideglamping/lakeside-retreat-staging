@@ -109,8 +109,8 @@ const staticOptions = {
     }
 };
 
-// Serve images directory
-app.use('/images', express.static(path.join(__dirname, 'images'), staticOptions));
+// Serve images directory from lakeside-staging
+app.use('/images', express.static(path.join(__dirname, 'lakeside-staging', 'images'), staticOptions));
 
 // Health check endpoint - CRITICAL FOR MONITORING
 app.get('/api/health', (req, res) => {
@@ -122,9 +122,9 @@ app.get('/api/health', (req, res) => {
     });
 });
 
-// Serve main page - YOUR SEO-OPTIMIZED HTML
+// Serve main page - YOUR SEO-OPTIMIZED HTML from lakeside-staging
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'), {
+    res.sendFile(path.join(__dirname, 'lakeside-staging', 'index.html'), {
         headers: {
             'Cache-Control': 'no-cache, no-store, must-revalidate',
             'Pragma': 'no-cache',
@@ -135,7 +135,7 @@ app.get('/', (req, res) => {
 
 // Catch all routes - serve main page (SPA behavior)
 app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
+    res.sendFile(path.join(__dirname, 'lakeside-staging', 'index.html'));
 });
 
 // Global error handling - SECURE
