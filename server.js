@@ -108,7 +108,6 @@ const staticOptions = {
     }
 };
 
-// Serve static CSS and JS filesapp.use(express.static(path.join(__dirname), {    index: false,    setHeaders: (res, filePath) => {        if (filePath.match(/.css$/)) {            res.setHeader("Content-Type", "text/css");        } else if (filePath.match(/.js$/)) {            res.setHeader("Content-Type", "application/javascript");        }    }}));
 // Serve images directory
 app.use('/images', express.static(path.join(__dirname, 'images'), staticOptions));
 
