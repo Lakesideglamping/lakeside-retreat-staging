@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Review Management - Lakeside Retreat Admin</title>
+    
+    <style>
+        :root {
+            --brand-teal: #2d5a5a;
+            --brand-sage: #8fbc8f;
+            --text: #333333;
+            --text-light: #666666;
+            --border: #e0e0e0;
+            --background: #f8f9fa;
+            --white: #ffffff;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--background);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        .header {
+            background: var(--brand-teal);
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .import-btn {
+            background: var(--brand-sage);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            text-decoration: none;
+            display: inline-block;
+            transition: background-color 0.3s;
+        }
+
+        .import-btn:hover {
+            background: #6a9d6a;
+        }
+
+        .admin-info {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .logout-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background-color 0.3s;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .stats-bar {
+            background: white;
+            padding: 1rem 2rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .stat-card {
+            text-align: center;
+            padding: 1rem;
+            border-radius: 8px;
+            background: linear-gradient(135deg, var(--brand-teal) 0%, var(--brand-sage) 100%);
+            color: white;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .controls {
+            padding: 1rem 2rem;
+            background: white;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .filter-group label {
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .filter-select, .search-input {
+            padding: 0.5rem 1rem;
+            border: 2px solid var(--border);
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .filter-select:focus, .search-input:focus {
+            outline: none;
+            border-color: var(--brand-teal);
+        }
+
+        .main-content {
+            padding: 1rem 2rem;
+        }
+
+        .review-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            margin-bottom: 1rem;
+            overflow: hidden;
+            border-left: 4px solid var(--border);
+        }
+
+        .review-card.pending {
+            border-left-color: var(--warning);
+        }
+
+        .review-card.approved {
+            border-left-color: var(--success);
+        }
+
+        .review-card.rejected {
+            border-left-color: var(--error);
+        }
+
+        .review-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .guest-info h3 {
+            color: var(--brand-teal);
+            margin-bottom: 0.25rem;
+        }
+
+        .guest-details {
+            font-size: 0.9rem;
+            color: var(--text-light);
+        }
+
+        .review-meta {
+            text-align: right;
+            font-size: 0.9rem;
+            color: var(--text-light);
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+        }
+
+        .status-badge.pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-badge.approved {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-badge.rejected {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .stars {
+            color: #fbbf24;
+            margin-bottom: 0.5rem;
+        }
+
+        .review-content {
+            padding: 1.5rem;
+        }
+
+        .review-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--brand-teal);
+            margin-bottom: 0.75rem;
+        }
+
+        .review-text {
+            margin-bottom: 1rem;
+            line-height: 1.6;
+        }
+
+        .review-highlights {
+            background: #f0f9ff;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            border-left: 3px solid var(--brand-sage);
+        }
+
+        .highlight-label {
+            font-weight: 600;
+            color: var(--brand-teal);
+            margin-bottom: 0.25rem;
+        }
+
+        .review-photos {
+            display: flex;
+            gap: 0.5rem;
+            margin: 1rem 0;
+            flex-wrap: wrap;
+        }
+
+        .review-photos img {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .review-photos img:hover {
+            transform: scale(1.05);
+        }
+
+        .admin-section {
+            background: #f8fafc;
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .admin-notes {
+            margin-bottom: 1rem;
+        }
+
+        .admin-notes textarea {
+            width: 100%;
+            min-height: 80px;
+            padding: 0.75rem;
+            border: 2px solid var(--border);
+            border-radius: 6px;
+            resize: vertical;
+        }
+
+        .admin-notes textarea:focus {
+            outline: none;
+            border-color: var(--brand-teal);
+        }
+
+        .admin-reply {
+            margin-bottom: 1rem;
+        }
+
+        .admin-reply textarea {
+            width: 100%;
+            min-height: 100px;
+            padding: 0.75rem;
+            border: 2px solid var(--border);
+            border-radius: 6px;
+            resize: vertical;
+        }
+
+        .admin-actions {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-approve {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-approve:hover {
+            background: #059669;
+        }
+
+        .btn-reject {
+            background: var(--error);
+            color: white;
+        }
+
+        .btn-reject:hover {
+            background: #dc2626;
+        }
+
+        .btn-feature {
+            background: var(--warning);
+            color: white;
+        }
+
+        .btn-feature:hover {
+            background: #d97706;
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-light);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-light);
+        }
+
+        .empty-state h3 {
+            margin-bottom: 0.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                padding: 1rem;
+            }
+
+            .controls, .main-content {
+                padding: 1rem;
+            }
+
+            .stats-bar {
+                grid-template-columns: 1fr;
+                padding: 1rem;
+            }
+
+            .review-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .review-meta {
+                text-align: left;
+            }
+
+            .admin-actions {
+                flex-direction: column;
+            }
+
+            .btn {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🏠 Lakeside Retreat - Review Management</h1>
+        <div class="header-right">
+            <a href="/admin/import" class="import-btn">📥 Import Reviews</a>
+            <span id="currentUser" class="admin-info">Loading...</span>
+            <button onclick="logout()" class="logout-btn">Logout</button>
+        </div>
+    </div>
+
+    <div class="stats-bar">
+        <div class="stat-card">
+            <div class="stat-number" id="totalReviews">-</div>
+            <div class="stat-label">Total Reviews</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" id="avgRating">-</div>
+            <div class="stat-label">Average Rating</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" id="pendingCount">-</div>
+            <div class="stat-label">Pending Review</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" id="approvedCount">-</div>
+            <div class="stat-label">Approved</div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <div class="filter-group">
+            <label>Status:</label>
+            <select class="filter-select" id="statusFilter">
+                <option value="">All</option>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+            </select>
+        </div>
+
+        <div class="filter-group">
+            <label>Accommodation:</label>
+            <select class="filter-select" id="accommodationFilter">
+                <option value="">All</option>
+                <option value="pinot-dome">Pinot Dome</option>
+                <option value="rose-dome">Rosé Dome</option>
+                <option value="lakeside-cottage">Lakeside Cottage</option>
+            </select>
+        </div>
+
+        <div class="filter-group">
+            <label>Search:</label>
+            <input type="text" class="search-input" id="searchInput" placeholder="Guest name, email, or review text...">
+        </div>
+
+        <button class="btn btn-secondary" onclick="refreshReviews()">
+            🔄 Refresh
+        </button>
+    </div>
+
+    <div class="main-content">
+        <div id="loading" class="loading">
+            <div>Loading reviews...</div>
+        </div>
+
+        <div id="reviewsList"></div>
+
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <h3>No reviews found</h3>
+            <p>No reviews match your current filters.</p>
+        </div>
+    </div>
+
+    <script>
+        let reviews = [];
+        let filteredReviews = [];
+
+        // Check authentication on page load
+        document.addEventListener('DOMContentLoaded', async function() {
+            await checkAuthentication();
+        });
+
+        async function checkAuthentication() {
+            try {
+                const response = await fetch('/api/admin/check', { credentials: 'include' });
+                const result = await response.json();
+                
+                if (!result.authenticated) {
+                    window.location.href = '/admin/login';
+                    return;
+                }
+                
+                // Update user info
+                document.getElementById('currentUser').textContent = 
+                    `Admin: ${result.admin.username}`;
+                
+                // Load reviews after authentication confirmed
+                loadReviews();
+                loadStats();
+                
+                // Set up event listeners
+                setupEventListeners();
+            } catch (error) {
+                console.error('Authentication check failed:', error);
+                window.location.href = '/admin/login';
+            }
+        }
+
+        function setupEventListeners() {
+            document.getElementById('statusFilter').addEventListener('change', filterReviews);
+            document.getElementById('accommodationFilter').addEventListener('change', filterReviews);
+            document.getElementById('searchInput').addEventListener('input', filterReviews);
+        }
+
+        async function logout() {
+            try {
+                const response = await fetch('/api/admin/logout', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    window.location.href = '/admin/login';
+                } else {
+                    alert('Logout failed. Please try again.');
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
+                // Force redirect even if logout request fails
+                window.location.href = '/admin/login';
+            }
+        }
+
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/reviews/stats');
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('totalReviews').textContent = data.overall.total_reviews || 0;
+                    document.getElementById('avgRating').textContent = data.overall.average_rating || '0.0';
+                    
+                    // Calculate pending count from reviews
+                    const pendingCount = reviews.filter(r => r.status === 'pending').length;
+                    const approvedCount = reviews.filter(r => r.status === 'approved').length;
+                    
+                    document.getElementById('pendingCount').textContent = pendingCount;
+                    document.getElementById('approvedCount').textContent = approvedCount;
+                }
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        async function loadReviews() {
+            try {
+                const response = await fetch('/api/reviews/admin/all', {
+                    credentials: 'include'
+                });
+                
+                if (response.status === 401) {
+                    // Unauthorized - redirect to login
+                    window.location.href = '/admin/login';
+                    return;
+                }
+                
+                if (!response.ok) {
+                    throw new Error('Failed to load reviews');
+                }
+                
+                const data = await response.json();
+                reviews = data.reviews || [];
+                filteredReviews = reviews;
+                
+                renderReviews();
+                loadStats();
+                
+            } catch (error) {
+                console.error('Error loading reviews:', error);
+                document.getElementById('loading').innerHTML = 
+                    '<div style="color: var(--error);">Error loading reviews. Please refresh the page.</div>';
+            }
+        }
+
+        function filterReviews() {
+            const statusFilter = document.getElementById('statusFilter').value;
+            const accommodationFilter = document.getElementById('accommodationFilter').value;
+            const searchQuery = document.getElementById('searchInput').value.toLowerCase();
+            
+            filteredReviews = reviews.filter(review => {
+                const matchesStatus = !statusFilter || review.status === statusFilter;
+                const matchesAccommodation = !accommodationFilter || review.accommodation_type === accommodationFilter;
+                const matchesSearch = !searchQuery || 
+                    review.guest_name.toLowerCase().includes(searchQuery) ||
+                    review.guest_email.toLowerCase().includes(searchQuery) ||
+                    review.review_text.toLowerCase().includes(searchQuery) ||
+                    (review.review_title && review.review_title.toLowerCase().includes(searchQuery));
+                
+                return matchesStatus && matchesAccommodation && matchesSearch;
+            });
+            
+            renderReviews();
+        }
+
+        function renderReviews() {
+            const container = document.getElementById('reviewsList');
+            const loading = document.getElementById('loading');
+            const emptyState = document.getElementById('emptyState');
+            
+            loading.style.display = 'none';
+            
+            if (filteredReviews.length === 0) {
+                container.innerHTML = '';
+                emptyState.style.display = 'block';
+                return;
+            }
+            
+            emptyState.style.display = 'none';
+            
+            container.innerHTML = filteredReviews.map(review => `
+                <div class="review-card ${review.status}" data-id="${review.id}">
+                    <div class="review-header">
+                        <div class="guest-info">
+                            <h3>${escapeHtml(review.guest_name)}</h3>
+                            <div class="guest-details">
+                                📧 ${escapeHtml(review.guest_email)} | 
+                                📍 ${escapeHtml(review.guest_location || 'Location not provided')} | 
+                                🏠 ${formatAccommodationType(review.accommodation_type)}
+                                ${review.stay_dates ? ` | 📅 ${escapeHtml(review.stay_dates)}` : ''}
+                            </div>
+                        </div>
+                        <div class="review-meta">
+                            <div class="status-badge ${review.status}">${review.status}</div>
+                            <div class="stars">${generateStars(review.overall_rating)} (${review.overall_rating}/5)</div>
+                            <div>Submitted: ${formatDate(review.created_at)}</div>
+                            ${review.approved_at ? `<div>Approved: ${formatDate(review.approved_at)}</div>` : ''}
+                        </div>
+                    </div>
+                    
+                    <div class="review-content">
+                        ${review.review_title ? `<div class="review-title">${escapeHtml(review.review_title)}</div>` : ''}
+                        
+                        <div class="review-text">${escapeHtml(review.review_text)}</div>
+                        
+                        ${review.highlight_positive ? `
+                            <div class="review-highlights">
+                                <div class="highlight-label">💚 What they loved most:</div>
+                                <div>${escapeHtml(review.highlight_positive)}</div>
+                            </div>
+                        ` : ''}
+                        
+                        ${review.suggestions ? `
+                            <div class="review-highlights">
+                                <div class="highlight-label">💡 Suggestions:</div>
+                                <div>${escapeHtml(review.suggestions)}</div>
+                            </div>
+                        ` : ''}
+                        
+                        ${review.review_photos ? renderPhotos(review.review_photos) : ''}
+                        
+                        ${renderRatingsBreakdown(review)}
+                    </div>
+                    
+                    <div class="admin-section">
+                        <div class="admin-notes">
+                            <label><strong>Admin Notes:</strong></label>
+                            <textarea id="notes_${review.id}" placeholder="Internal notes about this review...">${escapeHtml(review.admin_notes || '')}</textarea>
+                        </div>
+                        
+                        ${review.status === 'approved' ? `
+                            <div class="admin-reply">
+                                <label><strong>Public Reply:</strong></label>
+                                <textarea id="reply_${review.id}" placeholder="Reply to guest (will be visible publicly)...">${escapeHtml(review.admin_reply || '')}</textarea>
+                            </div>
+                        ` : ''}
+                        
+                        <div class="admin-actions">
+                            ${review.status === 'pending' ? `
+                                <button class="btn btn-approve" onclick="moderateReview(${review.id}, 'approved')">
+                                    ✅ Approve
+                                </button>
+                                <button class="btn btn-reject" onclick="moderateReview(${review.id}, 'rejected')">
+                                    ❌ Reject
+                                </button>
+                            ` : ''}
+                            
+                            ${review.status === 'approved' ? `
+                                <button class="btn btn-feature" onclick="toggleFeature(${review.id}, ${!review.featured})">
+                                    ${review.featured ? '⭐ Unfeature' : '⭐ Feature'}
+                                </button>
+                                <button class="btn btn-secondary" onclick="updateReply(${review.id})">
+                                    💬 Update Reply
+                                </button>
+                            ` : ''}
+                            
+                            <button class="btn btn-secondary" onclick="updateNotes(${review.id})">
+                                📝 Save Notes
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderPhotos(photosJson) {
+            try {
+                const photos = JSON.parse(photosJson);
+                if (!photos || photos.length === 0) return '';
+                
+                return `
+                    <div class="review-photos">
+                        ${photos.map(photo => `
+                            <img src="${photo}" alt="Guest photo" onclick="window.open('${photo}', '_blank')">
+                        `).join('')}
+                    </div>
+                `;
+            } catch (e) {
+                return '';
+            }
+        }
+
+        function renderRatingsBreakdown(review) {
+            const ratings = [
+                { label: 'Cleanliness', value: review.cleanliness_rating },
+                { label: 'Location', value: review.location_rating },
+                { label: 'Value', value: review.value_rating },
+                { label: 'Communication', value: review.communication_rating }
+            ].filter(r => r.value);
+            
+            if (ratings.length === 0) return '';
+            
+            return `
+                <div style="margin-top: 1rem; padding: 1rem; background: #f8fafc; border-radius: 6px;">
+                    <div style="font-weight: 600; margin-bottom: 0.5rem;">Detailed Ratings:</div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.5rem;">
+                        ${ratings.map(rating => `
+                            <div style="display: flex; justify-content: space-between;">
+                                <span>${rating.label}:</span>
+                                <span>${generateStars(rating.value)} ${rating.value}/5</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        async function moderateReview(reviewId, status) {
+            try {
+                const notes = document.getElementById(`notes_${reviewId}`).value;
+                
+                const response = await fetch(`/api/reviews/admin/moderate/${reviewId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        status: status,
+                        admin_notes: notes
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    await loadReviews();
+                    alert(`Review ${status} successfully!`);
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error moderating review:', error);
+                alert('Error moderating review');
+            }
+        }
+
+        async function toggleFeature(reviewId, featured) {
+            try {
+                const response = await fetch(`/api/reviews/admin/feature/${reviewId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        featured: featured
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    await loadReviews();
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error featuring review:', error);
+                alert('Error updating feature status');
+            }
+        }
+
+        async function updateReply(reviewId) {
+            try {
+                const reply = document.getElementById(`reply_${reviewId}`).value;
+                
+                const response = await fetch(`/api/reviews/admin/reply/${reviewId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        admin_reply: reply
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('Reply updated successfully!');
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error updating reply:', error);
+                alert('Error updating reply');
+            }
+        }
+
+        async function updateNotes(reviewId) {
+            try {
+                const notes = document.getElementById(`notes_${reviewId}`).value;
+                
+                const response = await fetch(`/api/reviews/admin/notes/${reviewId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        admin_notes: notes
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('Notes updated successfully!');
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error updating notes:', error);
+                alert('Error updating notes');
+            }
+        }
+
+        function refreshReviews() {
+            document.getElementById('loading').style.display = 'block';
+            loadReviews();
+        }
+
+        // Utility functions
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text ? text.replace(/[&<>"']/g, function(m) { return map[m]; }) : '';
+        }
+
+        function generateStars(rating) {
+            const full = '★';
+            const empty = '☆';
+            let stars = '';
+            for (let i = 1; i <= 5; i++) {
+                stars += i <= rating ? full : empty;
+            }
+            return stars;
+        }
+
+        function formatAccommodationType(type) {
+            const types = {
+                'pinot-dome': 'Pinot Dome',
+                'rose-dome': 'Rosé Dome', 
+                'lakeside-cottage': 'Lakeside Cottage'
+            };
+            return types[type] || type;
+        }
+
+        function formatDate(dateString) {
+            return new Date(dateString).toLocaleDateString('en-NZ', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // Temporary mock data for testing until admin endpoints are created
+        if (window.location.search.includes('demo')) {
+            reviews = [
+                {
+                    id: 1,
+                    guest_name: 'Sarah Johnson',
+                    guest_email: 'sarah@example.com',
+                    guest_location: 'Auckland, New Zealand',
+                    accommodation_type: 'pinot-dome',
+                    stay_dates: 'March 15-18, 2025',
+                    overall_rating: 5,
+                    cleanliness_rating: 5,
+                    location_rating: 5,
+                    value_rating: 4,
+                    communication_rating: 5,
+                    review_title: 'Absolutely magical weekend!',
+                    review_text: 'Our stay exceeded every expectation. The views were breathtaking and Sandy was incredibly helpful.',
+                    highlight_positive: 'The private spa and stunning lake views were unforgettable.',
+                    suggestions: null,
+                    status: 'pending',
+                    created_at: '2025-08-25T10:30:00Z',
+                    admin_notes: null,
+                    admin_reply: null,
+                    featured: false,
+                    review_photos: null
+                }
+            ];
+            filteredReviews = reviews;
+            renderReviews();
+        }
+    </script>
+</body>
+</html>
