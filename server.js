@@ -35,8 +35,19 @@ function validateEnvironment() {
   console.log('✅ Environment validation passed');
 }
 
-// Validate environment before starting
-validateEnvironment();
+// Validate environment before starting - but don't crash in production
+if (process.env.NODE_ENV === 'production') {
+  // In production, just warn but continue
+  const requiredVars = ['JWT_SECRET', 'ADMIN_USERNAME', 'ADMIN_PASSWORD_HASH'];
+  const missing = requiredVars.filter(varName => !process.env[varName]);
+  if (missing.length > 0) {
+    console.warn('⚠️  WARNING: Missing environment variables:', missing.join(', '));
+    console.warn('   Admin functionality will be disabled until these are configured.');
+  }
+} else {
+  // In development, validate strictly
+  validateEnvironment();
+}
 
 const app = express();
 const PORT = process.env.PORT || 10000;
@@ -221,6 +232,12 @@ app.use('/css', express.static(path.join(__dirname, 'css')));
 app.use('/images', express.static(path.join(__dirname, 'images')));
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
 
+// Serve admin HTML files and other static files from root
+app.use(express.static(__dirname, {
+  index: false,  // Don't serve index.html automatically
+  extensions: ['html']
+}));
+
 // Serve index.html for root
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
@@ -311,6 +328,12 @@ const authenticateAdmin = async (req, res, next) => {
 // SECURE ADMIN LOGIN WITH BCRYPT AND RATE LIMITING
 app.post('/api/admin/login', strictLimiter, async (req, res) => {
   try {
+    // Check if admin is configured
+    if (!process.env.ADMIN_USERNAME || !process.env.ADMIN_PASSWORD_HASH || !process.env.JWT_SECRET) {
+      console.error('Admin login attempted but admin not configured');
+      return res.status(503).json({ error: 'Admin system not configured' });
+    }
+    
     const { username, password } = req.body;
     
     // Security: Log login attempts without sensitive data
@@ -2221,7 +2244,16 @@ app.post('/webhook/uplisting/test', (req, res) => {
 });
 
 // Catch all route - serve index.html for client-side routing
+// BUT exclude admin pages and API routes
 app.get('*', (req, res) => {
+  // Don't serve index.html for admin pages or API routes
+  if (req.path.startsWith('/admin') || 
+      req.path.startsWith('/api/') ||
+      req.path.endsWith('.html') ||
+      req.path.endsWith('.js') ||
+      req.path.endsWith('.css')) {
+    return res.status(404).send('Not Found');
+  }
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
