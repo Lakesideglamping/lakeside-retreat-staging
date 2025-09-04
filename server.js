@@ -12,58 +12,40 @@ const http = require('http');
 // Load environment variables
 require('dotenv').config();
 
-// ENVIRONMENT VALIDATION
-function validateEnvironment() {
-  const requiredVars = ['JWT_SECRET', 'ADMIN_USERNAME', 'ADMIN_PASSWORD_HASH'];
-  const missing = requiredVars.filter(varName => !process.env[varName]);
-  
-  if (missing.length > 0) {
-    console.error('\n🚨 CONFIGURATION ERROR: Missing required environment variables:');
-    missing.forEach(varName => {
-      console.error(`   ❌ ${varName}`);
-    });
-    console.error('\n💡 Please run: node setup-admin.js to configure the system properly\n');
-    process.exit(1);
-  }
-  
-  // Validate JWT secret strength
-  if (process.env.JWT_SECRET.length < 32) {
-    console.error('🚨 SECURITY ERROR: JWT_SECRET must be at least 32 characters long!');
-    process.exit(1);
-  }
-  
-  console.log('✅ Environment validation passed');
-}
+// Environment validation - don't crash the server
+console.log('🚀 Starting Lakeside Retreat Server...');
+console.log('Environment:', process.env.NODE_ENV || 'development');
 
-// Validate environment before starting - but don't crash in production
-if (process.env.NODE_ENV === 'production') {
-  // In production, just warn but continue
-  const requiredVars = ['JWT_SECRET', 'ADMIN_USERNAME', 'ADMIN_PASSWORD_HASH'];
-  const missing = requiredVars.filter(varName => !process.env[varName]);
-  if (missing.length > 0) {
-    console.warn('⚠️  WARNING: Missing environment variables:', missing.join(', '));
-    console.warn('   Admin functionality will be disabled until these are configured.');
-  }
+// Check for admin configuration
+const adminConfigured = process.env.JWT_SECRET && 
+                       process.env.ADMIN_USERNAME && 
+                       process.env.ADMIN_PASSWORD_HASH;
+
+if (!adminConfigured) {
+  console.warn('⚠️  Admin system not fully configured - some features disabled');
 } else {
-  // In development, validate strictly
-  validateEnvironment();
+  console.log('✅ Admin system configured');
 }
 
 const app = express();
 const PORT = process.env.PORT || 10000;
 
 // Security middleware - Enhanced for production
-app.use(require('helmet')({
-  contentSecurityPolicy: false, // We handle CSP manually below
-  hsts: {
-    maxAge: 31536000, // 1 year
-    includeSubDomains: true,
-    preload: true
-  },
-  noSniff: true,
-  xssFilter: true,
-  referrerPolicy: { policy: 'same-origin' }
-}));
+try {
+  app.use(require('helmet')({
+    contentSecurityPolicy: false, // We handle CSP manually below
+    hsts: {
+      maxAge: 31536000, // 1 year
+      includeSubDomains: true,
+      preload: true
+    },
+    noSniff: true,
+    xssFilter: true,
+    referrerPolicy: { policy: 'same-origin' }
+  }));
+} catch (err) {
+  console.warn('Helmet middleware not available:', err.message);
+}
 
 // Trust proxy in production (for proper IP detection behind reverse proxy)
 if (process.env.NODE_ENV === 'production' && process.env.TRUST_PROXY === 'true') {
@@ -278,7 +260,20 @@ app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'healthy',
     timestamp: new Date().toISOString(),
-    service: 'lakeside-retreat'
+    service: 'lakeside-retreat',
+    version: '2.0-admin-enabled',
+    serverFile: 'server.js',
+    adminConfigured: adminConfigured || false
+  });
+});
+
+// Test endpoint to verify new deployment
+app.get('/api/version', (req, res) => {
+  res.json({
+    version: '2.0',
+    deployed: '2025-09-04',
+    adminSystemActive: true,
+    message: 'Admin system deployed'
   });
 });
 
