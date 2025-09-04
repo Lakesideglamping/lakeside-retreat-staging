@@ -243,6 +243,19 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+// Explicitly serve admin pages
+app.get('/admin.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'admin.html'));
+});
+
+app.get('/admin-dashboard.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'admin-dashboard.html'));
+});
+
+app.get('/admin-reviews.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'admin-reviews.html'));
+});
+
 // Serve admin pages
 app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'admin.html'));
@@ -2249,9 +2262,8 @@ app.get('*', (req, res) => {
   // Don't serve index.html for admin pages or API routes
   if (req.path.startsWith('/admin') || 
       req.path.startsWith('/api/') ||
-      req.path.endsWith('.html') ||
-      req.path.endsWith('.js') ||
-      req.path.endsWith('.css')) {
+      req.path.includes('admin')) {
+    // Let it 404 naturally
     return res.status(404).send('Not Found');
   }
   res.sendFile(path.join(__dirname, 'index.html'));
