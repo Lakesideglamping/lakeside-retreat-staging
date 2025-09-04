@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Review Responses - Lakeside Retreat Admin</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2d5a5a 0%, #1e4040 100%);
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .nav-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .btn-back {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            text-decoration: none;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+        
+        .review-card {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .review-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 1rem;
+        }
+        
+        .guest-info h3 {
+            color: #2d5a5a;
+            margin-bottom: 0.5rem;
+        }
+        
+        .rating {
+            font-size: 1.5rem;
+            color: #ffc107;
+        }
+        
+        .review-text {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            font-style: italic;
+        }
+        
+        .response-section {
+            border-top: 2px solid #eee;
+            padding-top: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .response-form textarea {
+            width: 100%;
+            min-height: 100px;
+            padding: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            resize: vertical;
+        }
+        
+        .response-actions {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        
+        .btn-primary {
+            background: #2d5a5a;
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .existing-response {
+            background: #e8f5e8;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid #28a745;
+        }
+        
+        .response-date {
+            font-size: 0.875rem;
+            color: #666;
+            margin-top: 0.5rem;
+        }
+        
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+        
+        .status-responded {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>💬 Review Responses</h1>
+        <div class="nav-buttons">
+            <a href="/admin-dashboard.html" class="btn-back">← Dashboard</a>
+        </div>
+    </div>
+    
+    <div class="container">
+        <!-- Review 1 -->
+        <div class="review-card">
+            <div class="review-header">
+                <div class="guest-info">
+                    <h3>Sarah Johnson</h3>
+                    <p>Dome Rosé • March 2025</p>
+                </div>
+                <div>
+                    <div class="rating">⭐⭐⭐⭐⭐</div>
+                    <span class="status-badge status-pending">Needs Response</span>
+                </div>
+            </div>
+            
+            <div class="review-text">
+                "Absolutely magical stay! The dome was perfect, the views incredible, and the solar power setup was fascinating. The hosts were wonderful and very responsive. We loved the vineyard location and all the local wine tastings. Will definitely be back!"
+            </div>
+            
+            <div class="response-section">
+                <h4>Your Response:</h4>
+                <div class="response-form">
+                    <textarea placeholder="Thank you so much for your wonderful review, Sarah! We're thrilled you enjoyed..."></textarea>
+                    <div class="response-actions">
+                        <button class="btn btn-primary" onclick="saveResponse(1)">Send Response</button>
+                        <button class="btn btn-secondary" onclick="saveDraft(1)">Save Draft</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Review 2 -->
+        <div class="review-card">
+            <div class="review-header">
+                <div class="guest-info">
+                    <h3>Mike & Linda Wilson</h3>
+                    <p>Lakeside Cottage • February 2025</p>
+                </div>
+                <div>
+                    <div class="rating">⭐⭐⭐⭐⭐</div>
+                    <span class="status-badge status-responded">Responded</span>
+                </div>
+            </div>
+            
+            <div class="review-text">
+                "Perfect romantic getaway! The cottage was cozy and well-equipped. Loved waking up to the lake views every morning. The kayaks were a great touch. Highly recommend for couples!"
+            </div>
+            
+            <div class="response-section">
+                <div class="existing-response">
+                    <strong>Your Response:</strong><br>
+                    Thank you so much Mike & Linda! We're delighted you enjoyed the cottage and those beautiful lake views. The kayaks are definitely one of our favorite features. We'd love to welcome you back anytime for another romantic retreat!
+                    <div class="response-date">Responded on March 15, 2025</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Review 3 -->
+        <div class="review-card">
+            <div class="review-header">
+                <div class="guest-info">
+                    <h3>James Parker</h3>
+                    <p>Dome Pinot • January 2025</p>
+                </div>
+                <div>
+                    <div class="rating">⭐⭐⭐⭐</div>
+                    <span class="status-badge status-pending">Needs Response</span>
+                </div>
+            </div>
+            
+            <div class="review-text">
+                "Great experience overall. The dome was unique and comfortable. The solar power system was impressive. Only minor issue was the heating could have been a bit warmer on the very cold nights, but otherwise perfect!"
+            </div>
+            
+            <div class="response-section">
+                <h4>Your Response:</h4>
+                <div class="response-form">
+                    <textarea placeholder="Thank you for your honest feedback, James! We're so glad you enjoyed the unique dome experience..."></textarea>
+                    <div class="response-actions">
+                        <button class="btn btn-primary" onclick="saveResponse(3)">Send Response</button>
+                        <button class="btn btn-secondary" onclick="saveDraft(3)">Save Draft</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check authentication
+        const token = localStorage.getItem('adminToken');
+        if (!token) {
+            window.location.href = '/admin.html';
+        }
+
+        function saveResponse(reviewId) {
+            const textarea = document.querySelector(`[data-review="${reviewId}"] textarea`) || 
+                            event.target.closest('.response-section').querySelector('textarea');
+            const response = textarea.value.trim();
+            
+            if (!response) {
+                alert('Please write a response before sending.');
+                return;
+            }
+            
+            // In production, save to database
+            alert(`Response sent for review ${reviewId}!`);
+            textarea.value = '';
+            
+            // Update UI to show response sent
+            const statusBadge = event.target.closest('.review-card').querySelector('.status-badge');
+            statusBadge.textContent = 'Responded';
+            statusBadge.className = 'status-badge status-responded';
+        }
+
+        function saveDraft(reviewId) {
+            const textarea = event.target.closest('.response-section').querySelector('textarea');
+            const response = textarea.value.trim();
+            
+            if (!response) {
+                alert('Please write a response before saving draft.');
+                return;
+            }
+            
+            // In production, save draft to database
+            alert(`Draft saved for review ${reviewId}!`);
+        }
+    </script>
+</body>
+</html>

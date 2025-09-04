@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gallery Management - Lakeside Retreat Admin</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2d5a5a 0%, #1e4040 100%);
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .nav-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .btn-back {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            text-decoration: none;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+        
+        .upload-section {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .upload-area {
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            padding: 3rem;
+            text-align: center;
+            background: #fafafa;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+        
+        .upload-area:hover {
+            border-color: #2d5a5a;
+        }
+        
+        .upload-area.dragover {
+            border-color: #2d5a5a;
+            background: #f0f8f0;
+        }
+        
+        .upload-icon {
+            font-size: 3rem;
+            color: #ccc;
+            margin-bottom: 1rem;
+        }
+        
+        .filters {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .filter-row {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .filter-group {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .filter-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+        
+        .filter-group select, .filter-group input {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        .image-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+        
+        .image-card:hover {
+            transform: translateY(-2px);
+        }
+        
+        .image-preview {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            cursor: pointer;
+        }
+        
+        .image-info {
+            padding: 1rem;
+        }
+        
+        .image-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+        
+        .image-meta {
+            font-size: 0.875rem;
+            color: #666;
+            margin-bottom: 0.5rem;
+        }
+        
+        .image-category {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            background: #e9ecef;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        
+        .image-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+        
+        .btn-primary {
+            background: #2d5a5a;
+            color: white;
+        }
+        
+        .btn-warning {
+            background: #ffc107;
+            color: #000;
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.8);
+        }
+        
+        .modal-content {
+            position: relative;
+            background-color: white;
+            margin: 5% auto;
+            padding: 2rem;
+            width: 90%;
+            max-width: 600px;
+            border-radius: 12px;
+        }
+        
+        .close {
+            position: absolute;
+            right: 1rem;
+            top: 1rem;
+            font-size: 2rem;
+            cursor: pointer;
+            color: #999;
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+        
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .bulk-actions {
+            background: white;
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: none;
+        }
+        
+        .bulk-actions.show {
+            display: block;
+        }
+        
+        .stats-bar {
+            background: white;
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .stats-item {
+            text-align: center;
+        }
+        
+        .stats-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #2d5a5a;
+        }
+        
+        .stats-label {
+            font-size: 0.875rem;
+            color: #666;
+        }
+        
+        .checkbox {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🖼️ Gallery Management</h1>
+        <div class="nav-buttons">
+            <a href="/admin-dashboard.html" class="btn-back">← Dashboard</a>
+        </div>
+    </div>
+    
+    <div class="container">
+        <!-- Upload Section -->
+        <div class="upload-section">
+            <h2 style="color: #2d5a5a; margin-bottom: 1rem;">Upload New Images</h2>
+            <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                <div class="upload-icon">📁</div>
+                <h3>Drop images here or click to browse</h3>
+                <p>Supports JPG, PNG, WebP • Max 10MB per file</p>
+                <input type="file" id="fileInput" multiple accept="image/*" style="display: none;" onchange="handleFileSelect(this.files)">
+            </div>
+        </div>
+        
+        <!-- Stats Bar -->
+        <div class="stats-bar">
+            <div class="stats-item">
+                <div class="stats-value">247</div>
+                <div class="stats-label">Total Images</div>
+            </div>
+            <div class="stats-item">
+                <div class="stats-value">89</div>
+                <div class="stats-label">Published</div>
+            </div>
+            <div class="stats-item">
+                <div class="stats-value">1.2GB</div>
+                <div class="stats-label">Storage Used</div>
+            </div>
+            <div class="stats-item">
+                <div class="stats-value">15</div>
+                <div class="stats-label">Categories</div>
+            </div>
+        </div>
+        
+        <!-- Filters -->
+        <div class="filters">
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label>Category</label>
+                    <select id="categoryFilter">
+                        <option value="">All Categories</option>
+                        <option value="accommodations">Accommodations</option>
+                        <option value="exterior">Exterior Views</option>
+                        <option value="interior">Interior</option>
+                        <option value="landscape">Landscape</option>
+                        <option value="activities">Activities</option>
+                        <option value="amenities">Amenities</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Status</label>
+                    <select id="statusFilter">
+                        <option value="">All Status</option>
+                        <option value="published">Published</option>
+                        <option value="draft">Draft</option>
+                        <option value="archived">Archived</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Search</label>
+                    <input type="text" placeholder="Search by title or description...">
+                </div>
+                <div class="filter-group">
+                    <label>&nbsp;</label>
+                    <button class="btn btn-primary" onclick="applyFilters()">Apply Filters</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Bulk Actions -->
+        <div class="bulk-actions" id="bulkActions">
+            <p><span id="selectedCount">0</span> images selected</p>
+            <div style="display: flex; gap: 1rem; margin-top: 0.5rem;">
+                <button class="btn btn-success" onclick="bulkPublish()">Publish Selected</button>
+                <button class="btn btn-warning" onclick="bulkArchive()">Archive Selected</button>
+                <button class="btn btn-danger" onclick="bulkDelete()">Delete Selected</button>
+            </div>
+        </div>
+        
+        <!-- Gallery Grid -->
+        <div class="gallery-grid">
+            <!-- Sample Images -->
+            <div class="image-card">
+                <input type="checkbox" class="checkbox" onchange="updateBulkActions()">
+                <img src="/images/dome-pinot-exterior.jpeg" alt="Dome Pinot Exterior" class="image-preview" onclick="editImage(1)">
+                <div class="image-info">
+                    <div class="image-title">Dome Pinot Exterior</div>
+                    <div class="image-meta">2025-03-15 • 1920x1080 • 2.3MB</div>
+                    <div class="image-category">Accommodations</div>
+                    <div class="image-actions">
+                        <button class="btn btn-primary" onclick="editImage(1)">Edit</button>
+                        <button class="btn btn-success" onclick="publishImage(1)">Publish</button>
+                        <button class="btn btn-danger" onclick="deleteImage(1)">Delete</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="image-card">
+                <input type="checkbox" class="checkbox" onchange="updateBulkActions()">
+                <img src="/images/dome-rose-spa.jpeg" alt="Dome Rose Spa" class="image-preview" onclick="editImage(2)">
+                <div class="image-info">
+                    <div class="image-title">Dome Rosé Spa Bath</div>
+                    <div class="image-meta">2025-03-12 • 1920x1280 • 1.8MB</div>
+                    <div class="image-category">Interior</div>
+                    <div class="image-actions">
+                        <button class="btn btn-primary" onclick="editImage(2)">Edit</button>
+                        <button class="btn btn-warning" onclick="archiveImage(2)">Archive</button>
+                        <button class="btn btn-danger" onclick="deleteImage(2)">Delete</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="image-card">
+                <input type="checkbox" class="checkbox" onchange="updateBulkActions()">
+                <img src="/images/lakesidecottageexterior.jpeg" alt="Lakeside Cottage" class="image-preview" onclick="editImage(3)">
+                <div class="image-info">
+                    <div class="image-title">Lakeside Cottage Exterior</div>
+                    <div class="image-meta">2025-03-10 • 1920x1080 • 2.1MB</div>
+                    <div class="image-category">Accommodations</div>
+                    <div class="image-actions">
+                        <button class="btn btn-primary" onclick="editImage(3)">Edit</button>
+                        <button class="btn btn-success" onclick="publishImage(3)">Publish</button>
+                        <button class="btn btn-danger" onclick="deleteImage(3)">Delete</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="image-card">
+                <input type="checkbox" class="checkbox" onchange="updateBulkActions()">
+                <img src="/images/vineyard.jpeg" alt="Vineyard Views" class="image-preview" onclick="editImage(4)">
+                <div class="image-info">
+                    <div class="image-title">Vineyard Landscape</div>
+                    <div class="image-meta">2025-03-08 • 1920x1080 • 3.2MB</div>
+                    <div class="image-category">Landscape</div>
+                    <div class="image-actions">
+                        <button class="btn btn-primary" onclick="editImage(4)">Edit</button>
+                        <button class="btn btn-success" onclick="publishImage(4)">Publish</button>
+                        <button class="btn btn-danger" onclick="deleteImage(4)">Delete</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Edit Image Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2>Edit Image</h2>
+            
+            <div class="form-group">
+                <label>Title</label>
+                <input type="text" id="imageTitle" value="Dome Pinot Exterior">
+            </div>
+            
+            <div class="form-group">
+                <label>Description</label>
+                <textarea id="imageDescription" rows="3">Stunning exterior view of our eco-friendly Dome Pinot accommodation with lake and mountain views.</textarea>
+            </div>
+            
+            <div class="form-group">
+                <label>Category</label>
+                <select id="imageCategory">
+                    <option value="accommodations" selected>Accommodations</option>
+                    <option value="exterior">Exterior Views</option>
+                    <option value="interior">Interior</option>
+                    <option value="landscape">Landscape</option>
+                    <option value="activities">Activities</option>
+                    <option value="amenities">Amenities</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Alt Text</label>
+                <input type="text" id="imageAlt" value="Dome Pinot Exterior">
+            </div>
+            
+            <div class="form-group">
+                <label>Status</label>
+                <select id="imageStatus">
+                    <option value="published">Published</option>
+                    <option value="draft" selected>Draft</option>
+                    <option value="archived">Archived</option>
+                </select>
+            </div>
+            
+            <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                <button class="btn btn-primary" onclick="saveImage()">Save Changes</button>
+                <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check authentication
+        const token = localStorage.getItem('adminToken');
+        if (!token) {
+            window.location.href = '/admin.html';
+        }
+
+        function handleFileSelect(files) {
+            if (files.length > 0) {
+                alert(`${files.length} file(s) selected for upload:\n\n${Array.from(files).map(f => f.name).join('\n')}\n\nUpload functionality would process these files.`);
+            }
+        }
+
+        function applyFilters() {
+            alert('Filters applied! Gallery updated based on selected criteria.');
+        }
+
+        function editImage(id) {
+            document.getElementById('editModal').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('editModal').style.display = 'none';
+        }
+
+        function saveImage() {
+            alert('Image details saved successfully!');
+            closeModal();
+        }
+
+        function publishImage(id) {
+            alert(`Image ${id} published to gallery!`);
+        }
+
+        function archiveImage(id) {
+            alert(`Image ${id} archived.`);
+        }
+
+        function deleteImage(id) {
+            if (confirm('Are you sure you want to delete this image?')) {
+                alert(`Image ${id} deleted permanently.`);
+            }
+        }
+
+        function updateBulkActions() {
+            const checkboxes = document.querySelectorAll('.checkbox:checked');
+            const bulkActions = document.getElementById('bulkActions');
+            const selectedCount = document.getElementById('selectedCount');
+            
+            if (checkboxes.length > 0) {
+                bulkActions.classList.add('show');
+                selectedCount.textContent = checkboxes.length;
+            } else {
+                bulkActions.classList.remove('show');
+            }
+        }
+
+        function bulkPublish() {
+            const checkboxes = document.querySelectorAll('.checkbox:checked');
+            alert(`${checkboxes.length} images published to gallery!`);
+            // Uncheck all
+            checkboxes.forEach(cb => cb.checked = false);
+            updateBulkActions();
+        }
+
+        function bulkArchive() {
+            const checkboxes = document.querySelectorAll('.checkbox:checked');
+            alert(`${checkboxes.length} images archived.`);
+            checkboxes.forEach(cb => cb.checked = false);
+            updateBulkActions();
+        }
+
+        function bulkDelete() {
+            const checkboxes = document.querySelectorAll('.checkbox:checked');
+            if (confirm(`Are you sure you want to delete ${checkboxes.length} selected images?`)) {
+                alert(`${checkboxes.length} images deleted permanently.`);
+                checkboxes.forEach(cb => cb.checked = false);
+                updateBulkActions();
+            }
+        }
+    </script>
+</body>
+</html>
