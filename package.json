@@ -1,11 +1,11 @@
 {
   "name": "lakeside-retreat-staging",
   "version": "1.0.0",
-  "main": "server-render.js",
+  "main": "server.js",
   "scripts": {
-    "start": "node server-render.js",
-    "start:production": "NODE_ENV=production node server-render.js",
-    "start:dev": "NODE_ENV=development nodemon server-render.js",
+    "start": "node server.js",
+    "start:production": "NODE_ENV=production node server.js",
+    "start:dev": "NODE_ENV=development nodemon server.js",
     "setup": "node setup-admin.js",
     "backup": "node backup-system.js create",
     "health": "curl http://localhost:10000/api/health"
