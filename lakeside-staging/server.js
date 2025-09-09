@@ -1502,6 +1502,11 @@ app.get('/api/admin/booking-stats', verifyAdmin, (req, res) => {
     );
 });
 
+// Main website route
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
 // Admin page routes - serve specific admin HTML files
 app.get('/admin-reviews.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'admin-reviews.html'));
