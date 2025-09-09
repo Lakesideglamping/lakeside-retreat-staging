@@ -1,7 +1,7 @@
 services:
   - type: web
     name: lakeside-retreat-production
-    repo: https://github.com/Lakesideglamping/lakeside-retreat-clean
+    repo: https://github.com/Lakesideglamping/lakeside-retreat-staging
     branch: main
     env: node
     plan: starter
