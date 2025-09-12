@@ -340,6 +340,34 @@ function validateEmailFormat(email) {
     return emailRegex.test(email);
 }
 
+function calculateNights(checkIn, checkOut) {
+    const checkInDate = new Date(checkIn);
+    const checkOutDate = new Date(checkOut);
+    const timeDifference = checkOutDate.getTime() - checkInDate.getTime();
+    return Math.ceil(timeDifference / (1000 * 3600 * 24));
+}
+
+function validateSeasonalMinimumStay(accommodation, checkIn, checkOut) {
+    if (accommodation === 'lakeside-cottage') {
+        const checkInDate = new Date(checkIn);
+        const month = checkInDate.getMonth() + 1; // JS months are 0-based
+        
+        // Peak season: Oct (10) through May (5) - includes crossing year boundary
+        const isPeakSeason = month >= 10 || month <= 5;
+        
+        if (isPeakSeason) {
+            const nights = calculateNights(checkIn, checkOut);
+            if (nights < 2) {
+                return {
+                    valid: false,
+                    error: "Minimum 2-night stay required for Lakeside Cottage during peak season (October to May)"
+                };
+            }
+        }
+    }
+    return { valid: true };
+}
+
 // Uplisting API integration
 async function checkUplistingAvailability(accommodation, checkIn, checkOut) {
     if (!process.env.UPLISTING_API_KEY) {
@@ -684,6 +712,15 @@ app.post('/api/process-booking', bookingLimiter, validateBooking, async (req, re
             return res.status(400).json({
                 success: false,
                 error: 'Check-out date must be after check-in date'
+            });
+        }
+
+        // Validate seasonal minimum stay for cottage (October to May = 2 nights minimum)
+        const seasonalValidation = validateSeasonalMinimumStay(sanitizedData.accommodation, sanitizedData.check_in, sanitizedData.check_out);
+        if (!seasonalValidation.valid) {
+            return res.status(400).json({
+                success: false,
+                error: seasonalValidation.error
             });
         }
 

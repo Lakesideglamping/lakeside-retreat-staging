@@ -2810,6 +2810,17 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                     </div>
 
+                    <!-- Cottage Minimum Stay Warning -->
+                    <div id="cottageMinimumStayWarning" style="display: none; background: #fef3c7; border: 1px solid #f59e0b; padding: 1rem; border-radius: 8px; margin: 1rem 0;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="color: #f59e0b; font-size: 1.2rem;">⚠️</span>
+                            <div>
+                                <strong style="color: #92400e;">Lakeside Cottage - Peak Season Notice</strong>
+                                <p style="margin: 0.5rem 0 0 0; color: #92400e; font-size: 0.9rem;">Minimum 2-night stay required during peak season (October to May)</p>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="booking-guests-row">
                         <div class="booking-form-group">
                             <label class="booking-form-label" for="bookingAdults">Adults</label>
@@ -5651,6 +5662,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 checkinInput.addEventListener('change', updateCheckoutMinDate);
             }
             
+            if (checkoutInput) {
+                checkoutInput.addEventListener('change', validateCottageMinimumStay);
+            }
+            
             // Mobile-specific performance optimizations
             if (window.innerWidth <= 768) {
                 // Reduce animation frequency on mobile
@@ -5813,6 +5828,17 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Update form based on accommodation type
             updateBookingFormForAccommodation(accommodationType);
+            
+            // Immediately scroll to dates section after accommodation selection
+            setTimeout(() => {
+                const datesSection = document.querySelector('.booking-date-row');
+                if (datesSection) {
+                    datesSection.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'center'
+                    });
+                }
+            }, 100);
         }
         
         function updateBookingFormForAccommodation(accommodationType) {
@@ -5820,6 +5846,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const childrenSelect = document.getElementById('bookingChildren');
             const childrenGroup = childrenSelect.closest('.booking-form-group');
             const petSelectionGroup = document.getElementById('petSelectionGroup');
+            const cottageWarning = document.getElementById('cottageMinimumStayWarning');
             
             if (accommodationType === 'dome-pinot' || accommodationType === 'dome-rose') {
                 // Domes: Adults only (1-2), no children, no pets
@@ -5841,6 +5868,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 // Set children to 0 for domes
                 childrenSelect.value = '0';
+                
+                // Hide cottage minimum stay warning for domes
+                if (cottageWarning) {
+                    cottageWarning.style.display = 'none';
+                }
                 
                 // Console statement removed for production
             } else {
@@ -5867,6 +5899,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     petSelectionGroup.style.display = 'block';
                 }
                 
+                // Show cottage minimum stay warning
+                if (cottageWarning) {
+                    cottageWarning.style.display = 'block';
+                }
+                
                 // Console statement removed for production
             }
         }
@@ -5882,6 +5919,67 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (checkoutInput.value && new Date(checkoutInput.value) <= new Date(document.getElementById('bookingCheckin').value)) {
                     checkoutInput.value = '';
                 }
+                
+                // Check cottage minimum stay requirements
+                validateCottageMinimumStay();
+            }
+        }
+
+        function calculateNightsFrontend(checkIn, checkOut) {
+            if (!checkIn || !checkOut) return 0;
+            const checkInDate = new Date(checkIn);
+            const checkOutDate = new Date(checkOut);
+            const timeDifference = checkOutDate.getTime() - checkInDate.getTime();
+            return Math.ceil(timeDifference / (1000 * 3600 * 24));
+        }
+
+        function isPeakSeason(date) {
+            const month = new Date(date).getMonth() + 1; // JS months are 0-based
+            return month >= 10 || month <= 5; // Oct (10) through May (5)
+        }
+
+        function validateCottageMinimumStay() {
+            const checkIn = document.getElementById('bookingCheckin').value;
+            const checkOut = document.getElementById('bookingCheckout').value;
+            
+            if (!checkIn || !checkOut || selectedAccommodation !== 'lakeside-cottage') {
+                return true;
+            }
+            
+            const nights = calculateNightsFrontend(checkIn, checkOut);
+            const isPeak = isPeakSeason(checkIn);
+            
+            if (isPeak && nights < 2) {
+                // Show error message
+                showDateValidationError('Minimum 2-night stay required for Lakeside Cottage during peak season (October to May)');
+                return false;
+            } else {
+                // Clear error message
+                clearDateValidationError();
+                return true;
+            }
+        }
+
+        function showDateValidationError(message) {
+            let errorDiv = document.getElementById('dateValidationError');
+            if (!errorDiv) {
+                errorDiv = document.createElement('div');
+                errorDiv.id = 'dateValidationError';
+                errorDiv.style.cssText = 'background: #fee2e2; border: 1px solid #ef4444; padding: 0.75rem; border-radius: 6px; margin: 0.5rem 0; color: #dc2626; font-size: 0.9rem;';
+                
+                const dateRow = document.querySelector('.booking-date-row');
+                if (dateRow) {
+                    dateRow.parentNode.insertBefore(errorDiv, dateRow.nextSibling);
+                }
+            }
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        function clearDateValidationError() {
+            const errorDiv = document.getElementById('dateValidationError');
+            if (errorDiv) {
+                errorDiv.style.display = 'none';
             }
         }
 
@@ -5920,6 +6018,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (checkoutDate <= checkinDate) {
                 // Console statement removed for production
                 alert('Check-out date must be after check-in date');
+                return;
+            }
+
+            // Validate cottage minimum stay requirements
+            if (!validateCottageMinimumStay()) {
+                alert('Minimum 2-night stay required for Lakeside Cottage during peak season (October to May)');
                 return;
             }
 
@@ -6829,7 +6933,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <p>Dome Pinot & Dome Rosé: Maximum 2 adults, no children permitted. Lakeside Cottage: Maximum 3 guests, children and pets welcome.</p>
                         
                         <h3>5. Minimum Stay Requirements</h3>
-                        <p>Minimum 2-night stay applies during peak season (December to March). Single night bookings may be available during off-peak periods.</p>
+                        <p>Minimum 2-night stay applies to Lakeside Cottage during peak season (October to May). Single night bookings may be available during off-peak periods for all accommodations.</p>
                         
                         <h3>6. Special Requests</h3>
                         <p>Special requests (early check-in, late check-out, dietary requirements) should be made at time of booking. We will accommodate requests where possible but cannot guarantee availability.</p>
