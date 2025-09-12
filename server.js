@@ -159,9 +159,13 @@ app.use(express.urlencoded({ extended: true }));
 // Simple static file serving
 app.use(express.static(__dirname));
 
-// Health check
+// Health check endpoints
 app.get('/health', (req, res) => {
     res.json({ status: 'healthy' });
+});
+
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'healthy', timestamp: new Date().toISOString() });
 });
 
 // CSRF Token endpoint
@@ -389,13 +393,13 @@ async function checkUplistingAvailability(accommodation, checkIn, checkOut) {
             return true;
         }
         
-        const url = `https://api.uplisting.io/v2/properties/${propertyId}/availability?start_date=${checkIn}&end_date=${checkOut}`;
+        const url = `https://connect.uplisting.io/properties/${propertyId}/availability?start_date=${checkIn}&end_date=${checkOut}`;
         console.log('🔍 Checking Uplisting availability:', url);
         
         const response = await fetch(url, {
             method: 'GET',
             headers: {
-                'Authorization': `Bearer ${process.env.UPLISTING_API_KEY}`,
+                'Authorization': `Basic ${Buffer.from(process.env.UPLISTING_API_KEY).toString('base64')}`,
                 'Content-Type': 'application/json'
             }
         });
@@ -500,10 +504,10 @@ async function syncBookingToUplisting(bookingData) {
             notes: bookingData.notes || ''
         };
         
-        const response = await fetch('https://api.uplisting.io/v2/bookings', {
+        const response = await fetch('https://connect.uplisting.io/bookings', {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${process.env.UPLISTING_API_KEY}`,
+                'Authorization': `Basic ${Buffer.from(process.env.UPLISTING_API_KEY).toString('base64')}`,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(uplistingBooking)
@@ -1290,9 +1294,9 @@ app.get('/api/admin/uplisting-booking/:bookingId', verifyAdmin, async (req, res)
             });
         }
         
-        const response = await fetch(`https://api.uplisting.io/v2/bookings/${bookingId}`, {
+        const response = await fetch(`https://connect.uplisting.io/bookings/${bookingId}`, {
             headers: {
-                'Authorization': `Bearer ${process.env.UPLISTING_API_KEY}`,
+                'Authorization': `Basic ${Buffer.from(process.env.UPLISTING_API_KEY).toString('base64')}`,
                 'Content-Type': 'application/json'
             }
         });
@@ -1413,10 +1417,10 @@ async function cancelUplistingBooking(uplistingId) {
     if (!process.env.UPLISTING_API_KEY || !uplistingId) return;
     
     try {
-        const response = await fetch(`https://api.uplisting.io/v2/bookings/${uplistingId}/cancel`, {
+        const response = await fetch(`https://connect.uplisting.io/bookings/${uplistingId}/cancel`, {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${process.env.UPLISTING_API_KEY}`,
+                'Authorization': `Basic ${Buffer.from(process.env.UPLISTING_API_KEY).toString('base64')}`,
                 'Content-Type': 'application/json'
             }
         });
