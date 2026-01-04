@@ -99,6 +99,36 @@ const emailTransporter = nodemailer.createTransport({
     }
 });
 
+// Centralized Uplisting property mapping configuration
+// Maps accommodation names to their Uplisting property IDs
+function getUplistingPropertyMapping() {
+    return {
+        'dome-pinot': process.env.UPLISTING_PROPERTY_PINOT_ID,
+        'dome-rose': process.env.UPLISTING_PROPERTY_ROSE_ID,
+        'lakeside-cottage': process.env.UPLISTING_PROPERTY_COTTAGE_ID
+    };
+}
+
+// Get Uplisting property ID from accommodation name
+function getPropertyIdFromAccommodation(accommodation) {
+    const mapping = getUplistingPropertyMapping();
+    return mapping[accommodation] || null;
+}
+
+// Get accommodation name from Uplisting property ID (reverse lookup)
+function getAccommodationFromPropertyId(propertyId) {
+    if (!propertyId) {
+        return 'unknown';
+    }
+    const mapping = getUplistingPropertyMapping();
+    for (const [accommodation, id] of Object.entries(mapping)) {
+        if (id && id === propertyId) {
+            return accommodation;
+        }
+    }
+    return 'unknown';
+}
+
 // Rate limiting middleware
 const generalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
@@ -152,12 +182,63 @@ app.use(helmet({
     dnsPrefetchControl: { allow: true }  // Allow DNS prefetching for performance
 }));
 
-// Middleware
+// Stripe webhook MUST be registered BEFORE express.json() middleware
+// because it needs the raw body for signature verification
+app.post('/api/stripe/webhook', express.raw({type: 'application/json'}), (req, res) => {
+    const sig = req.headers['stripe-signature'];
+    let event;
+
+    try {
+        event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+    } catch (err) {
+        console.error('Webhook signature verification failed:', err.message);
+        return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+
+    if (event.type === 'checkout.session.completed') {
+        const session = event.data.object;
+        
+        const sql = `
+            UPDATE bookings 
+            SET payment_status = 'completed', status = 'confirmed', stripe_payment_id = ?
+            WHERE stripe_session_id = ?
+        `;
+        
+        db.run(sql, [session.payment_intent, session.id], function(err) {
+            if (err) {
+                console.error('Failed to update booking status:', err);
+            } else {
+                console.log('Booking confirmed for session:', session.id);
+                
+                db.get('SELECT * FROM bookings WHERE stripe_session_id = ?', [session.id], async (err, booking) => {
+                    if (!err && booking) {
+                        await syncBookingToUplisting(booking);
+                        
+                        await sendBookingConfirmation({
+                            guest_name: session.metadata.guest_name,
+                            guest_email: session.metadata.guest_email,
+                            accommodation: session.metadata.accommodation,
+                            check_in: session.metadata.check_in,
+                            check_out: session.metadata.check_out,
+                            guests: session.metadata.guests,
+                            total_price: (session.amount_total / 100).toFixed(2)
+                        });
+                    }
+                });
+            }
+        });
+    }
+
+    res.json({received: true});
+});
+
+// Middleware (AFTER Stripe webhook route)
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Simple static file serving
-app.use(express.static(__dirname));
+// Secure static file serving - only serve files from public directory
+// This prevents exposure of sensitive files like lakeside.db, server.js, .env
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Health check endpoints
 app.get('/health', (req, res) => {
@@ -339,11 +420,6 @@ function sanitizeInput(input) {
     return input.replace(/[<>\"\']/g, '');
 }
 
-function validateEmailFormat(email) {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-}
-
 function calculateNights(checkIn, checkOut) {
     const checkInDate = new Date(checkIn);
     const checkOutDate = new Date(checkOut);
@@ -380,14 +456,8 @@ async function checkUplistingAvailability(accommodation, checkIn, checkOut) {
     }
     
     try {
-        // Map accommodation names to Uplisting property IDs
-        const propertyMapping = {
-            'dome-pinot': process.env.UPLISTING_PROPERTY_PINOT_ID,
-            'dome-rose': process.env.UPLISTING_PROPERTY_ROSE_ID,
-            'lakeside-cottage': process.env.UPLISTING_PROPERTY_COTTAGE_ID
-        };
-        
-        const propertyId = propertyMapping[accommodation];
+        // Use centralized property mapping
+        const propertyId = getPropertyIdFromAccommodation(accommodation);
         if (!propertyId) {
             console.warn(`⚠️ No Uplisting property ID configured for ${accommodation}`);
             return true;
@@ -475,13 +545,8 @@ async function syncBookingToUplisting(bookingData) {
     }
     
     try {
-        const propertyMapping = {
-            'dome-pinot': process.env.UPLISTING_PROPERTY_PINOT_ID,
-            'dome-rose': process.env.UPLISTING_PROPERTY_ROSE_ID,
-            'lakeside-cottage': process.env.UPLISTING_PROPERTY_COTTAGE_ID
-        };
-        
-        const propertyId = propertyMapping[bookingData.accommodation];
+        // Use centralized property mapping
+        const propertyId = getPropertyIdFromAccommodation(bookingData.accommodation);
         if (!propertyId) {
             console.warn(`⚠️ No Uplisting property ID configured for ${bookingData.accommodation}`);
             return;
@@ -612,17 +677,6 @@ app.post('/api/uplisting/webhook', express.json(), (req, res) => {
         res.status(500).json({ error: 'Webhook processing failed' });
     }
 });
-
-// Helper function to map Uplisting property IDs back to accommodation names
-function getAccommodationFromPropertyId(propertyId) {
-    const propertyMapping = {
-        [process.env.UPLISTING_PROPERTY_PINOT_ID]: 'dome-pinot',
-        [process.env.UPLISTING_PROPERTY_ROSE_ID]: 'dome-rose',
-        [process.env.UPLISTING_PROPERTY_COTTAGE_ID]: 'lakeside-cottage'
-    };
-    
-    return propertyMapping[propertyId] || 'unknown';
-}
 
 // Send booking confirmation email
 async function sendBookingConfirmation(bookingData) {
@@ -855,64 +909,8 @@ app.post('/api/process-booking', bookingLimiter, validateBooking, async (req, re
     }
 });
 
-// Create booking endpoint (alternative endpoint called by frontend)
-app.post('/api/create-booking', bookingLimiter, validateBooking, async (req, res) => {
-    // This endpoint does the same as process-booking for compatibility
-    return app._router.handle({ ...req, url: '/api/process-booking', method: 'POST' }, res);
-});
-
-// Stripe webhook for payment confirmation
-app.post('/api/stripe/webhook', express.raw({type: 'application/json'}), (req, res) => {
-    const sig = req.headers['stripe-signature'];
-    let event;
-
-    try {
-        event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
-    } catch (err) {
-        console.error('❌ Webhook signature verification failed:', err.message);
-        return res.status(400).send(`Webhook Error: ${err.message}`);
-    }
-
-    if (event.type === 'checkout.session.completed') {
-        const session = event.data.object;
-        
-        // Update booking status
-        const sql = `
-            UPDATE bookings 
-            SET payment_status = 'completed', status = 'confirmed', stripe_payment_id = ?
-            WHERE stripe_session_id = ?
-        `;
-        
-        db.run(sql, [session.payment_intent, session.id], function(err) {
-            if (err) {
-                console.error('❌ Failed to update booking status:', err);
-            } else {
-                console.log('✅ Booking confirmed for session:', session.id);
-                
-                // Get booking data for sync to Uplisting
-                db.get('SELECT * FROM bookings WHERE stripe_session_id = ?', [session.id], async (err, booking) => {
-                    if (!err && booking) {
-                        // Sync to Uplisting
-                        await syncBookingToUplisting(booking);
-                        
-                        // Send confirmation email
-                        await sendBookingConfirmation({
-                            guest_name: session.metadata.guest_name,
-                            guest_email: session.metadata.guest_email,
-                            accommodation: session.metadata.accommodation,
-                            check_in: session.metadata.check_in,
-                            check_out: session.metadata.check_out,
-                            guests: session.metadata.guests,
-                            total_price: (session.amount_total / 100).toFixed(2)
-                        });
-                    }
-                });
-            }
-        });
-    }
-
-    res.json({received: true});
-});
+// Note: /api/create-booking endpoint removed - use /api/process-booking instead
+// Note: Stripe webhook moved to top of file (before express.json middleware) for proper raw body handling
 
 // Get booking status
 app.get('/api/booking/:id', (req, res) => {
@@ -1161,39 +1159,32 @@ app.delete('/api/admin/booking/:id', verifyAdmin, (req, res) => {
     });
 });
 
-// Get booking statistics (admin only)
+// Get booking statistics (admin only) - optimized single query
 app.get('/api/admin/stats', verifyAdmin, (req, res) => {
-    const queries = [
-        'SELECT COUNT(*) as total_bookings FROM bookings',
-        'SELECT COUNT(*) as pending_bookings FROM bookings WHERE status = "pending"',
-        'SELECT COUNT(*) as confirmed_bookings FROM bookings WHERE status = "confirmed"',
-        'SELECT SUM(total_price) as total_revenue FROM bookings WHERE payment_status = "completed"',
-        'SELECT COUNT(*) as today_bookings FROM bookings WHERE DATE(created_at) = DATE("now")'
-    ];
+    const sql = `
+        SELECT 
+            COUNT(*) as total_bookings,
+            COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_bookings,
+            COUNT(CASE WHEN status = 'confirmed' THEN 1 END) as confirmed_bookings,
+            COALESCE(SUM(CASE WHEN payment_status = 'completed' THEN total_price ELSE 0 END), 0) as total_revenue,
+            COUNT(CASE WHEN DATE(created_at) = DATE('now') THEN 1 END) as today_bookings
+        FROM bookings
+    `;
     
-    const stats = {};
-    let completed = 0;
-    
-    queries.forEach((query, index) => {
-        db.get(query, (err, row) => {
-            if (err) {
-                console.error('Stats query error:', err);
-            } else {
-                Object.assign(stats, row);
-            }
-            
-            completed++;
-            if (completed === queries.length) {
-                res.json({
-                    success: true,
-                    stats: {
-                        total_bookings: stats.total_bookings || 0,
-                        pending_bookings: stats.pending_bookings || 0,
-                        confirmed_bookings: stats.confirmed_bookings || 0,
-                        total_revenue: stats.total_revenue || 0,
-                        today_bookings: stats.today_bookings || 0
-                    }
-                });
+    db.get(sql, (err, row) => {
+        if (err) {
+            console.error('Stats query error:', err);
+            return res.status(500).json({ success: false, error: 'Database error' });
+        }
+        
+        res.json({
+            success: true,
+            stats: {
+                total_bookings: row.total_bookings || 0,
+                pending_bookings: row.pending_bookings || 0,
+                confirmed_bookings: row.confirmed_bookings || 0,
+                total_revenue: row.total_revenue || 0,
+                today_bookings: row.today_bookings || 0
             }
         });
     });
@@ -1201,15 +1192,11 @@ app.get('/api/admin/stats', verifyAdmin, (req, res) => {
 
 // Serve static files with proper MIME types
 app.get('/sw.js', (req, res) => {
-    const swPath = path.join(__dirname, 'sw.js');
-    console.log('🔧 SW request - Path:', swPath);
+    const swPath = path.join(__dirname, 'public', 'sw.js');
     res.setHeader('Content-Type', 'application/javascript');
     res.sendFile(swPath, (err) => {
         if (err) {
-            console.error('❌ Error serving sw.js:', err);
             res.status(404).send('Service worker not found');
-        } else {
-            console.log('✅ SW served successfully');
         }
     });
 });
@@ -1560,7 +1547,7 @@ app.get('*', (req, res) => {
         return res.status(404).send('Not Found');
     }
     
-    res.sendFile(path.join(__dirname, 'index.html'));
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 app.listen(PORT, () => {

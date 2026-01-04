@@ -3,19 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
-    <meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="pragma" content="no-cache">
-    <meta http-equiv="expires" content="0">
-    <meta name="cache-buster-v2-new" content="v2-force-override-20250824-1145">
-    <meta name="force-reload" content="true">
+    <meta name="app-version" content="v3.0.0">
     <script>
-        // AGGRESSIVE CACHE BUSTING
-        console.log('🔄 FORCE CACHE CLEAR - V2 SYSTEM OVERRIDE');
-        if ('serviceWorker' in navigator) {
-            caches.keys().then(names => names.forEach(name => caches.delete(name)));
-        }
-        localStorage.clear();
-        sessionStorage.clear();
+        // Version-gated cache clearing - only clears when version changes
+        // This preserves admin tokens and user preferences between page loads
+        (function() {
+            const CURRENT_VERSION = 'v3.0.0';
+            const storedVersion = localStorage.getItem('app-version');
+            
+            if (storedVersion !== CURRENT_VERSION) {
+                // Version changed - clear old caches
+                if ('serviceWorker' in navigator && 'caches' in window) {
+                    caches.keys().then(names => names.forEach(name => caches.delete(name)));
+                }
+                // Clear session storage but preserve localStorage (admin tokens, preferences)
+                sessionStorage.clear();
+                localStorage.setItem('app-version', CURRENT_VERSION);
+            }
+        })();
     </script>
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
