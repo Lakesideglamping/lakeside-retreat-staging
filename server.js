@@ -144,11 +144,27 @@ app.use(helmet({
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "'unsafe-inline'", "https://js.stripe.com"],
+            scriptSrc: [
+                "'self'", 
+                "'unsafe-inline'", 
+                "https://js.stripe.com",
+                "https://www.googletagmanager.com",
+                "https://www.google-analytics.com",
+                "https://www.clarity.ms"
+            ],
             styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
             fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
-            imgSrc: ["'self'", "data:", "https:"],
-            connectSrc: ["'self'", "https://api.stripe.com"],
+            imgSrc: ["'self'", "data:", "https:", "blob:"],
+            connectSrc: [
+                "'self'", 
+                "https://api.stripe.com",
+                "https://www.google-analytics.com",
+                "https://*.google-analytics.com",
+                "https://www.clarity.ms",
+                "https://c.clarity.ms",
+                "https://fonts.googleapis.com",
+                "https://cdnjs.cloudflare.com"
+            ],
             frameSrc: ["'self'", "https://js.stripe.com", "https://hooks.stripe.com"],
             objectSrc: ["'none'"],
             baseUri: ["'self'"],
