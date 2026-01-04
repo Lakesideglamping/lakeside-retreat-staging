@@ -1,80 +1,18 @@
-# Robots.txt for Lakeside Retreat - Wanaka Accommodation & Queenstown Luxury Stays
-# Last Updated: 2025-08-31
-# Optimized for Central Otago glamping and dome accommodation NZ
+# Robots.txt for Lakeside Retreat Central Otago
+# https://lakesideretreat.co.nz/
 
-# Default - Allow all reputable crawlers for maximum SEO visibility
 User-agent: *
 Allow: /
-Disallow: /admin/
-Disallow: /private/
-Disallow: /api/
-Disallow: /*.json$
-Disallow: /*?*
-Disallow: /backups/
-Disallow: /logs/
-Disallow: /node_modules/
-Disallow: /ssl/
-Disallow: /*test*
-Disallow: /*staging*
-Allow: /images/
-Allow: /*.css$
-Allow: /*.js$
-Allow: /wanaka-accommodation
-Allow: /queenstown-luxury-stays
-Allow: /central-otago-glamping
-Allow: /dome-accommodation-nz
 
-# Google - Priority for local SEO
-User-agent: Googlebot
-Allow: /
-Crawl-delay: 0
-Allow: /wanaka-accommodation
-Allow: /queenstown-luxury-stays
-Allow: /central-otago-glamping
-Allow: /dome-accommodation-nz
-
-# Google Images - Critical for accommodation visuals
-User-agent: Googlebot-Image
-Allow: /images/
-Allow: /*.jpg$
-Allow: /*.jpeg$
-Allow: /*.png$
-Allow: /*.webp$
-Allow: /*.gif$
-Crawl-delay: 0
-
-# Bing - Important for international travelers
-User-agent: Bingbot
-Allow: /
-Crawl-delay: 1
-Allow: /wanaka-accommodation
-Allow: /queenstown-luxury-stays
-
-# Block SEO tools and scrapers to preserve site resources
-User-agent: AhrefsBot
-Disallow: /
-
-User-agent: SemrushBot
-Disallow: /
-
-User-agent: DotBot
-Disallow: /
-
-User-agent: MJ12bot
-Disallow: /
-
-User-agent: BLEXBot
-Disallow: /
-
-User-agent: DataForSeoBot
-Disallow: /
-
-User-agent: PetalBot
-Disallow: /
-
-# Sitemap locations for better indexing
+# Sitemap location
 Sitemap: https://lakesideretreat.co.nz/sitemap.xml
-Sitemap: https://lakesideretreat.co.nz/sitemap-images.xml
 
-# Host declaration for canonical domain
-Host: lakesideretreat.co.nz
+# Crawl-delay for polite crawling
+Crawl-delay: 1
+
+# Block common bot paths that don't exist
+Disallow: /admin/
+Disallow: /wp-admin/
+Disallow: /wp-login.php
+Disallow: /.git/
+Disallow: /api/
