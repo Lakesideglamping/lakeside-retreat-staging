@@ -150,8 +150,11 @@ app.use(helmet({
                 "https://js.stripe.com",
                 "https://www.googletagmanager.com",
                 "https://www.google-analytics.com",
-                "https://www.clarity.ms"
+                "https://www.clarity.ms",
+                "https://scripts.clarity.ms"
             ],
+            // Allow inline event handlers (onclick, onchange, etc.) - required for site navigation
+            scriptSrcAttr: ["'unsafe-inline'"],
             styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
             fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
             imgSrc: ["'self'", "data:", "https:", "blob:"],
@@ -162,6 +165,7 @@ app.use(helmet({
                 "https://*.google-analytics.com",
                 "https://www.clarity.ms",
                 "https://c.clarity.ms",
+                "https://scripts.clarity.ms",
                 "https://fonts.googleapis.com",
                 "https://cdnjs.cloudflare.com"
             ],
