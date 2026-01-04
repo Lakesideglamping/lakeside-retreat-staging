@@ -37,7 +37,7 @@
     base-uri 'self';
     form-action 'self';
     worker-src 'self';
-    child-src 'self';">>
+    child-src 'self';">
     <title>Central Otago Luxury Glamping Dome Accommodation in Cromwell, on Lake Dunstan by Lakeside Retreat </title>
     
     <!-- Critical CSS - Inline for performance -->
@@ -194,44 +194,11 @@
 
 <!-- Service Worker for Enhanced Caching -->
 <script>
-// Register service worker for caching and offline support
-if ('serviceWorker' in navigator && 'caches' in window) {
+if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        // Simple service worker for caching static assets
-        const swCode = `
-            const CACHE_NAME = 'lakeside-retreat-v1';
-            const urlsToCache = [
-                '/',
-                '/index.html',
-                'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap',
-                'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css'
-            ];
-            
-            self.addEventListener('install', (event) => {
-                event.waitUntil(
-                    caches.open(CACHE_NAME)
-                        .then((cache) => cache.addAll(urlsToCache))
-                );
-            });
-            
-            self.addEventListener('fetch', (event) => {
-                event.respondWith(
-                    caches.match(event.request)
-                        .then((response) => {
-                            return response || fetch(event.request);
-                        }
-                    )
-                );
-            });
-        `;
-        
-        // Create and register service worker
-        const blob = new Blob([swCode], { type: 'application/javascript' });
-        const swUrl = URL.createObjectURL(blob);
-        
-        navigator.serviceWorker.register(swUrl)
-            .then(() => {}) // Console statement removed for production
-            .catch(() => {}); // Console statement removed for production
+        navigator.serviceWorker.register('/sw.js')
+            .then(() => {})
+            .catch(() => {});
     });
 }
 
