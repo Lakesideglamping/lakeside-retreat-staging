@@ -492,6 +492,133 @@ app.post('/api/availability', bookingLimiter, async (req, res) => {
     }
 });
 
+// Simple in-memory cache for blocked dates (5 minute TTL)
+const blockedDatesCache = new Map();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+// Blocked dates endpoint for calendar display
+app.get('/api/blocked-dates', generalLimiter, async (req, res) => {
+    try {
+        const { accommodation, startDate, endDate } = req.query;
+        
+        // Validate required fields
+        if (!accommodation) {
+            return res.status(400).json({
+                success: false,
+                error: 'Missing required field: accommodation'
+            });
+        }
+        
+        // Validate accommodation type
+        const validAccommodations = ['dome-pinot', 'dome-rose', 'lakeside-cottage'];
+        if (!validAccommodations.includes(accommodation)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid accommodation type'
+            });
+        }
+        
+        // Default date range: today to 12 months from now
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const defaultEnd = new Date(today);
+        defaultEnd.setMonth(defaultEnd.getMonth() + 12);
+        
+        const start = startDate ? new Date(startDate) : today;
+        const end = endDate ? new Date(endDate) : defaultEnd;
+        
+        if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid date format'
+            });
+        }
+        
+        const formattedStart = start.toISOString().split('T')[0];
+        const formattedEnd = end.toISOString().split('T')[0];
+        
+        // Check cache first
+        const cacheKey = `${accommodation}-${formattedStart}-${formattedEnd}`;
+        const cached = blockedDatesCache.get(cacheKey);
+        if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+            return res.json({
+                success: true,
+                blockedDates: cached.dates,
+                accommodation: accommodation,
+                startDate: formattedStart,
+                endDate: formattedEnd,
+                cached: true
+            });
+        }
+        
+        // Query local database for confirmed bookings
+        const bookings = await db.getAll(
+            `SELECT check_in, check_out 
+             FROM bookings 
+             WHERE accommodation = $1 
+             AND payment_status IN ('completed', 'pending')
+             AND check_out > $2 
+             AND check_in < $3
+             ORDER BY check_in`,
+            [accommodation, formattedStart, formattedEnd]
+        );
+        
+        // Generate list of blocked dates (all dates from check_in to check_out - 1)
+        // Check-out day is NOT blocked (guest can check in on someone else's check-out day)
+        const blockedDates = new Set();
+        
+        for (const booking of bookings) {
+            const checkIn = new Date(booking.check_in);
+            const checkOut = new Date(booking.check_out);
+            
+            // Add all dates from check_in to check_out - 1
+            const current = new Date(checkIn);
+            while (current < checkOut) {
+                const dateStr = current.toISOString().split('T')[0];
+                if (dateStr >= formattedStart && dateStr <= formattedEnd) {
+                    blockedDates.add(dateStr);
+                }
+                current.setDate(current.getDate() + 1);
+            }
+        }
+        
+        // Also block past dates
+        const pastDate = new Date(today);
+        pastDate.setDate(pastDate.getDate() - 1);
+        const startLoop = new Date(start);
+        while (startLoop <= pastDate && startLoop <= end) {
+            blockedDates.add(startLoop.toISOString().split('T')[0]);
+            startLoop.setDate(startLoop.getDate() + 1);
+        }
+        
+        const blockedArray = Array.from(blockedDates).sort();
+        
+        // Cache the result
+        blockedDatesCache.set(cacheKey, {
+            dates: blockedArray,
+            timestamp: Date.now()
+        });
+        
+        console.log(`📅 Blocked dates for ${accommodation}: ${blockedArray.length} dates`);
+        
+        res.json({
+            success: true,
+            blockedDates: blockedArray,
+            accommodation: accommodation,
+            startDate: formattedStart,
+            endDate: formattedEnd,
+            cached: false
+        });
+        
+    } catch (error) {
+        console.error('❌ Blocked dates error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch blocked dates.'
+        });
+    }
+});
+
 // Input validation middleware
 const validateBooking = [
     body('guest_name').trim().isLength({ min: 2, max: 100 }).escape(),
