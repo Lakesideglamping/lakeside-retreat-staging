@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login - Lakeside Retreat</title>
+    <meta name="robots" content="noindex, nofollow">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #2d5a5a 0%, #1a3a3a 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .login-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            width: 100%;
+            max-width: 400px;
+        }
+        
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .logo img {
+            height: 60px;
+            width: auto;
+        }
+        
+        .logo h1 {
+            color: #2d5a5a;
+            font-size: 1.5rem;
+            margin-top: 15px;
+            font-weight: 600;
+        }
+        
+        .logo p {
+            color: #666;
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            color: #333;
+            font-weight: 500;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #2d5a5a;
+            box-shadow: 0 0 0 3px rgba(45, 90, 90, 0.1);
+        }
+        
+        .btn-login {
+            width: 100%;
+            padding: 14px;
+            background: #2d5a5a;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s, transform 0.2s;
+        }
+        
+        .btn-login:hover {
+            background: #1a3a3a;
+        }
+        
+        .btn-login:active {
+            transform: scale(0.98);
+        }
+        
+        .btn-login:disabled {
+            background: #999;
+            cursor: not-allowed;
+        }
+        
+        .error-message {
+            background: #fee;
+            color: #c00;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            display: none;
+        }
+        
+        .back-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .back-link a {
+            color: #2d5a5a;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+        
+        .back-link a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo">
+            <img src="https://raw.githubusercontent.com/Lakesideglamping/lakeside-retreat-staging/main/images/logo.png" alt="Lakeside Retreat Logo" onerror="this.style.display='none'">
+            <h1>Admin Portal</h1>
+            <p>Lakeside Retreat Central Otago</p>
+        </div>
+        
+        <div class="error-message" id="errorMessage"></div>
+        
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" required autocomplete="username">
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required autocomplete="current-password">
+            </div>
+            
+            <button type="submit" class="btn-login" id="loginBtn">Sign In</button>
+        </form>
+        
+        <div class="back-link">
+            <a href="/">Back to Website</a>
+        </div>
+    </div>
+    
+    <script>
+        // Check if already logged in
+        const existingToken = localStorage.getItem('adminToken');
+        if (existingToken) {
+            // Verify token is still valid
+            fetch('/api/admin/booking-stats', {
+                headers: { 'Authorization': `Bearer ${existingToken}` }
+            })
+            .then(response => {
+                if (response.ok) {
+                    window.location.href = '/admin-dashboard.html';
+                } else {
+                    localStorage.removeItem('adminToken');
+                }
+            })
+            .catch(() => {
+                localStorage.removeItem('adminToken');
+            });
+        }
+        
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const loginBtn = document.getElementById('loginBtn');
+            const errorMessage = document.getElementById('errorMessage');
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            loginBtn.disabled = true;
+            loginBtn.textContent = 'Signing in...';
+            errorMessage.style.display = 'none';
+            
+            try {
+                const response = await fetch('/api/admin/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.token) {
+                    localStorage.setItem('adminToken', data.token);
+                    window.location.href = '/admin-dashboard.html';
+                } else {
+                    errorMessage.textContent = data.error || 'Invalid credentials';
+                    errorMessage.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                errorMessage.textContent = 'Connection error. Please try again.';
+                errorMessage.style.display = 'block';
+            } finally {
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'Sign In';
+            }
+        });
+    </script>
+</body>
+</html>
