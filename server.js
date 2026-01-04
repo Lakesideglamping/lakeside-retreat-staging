@@ -1109,9 +1109,6 @@ app.post('/api/admin/sync-uplisting-bookings', verifyAdmin, async (req, res) => 
         });
     }
 });
-        res.status(500).json({ error: 'Webhook processing failed' });
-    }
-});
 
 // Send booking confirmation email
 async function sendBookingConfirmation(bookingData) {
