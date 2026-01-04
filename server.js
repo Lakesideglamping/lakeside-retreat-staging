@@ -405,6 +405,93 @@ app.post('/api/contact', contactLimiter, [
     }
 });
 
+// Availability check endpoint (called by frontend before booking)
+app.post('/api/availability', bookingLimiter, async (req, res) => {
+    try {
+        const { accommodation, checkIn, checkOut, guests } = req.body;
+        
+        // Validate required fields
+        if (!accommodation || !checkIn || !checkOut) {
+            return res.status(400).json({
+                success: false,
+                error: 'Missing required fields: accommodation, checkIn, checkOut'
+            });
+        }
+        
+        // Validate accommodation type
+        const validAccommodations = ['dome-pinot', 'dome-rose', 'lakeside-cottage'];
+        if (!validAccommodations.includes(accommodation)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid accommodation type'
+            });
+        }
+        
+        // Validate dates
+        const checkInDate = new Date(checkIn);
+        const checkOutDate = new Date(checkOut);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        if (isNaN(checkInDate.getTime()) || isNaN(checkOutDate.getTime())) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid date format'
+            });
+        }
+        
+        if (checkInDate < today) {
+            return res.status(400).json({
+                success: false,
+                error: 'Check-in date cannot be in the past'
+            });
+        }
+        
+        if (checkOutDate <= checkInDate) {
+            return res.status(400).json({
+                success: false,
+                error: 'Check-out date must be after check-in date'
+            });
+        }
+        
+        // Format dates for availability check
+        const formattedCheckIn = checkInDate.toISOString().split('T')[0];
+        const formattedCheckOut = checkOutDate.toISOString().split('T')[0];
+        
+        // Validate seasonal minimum stay for cottage
+        const seasonalValidation = validateSeasonalMinimumStay(accommodation, formattedCheckIn, formattedCheckOut);
+        if (!seasonalValidation.valid) {
+            return res.status(400).json({
+                success: false,
+                error: seasonalValidation.error,
+                available: false
+            });
+        }
+        
+        console.log('🔍 Checking availability for:', accommodation, formattedCheckIn, 'to', formattedCheckOut);
+        
+        // Check availability using existing function
+        const isAvailable = await checkAvailability(accommodation, formattedCheckIn, formattedCheckOut);
+        
+        console.log('📅 Availability result:', isAvailable);
+        
+        res.json({
+            success: true,
+            available: isAvailable,
+            accommodation: accommodation,
+            checkIn: formattedCheckIn,
+            checkOut: formattedCheckOut
+        });
+        
+    } catch (error) {
+        console.error('❌ Availability check error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to check availability. Please try again.'
+        });
+    }
+});
+
 // Input validation middleware
 const validateBooking = [
     body('guest_name').trim().isLength({ min: 2, max: 100 }).escape(),
