@@ -58,9 +58,9 @@ const emailTransporter = nodemailer.createTransport({
 // Maps accommodation names to their Uplisting property IDs
 function getUplistingPropertyMapping() {
     return {
-        'dome-pinot': process.env.UPLISTING_PROPERTY_PINOT_ID,
-        'dome-rose': process.env.UPLISTING_PROPERTY_ROSE_ID,
-        'lakeside-cottage': process.env.UPLISTING_PROPERTY_COTTAGE_ID
+        'dome-pinot': process.env.UPLISTING_PINOT_ID,
+        'dome-rose': process.env.UPLISTING_ROSE_ID,
+        'lakeside-cottage': process.env.UPLISTING_COTTAGE_ID
     };
 }
 
