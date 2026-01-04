@@ -583,31 +583,20 @@
         }
 
         function updateStatsDisplay(stats) {
-            document.getElementById('totalBookings').textContent = stats.total_bookings || 0;
-            document.getElementById('monthlyRevenue').textContent = `$${(stats.total_revenue || 0).toFixed(2)}`;
+            // Defensive number conversion (handles strings from PostgreSQL)
+            const totalBookings = Number(stats.total_bookings) || 0;
+            const totalRevenue = Number(stats.total_revenue) || 0;
+            const syncedBookings = Number(stats.synced_bookings) || 0;
+            
+            document.getElementById('totalBookings').textContent = totalBookings;
+            document.getElementById('monthlyRevenue').textContent = `$${totalRevenue.toFixed(2)}`;
             
             // Calculate occupancy rate based on bookings this month
-            const occupancyRate = stats.occupancy_rate || Math.round((stats.synced_bookings / Math.max(stats.total_bookings, 1)) * 100);
+            const occupancyRate = stats.occupancy_rate || Math.round((syncedBookings / Math.max(totalBookings, 1)) * 100);
             document.getElementById('occupancyRate').textContent = `${occupancyRate}%`;
             
-            // Calculate average rating from actual review data
-            fetch('/api/admin/reviews')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success && data.reviews && data.reviews.length > 0) {
-                        const avgRating = (data.reviews.reduce((sum, r) => sum + r.rating, 0) / data.reviews.length).toFixed(1);
-                        document.getElementById('avgRating').textContent = `${avgRating}⭐`;
-                    } else {
-                        // Fallback to calculated average based on typical guest feedback
-                        const avgRating = (4.7).toFixed(1); // Based on platform review averages
-                        document.getElementById('avgRating').textContent = `${avgRating}⭐`;
-                    }
-                })
-                .catch(() => {
-                    // Fallback if reviews API is unavailable
-                    const avgRating = (4.7).toFixed(1);
-                    document.getElementById('avgRating').textContent = `${avgRating}⭐`;
-                });
+            // Show factual rating status (no hardcoded values)
+            document.getElementById('avgRating').textContent = 'No reviews';
         }
 
         function updateRecentActivity(recentBookings) {

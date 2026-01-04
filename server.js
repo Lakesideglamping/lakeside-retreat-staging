@@ -1890,10 +1890,20 @@ app.get('/api/admin/booking-stats', verifyAdmin, async (req, res) => {
             LIMIT 10
         `);
         
+        // Normalize numeric values (PostgreSQL returns strings for COUNT/SUM)
+        const normalizedOverview = {
+            total_bookings: Number(overview.total_bookings) || 0,
+            paid_bookings: Number(overview.paid_bookings) || 0,
+            pending_payments: Number(overview.pending_payments) || 0,
+            cancelled_bookings: Number(overview.cancelled_bookings) || 0,
+            synced_bookings: Number(overview.synced_bookings) || 0,
+            total_revenue: Number(overview.total_revenue) || 0
+        };
+        
         res.json({
             success: true,
             stats: {
-                overview,
+                overview: normalizedOverview,
                 recent_bookings
             }
         });
