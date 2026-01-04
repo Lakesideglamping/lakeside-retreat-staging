@@ -84,6 +84,9 @@ function getAccommodationFromPropertyId(propertyId) {
     return 'unknown';
 }
 
+// Health check paths that should be excluded from rate limiting
+const healthCheckPaths = ['/health', '/healthz', '/api/health'];
+
 // Rate limiting middleware
 const generalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
@@ -91,6 +94,8 @@ const generalLimiter = rateLimit({
     message: { error: 'Too many requests, please try again later' },
     standardHeaders: true,
     legacyHeaders: false,
+    // Skip rate limiting for health check endpoints (Render health checks are frequent)
+    skip: (req) => healthCheckPaths.includes(req.path),
 });
 
 const bookingLimiter = rateLimit({
