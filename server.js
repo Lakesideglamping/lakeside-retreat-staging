@@ -84,8 +84,12 @@ function getAccommodationFromPropertyId(propertyId) {
     return 'unknown';
 }
 
-// Health check paths that should be excluded from rate limiting
-const healthCheckPaths = ['/health', '/healthz', '/api/health'];
+// Health check skip function - handles trailing slashes and uses startsWith for robustness
+const isHealthCheckPath = (req) => {
+    const path = req.path.replace(/\/+$/, '') || '/';
+    return path === '/health' || path === '/healthz' || path === '/api/health' || 
+           path.startsWith('/health') || path.startsWith('/api/health');
+};
 
 // Rate limiting middleware
 const generalLimiter = rateLimit({
@@ -95,7 +99,7 @@ const generalLimiter = rateLimit({
     standardHeaders: true,
     legacyHeaders: false,
     // Skip rate limiting for health check endpoints (Render health checks are frequent)
-    skip: (req) => healthCheckPaths.includes(req.path),
+    skip: isHealthCheckPath,
 });
 
 const bookingLimiter = rateLimit({
@@ -122,7 +126,35 @@ const contactLimiter = rateLimit({
     legacyHeaders: false,
 });
 
-// Apply rate limiting
+// Health check endpoints - defined BEFORE rate limiting to ensure they're never blocked
+// This is a belt-and-suspenders approach: even if skip logic fails, health checks work
+app.get('/health', (req, res) => {
+    res.json({ status: 'healthy' });
+});
+
+app.get('/healthz', async (req, res) => {
+    try {
+        const dbHealthy = await db.healthCheck();
+        if (dbHealthy) {
+            res.json({ status: 'healthy', database: 'connected', timestamp: new Date().toISOString() });
+        } else {
+            res.status(503).json({ status: 'unhealthy', database: 'disconnected' });
+        }
+    } catch (err) {
+        res.status(503).json({ status: 'unhealthy', error: err.message });
+    }
+});
+
+app.get('/api/health', async (req, res) => {
+    try {
+        const dbHealthy = await db.healthCheck();
+        res.json({ status: 'healthy', database: dbHealthy ? 'connected' : 'disconnected', timestamp: new Date().toISOString() });
+    } catch (err) {
+        res.json({ status: 'degraded', database: 'error', timestamp: new Date().toISOString() });
+    }
+});
+
+// Apply rate limiting (after health check routes so they're never rate limited)
 app.use(generalLimiter);
 
 // Enable compression for all responses (60-80% size reduction)
@@ -239,32 +271,8 @@ app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 // This prevents exposure of sensitive files like lakeside.db, server.js, .env
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.get('/health', (req, res) => {
-    res.json({ status: 'healthy' });
-});
-
-app.get('/healthz', async (req, res) => {
-    try {
-        const dbHealthy = await db.healthCheck();
-        if (dbHealthy) {
-            res.json({ status: 'healthy', database: 'connected', timestamp: new Date().toISOString() });
-        } else {
-            res.status(503).json({ status: 'unhealthy', database: 'disconnected' });
-        }
-    } catch (err) {
-        res.status(503).json({ status: 'unhealthy', error: err.message });
-    }
-});
-
-app.get('/api/health', async (req, res) => {
-    try {
-        const dbHealthy = await db.healthCheck();
-        res.json({ status: 'healthy', database: dbHealthy ? 'connected' : 'disconnected', timestamp: new Date().toISOString() });
-    } catch (err) {
-        res.json({ status: 'degraded', database: 'error', timestamp: new Date().toISOString() });
-    }
-});
-
+// Note: Health check routes (/health, /healthz, /api/health) are defined earlier
+// before rate limiting middleware to ensure they're never blocked
 
 // Accommodations endpoint
 app.get('/api/accommodations', (req, res) => {
