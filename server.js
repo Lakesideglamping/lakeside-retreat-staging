@@ -1476,6 +1476,20 @@ app.get('/api/admin/booking-stats', verifyAdmin, async (req, res) => {
     }
 });
 
+// Accommodation landing pages (SEO-optimized separate pages)
+// These routes serve dedicated HTML pages with unique meta tags for each accommodation
+app.get('/dome-pinot', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'dome-pinot.html'));
+});
+
+app.get('/dome-rose', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'dome-rose.html'));
+});
+
+app.get('/lakeside-cottage', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'lakeside-cottage.html'));
+});
+
 // SPA routing - serve index.html for HTML routes only
 // MUST BE THE LAST ROUTE (catch-all)
 app.get('*', (req, res) => {
