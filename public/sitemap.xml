@@ -20,28 +20,28 @@
     <priority>0.9</priority>
   </url>
   
-  <!-- Dome Pinot -->
+  <!-- Dome Pinot - Dedicated Landing Page -->
   <url>
-    <loc>https://lakesideretreat.co.nz/#dome-pinot</loc>
+    <loc>https://lakesideretreat.co.nz/dome-pinot</loc>
     <lastmod>2026-01-04</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.9</priority>
   </url>
   
-  <!-- Dome Rose -->
+  <!-- Dome Rose - Dedicated Landing Page -->
   <url>
-    <loc>https://lakesideretreat.co.nz/#dome-rose</loc>
+    <loc>https://lakesideretreat.co.nz/dome-rose</loc>
     <lastmod>2026-01-04</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.9</priority>
   </url>
   
-  <!-- Lakeside Cottage -->
+  <!-- Lakeside Cottage - Dedicated Landing Page -->
   <url>
-    <loc>https://lakesideretreat.co.nz/#lakeside-cottage</loc>
+    <loc>https://lakesideretreat.co.nz/lakeside-cottage</loc>
     <lastmod>2026-01-04</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.9</priority>
   </url>
   
   <!-- Explore/Activities Section -->
