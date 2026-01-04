@@ -99,6 +99,33 @@ const emailTransporter = nodemailer.createTransport({
     }
 });
 
+// Centralized Uplisting property mapping configuration
+// Maps accommodation names to their Uplisting property IDs
+function getUplistingPropertyMapping() {
+    return {
+        'dome-pinot': process.env.UPLISTING_PROPERTY_PINOT_ID,
+        'dome-rose': process.env.UPLISTING_PROPERTY_ROSE_ID,
+        'lakeside-cottage': process.env.UPLISTING_PROPERTY_COTTAGE_ID
+    };
+}
+
+// Get Uplisting property ID from accommodation name
+function getPropertyIdFromAccommodation(accommodation) {
+    const mapping = getUplistingPropertyMapping();
+    return mapping[accommodation] || null;
+}
+
+// Get accommodation name from Uplisting property ID (reverse lookup)
+function getAccommodationFromPropertyId(propertyId) {
+    const mapping = getUplistingPropertyMapping();
+    for (const [accommodation, id] of Object.entries(mapping)) {
+        if (id === propertyId) {
+            return accommodation;
+        }
+    }
+    return 'unknown';
+}
+
 // Rate limiting middleware
 const generalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
@@ -380,14 +407,8 @@ async function checkUplistingAvailability(accommodation, checkIn, checkOut) {
     }
     
     try {
-        // Map accommodation names to Uplisting property IDs
-        const propertyMapping = {
-            'dome-pinot': process.env.UPLISTING_PROPERTY_PINOT_ID,
-            'dome-rose': process.env.UPLISTING_PROPERTY_ROSE_ID,
-            'lakeside-cottage': process.env.UPLISTING_PROPERTY_COTTAGE_ID
-        };
-        
-        const propertyId = propertyMapping[accommodation];
+        // Use centralized property mapping
+        const propertyId = getPropertyIdFromAccommodation(accommodation);
         if (!propertyId) {
             console.warn(`⚠️ No Uplisting property ID configured for ${accommodation}`);
             return true;
@@ -475,13 +496,8 @@ async function syncBookingToUplisting(bookingData) {
     }
     
     try {
-        const propertyMapping = {
-            'dome-pinot': process.env.UPLISTING_PROPERTY_PINOT_ID,
-            'dome-rose': process.env.UPLISTING_PROPERTY_ROSE_ID,
-            'lakeside-cottage': process.env.UPLISTING_PROPERTY_COTTAGE_ID
-        };
-        
-        const propertyId = propertyMapping[bookingData.accommodation];
+        // Use centralized property mapping
+        const propertyId = getPropertyIdFromAccommodation(bookingData.accommodation);
         if (!propertyId) {
             console.warn(`⚠️ No Uplisting property ID configured for ${bookingData.accommodation}`);
             return;
@@ -612,17 +628,6 @@ app.post('/api/uplisting/webhook', express.json(), (req, res) => {
         res.status(500).json({ error: 'Webhook processing failed' });
     }
 });
-
-// Helper function to map Uplisting property IDs back to accommodation names
-function getAccommodationFromPropertyId(propertyId) {
-    const propertyMapping = {
-        [process.env.UPLISTING_PROPERTY_PINOT_ID]: 'dome-pinot',
-        [process.env.UPLISTING_PROPERTY_ROSE_ID]: 'dome-rose',
-        [process.env.UPLISTING_PROPERTY_COTTAGE_ID]: 'lakeside-cottage'
-    };
-    
-    return propertyMapping[propertyId] || 'unknown';
-}
 
 // Send booking confirmation email
 async function sendBookingConfirmation(bookingData) {
