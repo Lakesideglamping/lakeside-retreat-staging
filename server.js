@@ -1285,8 +1285,9 @@ app.post('/api/admin/sync-uplisting-bookings', verifyAdmin, async (req, res) => 
                 const endDateStr = endDate.toISOString().split('T')[0];
                 
                 // Try fetching bookings for this property
-                // Uplisting API endpoint for listing bookings (may vary based on API version)
-                const bookingsUrl = `https://connect.uplisting.io/bookings?property_id=${propertyId}&start_date=${startDateStr}&end_date=${endDateStr}`;
+                // Use the same URL pattern as the availability endpoint: /properties/{id}/bookings
+                const baseUrl = process.env.UPLISTING_API_URL || process.env.UPLISTING_BASE_URL || 'https://connect.uplisting.io';
+                const bookingsUrl = `${baseUrl}/properties/${propertyId}/bookings?start_date=${startDateStr}&end_date=${endDateStr}`;
                 
                 console.log(`🔍 Fetching bookings for ${accommodation} from: ${bookingsUrl}`);
                 
