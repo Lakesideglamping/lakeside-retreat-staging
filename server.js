@@ -629,11 +629,12 @@ app.post('/api/uplisting/webhook', express.raw({type: 'application/json'}), asyn
         const { event, data } = parsedBody;
         
         if (event === 'booking.created' || event === 'booking.updated') {
+            // Sanitize external data before storing to prevent stored XSS
             const bookingData = {
                 id: `uplisting-${data.id}`,
-                guest_name: `${data.guest.first_name} ${data.guest.last_name}`.trim(),
-                guest_email: data.guest.email,
-                guest_phone: data.guest.phone || '',
+                guest_name: sanitizeInput(`${data.guest.first_name} ${data.guest.last_name}`.trim()),
+                guest_email: sanitizeInput(data.guest.email),
+                guest_phone: sanitizeInput(data.guest.phone || ''),
                 accommodation: getAccommodationFromPropertyId(data.property_id),
                 check_in: data.check_in,
                 check_out: data.check_out,
@@ -641,7 +642,7 @@ app.post('/api/uplisting/webhook', express.raw({type: 'application/json'}), asyn
                 total_price: data.total_amount,
                 status: data.status === 'confirmed' ? 'confirmed' : 'pending',
                 payment_status: data.payment_status || 'completed',
-                notes: data.notes || 'Booking from Uplisting',
+                notes: sanitizeInput(data.notes || 'Booking from Uplisting'),
                 uplisting_id: data.id
             };
             
