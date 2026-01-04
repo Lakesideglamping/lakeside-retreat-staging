@@ -6816,6 +6816,35 @@ document.addEventListener('DOMContentLoaded', () => {
             trackPageView(pageName);
         }
 
+        // Handle query parameter navigation (for links from accommodation pages)
+        function handleQueryParamNavigation() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const page = urlParams.get('page');
+            if (page) {
+                // Valid page names that can be navigated to
+                const validPages = ['home', 'stay', 'gallery', 'blog', 'reviews', 'story', 'explore', 'contact', 'book'];
+                if (validPages.includes(page)) {
+                    if (page === 'book') {
+                        // Special handling for booking - open the booking modal
+                        setTimeout(() => {
+                            if (typeof openBookingModal === 'function') {
+                                openBookingModal();
+                            }
+                        }, 500);
+                    } else {
+                        showPage(page);
+                    }
+                    // Clean up the URL without reloading
+                    window.history.replaceState({}, document.title, '/');
+                }
+            }
+        }
+
+        // Call on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            handleQueryParamNavigation();
+        });
+
         function showLegalPage(legalType) {
             // Create modal for legal pages
             const modal = document.createElement('div');
