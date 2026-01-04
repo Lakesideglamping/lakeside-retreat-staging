@@ -2683,18 +2683,18 @@ document.addEventListener('DOMContentLoaded', () => {
 <!-- Navigation -->
 <nav class="navbar" id="navbar">
 <div class="nav-container">
-<a aria-label="Go to home page" class="logo" href="#" onclick="showPage('home')">
+<a aria-label="Go to home page" class="logo" href="#" onclick="showPage('home'); return false;">
 <img alt="Lakeside Retreat Logo" class="logo-icon" src="https://raw.githubusercontent.com/Lakesideglamping/lakeside-retreat-staging/main/images/logormbg.png"/>
 </a>
 <ul class="nav-links">
-<li><a class="nav-link" href="#" onclick="showPage('home')">Home</a></li>
-<li><a class="nav-link" href="#" onclick="showPage('stay')">Stay</a></li>
-<li><a class="nav-link" href="#" onclick="showPage('gallery')">Gallery</a></li>
-<li><a class="nav-link" href="#" onclick="showPage('blog')">Guides</a></li>
-<li><a class="nav-link" href="#" onclick="showPage('reviews')">Reviews</a></li>
-<li><a class="nav-link" href="#" onclick="showPage('story')">Our Story</a></li>
-<li><a class="nav-link" href="#" onclick="showPage('explore')">Explore</a></li>
-<li><a class="nav-link" href="#" onclick="showPage('contact')">Contact</a></li>
+<li><a class="nav-link" href="#" onclick="showPage('home'); return false;">Home</a></li>
+<li><a class="nav-link" href="#" onclick="showPage('stay'); return false;">Stay</a></li>
+<li><a class="nav-link" href="#" onclick="showPage('gallery'); return false;">Gallery</a></li>
+<li><a class="nav-link" href="#" onclick="showPage('blog'); return false;">Guides</a></li>
+<li><a class="nav-link" href="#" onclick="showPage('reviews'); return false;">Reviews</a></li>
+<li><a class="nav-link" href="#" onclick="showPage('story'); return false;">Our Story</a></li>
+<li><a class="nav-link" href="#" onclick="showPage('explore'); return false;">Explore</a></li>
+<li><a class="nav-link" href="#" onclick="showPage('contact'); return false;">Contact</a></li>
 <li><a class="nav-link" href="#" onclick="openSearch()"><i class="fas fa-search"></i></a></li>
 <li><a aria-label="Check accommodation availability and make booking" class="btn btn-primary book-now-highlight" href="#" onclick="openBookingModal()">Check Availability</a></li>
 </ul>
@@ -2708,14 +2708,14 @@ document.addEventListener('DOMContentLoaded', () => {
 <button class="close-mobile-menu" onclick="toggleMobileMenu()">
 <i class="fas fa-times"></i>
 </button>
-<a class="nav-link" href="#" onclick="showPage('home'); toggleMobileMenu()">Home</a>
-<a class="nav-link" href="#" onclick="showPage('stay'); toggleMobileMenu()">Stay</a>
-<a class="nav-link" href="#" onclick="showPage('gallery'); toggleMobileMenu()">Gallery</a>
-<a class="nav-link" href="#" onclick="showPage('blog'); toggleMobileMenu()">Guides</a>
-<a class="nav-link" href="#" onclick="showPage('reviews'); toggleMobileMenu()">Reviews</a>
-<a class="nav-link" href="#" onclick="showPage('story'); toggleMobileMenu()">Our Story</a>
-<a class="nav-link" href="#" onclick="showPage('explore'); toggleMobileMenu()">Explore</a>
-<a class="nav-link" href="#" onclick="showPage('contact'); toggleMobileMenu()">Contact</a>
+<a class="nav-link" href="#" onclick="showPage('home'); toggleMobileMenu(); return false;">Home</a>
+<a class="nav-link" href="#" onclick="showPage('stay'); toggleMobileMenu(); return false;">Stay</a>
+<a class="nav-link" href="#" onclick="showPage('gallery'); toggleMobileMenu(); return false;">Gallery</a>
+<a class="nav-link" href="#" onclick="showPage('blog'); toggleMobileMenu(); return false;">Guides</a>
+<a class="nav-link" href="#" onclick="showPage('reviews'); toggleMobileMenu(); return false;">Reviews</a>
+<a class="nav-link" href="#" onclick="showPage('story'); toggleMobileMenu(); return false;">Our Story</a>
+<a class="nav-link" href="#" onclick="showPage('explore'); toggleMobileMenu(); return false;">Explore</a>
+<a class="nav-link" href="#" onclick="showPage('contact'); toggleMobileMenu(); return false;">Contact</a>
 <a class="btn btn-primary book-now-highlight" href="#" onclick="openBookingModal(); toggleMobileMenu()">Check Availability</a>
 </div>
 <!-- Search Overlay -->
@@ -3144,7 +3144,7 @@ Select accommodation and dates to see pricing
 </div>
 <div style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;">
 <a class="btn btn-primary" href="#" onclick="openBookingModal()" style="padding: 1rem 2rem; font-size: 1.1rem;">Check Availability &amp; Prices</a>
-<a class="btn btn-outline" href="#" onclick="showPage('gallery')">View Gallery</a>
+<a class="btn btn-outline" href="#" onclick="showPage('gallery'); return false;">View Gallery</a>
 </div>
 </div>
 </div>
@@ -3203,7 +3203,7 @@ Select accommodation and dates to see pricing
 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem;">
 <span style="font-weight: 600; color: var(--dark); font-size: 1.1rem;">From $450/night <span style="font-size: 0.75rem; color: #666;">(GST incl.)</span></span>
 <div style="display: flex; gap: 0.5rem;">
-<a class="btn btn-outline" href="#" onclick="showPage('stay')">View Details</a>
+<a class="btn btn-outline" href="#" onclick="showPage('stay'); return false;">View Details</a>
 <a class="btn btn-primary" href="#" onclick="openBookingModal('dome-pinot')">Book Now</a>
 </div>
 </div>
@@ -3223,7 +3223,7 @@ Select accommodation and dates to see pricing
 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem;">
 <span style="font-weight: 600; color: var(--dark); font-size: 1.1rem;">From $380/night <span style="font-size: 0.75rem; color: #666;">(GST incl.)</span></span>
 <div style="display: flex; gap: 0.5rem;">
-<a class="btn btn-outline" href="#" onclick="showPage('stay')">View Details</a>
+<a class="btn btn-outline" href="#" onclick="showPage('stay'); return false;">View Details</a>
 <a class="btn btn-primary" href="#" onclick="openBookingModal('dome-rose')">Book Now</a>
 </div>
 </div>
@@ -3243,7 +3243,7 @@ Select accommodation and dates to see pricing
 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem;">
 <span style="font-weight: 600; color: var(--dark); font-size: 1.1rem;">From $580/night <span style="font-size: 0.75rem; color: #666;">(GST incl.)</span></span>
 <div style="display: flex; gap: 0.5rem;">
-<a class="btn btn-outline" href="#" onclick="showPage('stay')">View Details</a>
+<a class="btn btn-outline" href="#" onclick="showPage('stay'); return false;">View Details</a>
 <a class="btn btn-primary" href="#" onclick="openBookingModal('lakeside-cottage')">Book Now</a>
 </div>
 </div>
@@ -3251,7 +3251,7 @@ Select accommodation and dates to see pricing
 </div>
 </div>
 <div style="text-align: center; margin-top: 3rem;">
-<a class="btn btn-outline" href="#" onclick="showPage('stay')">View Full Details &amp; Energy Systems</a>
+<a class="btn btn-outline" href="#" onclick="showPage('stay'); return false;">View Full Details &amp; Energy Systems</a>
 </div>
 </div>
 </section>
@@ -3289,7 +3289,7 @@ Select accommodation and dates to see pricing
 </div>
 </div>
 <div style="text-align: center; margin-top: 2rem;">
-<a class="btn btn-outline" href="#" onclick="showPage('reviews')">Read All 127 Reviews</a>
+<a class="btn btn-outline" href="#" onclick="showPage('reviews'); return false;">Read All 127 Reviews</a>
 </div>
 </div>
 </section>
@@ -3300,7 +3300,7 @@ Select accommodation and dates to see pricing
 <div>
 <h2 style="font-family: 'Playfair Display', serif; font-size: 2rem; margin-bottom: 1rem; color: var(--brand-teal);">Stephen &amp; Sandy's Story</h2>
 <p style="font-size: 1.1rem; line-height: 1.6; margin-bottom: 2rem;">From Wellington I.T. professionals to Central Otago hosts. A wrong turn in 2019 led us to this magical lakefront vineyard—and we never looked back.</p>
-<a class="btn btn-primary" href="#" onclick="showPage('story')">Read Our Full Journey</a>
+<a class="btn btn-primary" href="#" onclick="showPage('story'); return false;">Read Our Full Journey</a>
 </div>
 <div>
 <div style="background: white; border-radius: 20px; padding: 2rem; box-shadow: var(--shadow); text-align: center;">
@@ -3334,7 +3334,7 @@ Select accommodation and dates to see pricing
                                     </div>
 </div>
 <div style="margin-top: 1rem;">
-<a href="#" onclick="showPage('explore')" style="color: var(--brand-teal); text-decoration: none; font-weight: 500;">Explore Wine Country Activities →</a>
+<a href="#" onclick="showPage('explore'); return false;" style="color: var(--brand-teal); text-decoration: none; font-weight: 500;">Explore Wine Country Activities →</a>
 </div>
 </div>
 </div>
@@ -3350,7 +3350,7 @@ Select accommodation and dates to see pricing
                                     </div>
 </div>
 <div style="margin-top: 1rem;">
-<a href="#" onclick="showPage('explore')" style="color: var(--brand-teal); text-decoration: none; font-weight: 500;">View Cycling Information →</a>
+<a href="#" onclick="showPage('explore'); return false;" style="color: var(--brand-teal); text-decoration: none; font-weight: 500;">View Cycling Information →</a>
 </div>
 </div>
 </div>
@@ -3359,7 +3359,7 @@ Select accommodation and dates to see pricing
 <h3 class="card-title">🏔️ Alpine Adventure Access</h3>
 <p class="card-text">Perfect <strong>Cromwell accommodation</strong> base for exploring <strong>Central Otago</strong>. Queenstown adventures (55 min), Wanaka activities (30 min), and five ski fields within driving distance. Experience the best of the South Island from our <strong>Lake Dunstan</strong> location.</p>
 <div style="margin-top: 1rem;">
-<a href="#" onclick="showPage('explore')" style="color: var(--brand-teal); text-decoration: none; font-weight: 500;">Plan Your Adventures →</a>
+<a href="#" onclick="showPage('explore'); return false;" style="color: var(--brand-teal); text-decoration: none; font-weight: 500;">Plan Your Adventures →</a>
 </div>
 </div>
 </div>
@@ -3368,7 +3368,7 @@ Select accommodation and dates to see pricing
 <h3 class="card-title">🌅 Lake Dunstan Views</h3>
 <p class="card-text">Wake to panoramic <strong>Lake Dunstan views</strong> from every accommodation. Our <strong>sustainable accommodation Central Otago</strong> offers uninterrupted lake and mountain vistas, with direct water access from the cottage and lake views from all luxury domes.</p>
 <div style="margin-top: 1rem;">
-<a href="#" onclick="showPage('gallery')" style="color: var(--brand-teal); text-decoration: none; font-weight: 500;">View Gallery →</a>
+<a href="#" onclick="showPage('gallery'); return false;" style="color: var(--brand-teal); text-decoration: none; font-weight: 500;">View Gallery →</a>
 </div>
 </div>
 </div>
@@ -3457,7 +3457,7 @@ Select accommodation and dates to see pricing
 </div>
 </div>
 <div style="text-align: center; margin-top: 2rem;">
-<a class="btn btn-outline" href="#" onclick="showPage('reviews')">Read All 127 Reviews</a>
+<a class="btn btn-outline" href="#" onclick="showPage('reviews'); return false;">Read All 127 Reviews</a>
 </div>
 </div>
 </section>
@@ -4012,7 +4012,7 @@ Select accommodation and dates to see pricing
 <h2 class="section-title">Local Expertise &amp; Energy Innovation</h2>
 <p class="section-subtitle">Comprehensive guides from your hosts Stephen &amp; Sandy, combining local knowledge with renewable energy expertise</p>
 <div style="text-align: center; margin: 1rem 0;">
-<a href="#" onclick="showPage('explore')" onmouseout="this.style.background='transparent'; this.style.color='var(--brand-teal)'" onmouseover="this.style.background='var(--brand-teal)'; this.style.color='white'" style="color: var(--brand-teal); text-decoration: none; font-weight: 500; padding: 0.5rem 1rem; border: 1px solid var(--brand-teal); border-radius: 25px; display: inline-block; transition: all 0.3s ease;">← Back to Location &amp; Activities Overview</a>
+<a href="#" onclick="showPage('explore'); return false;" onmouseout="this.style.background='transparent'; this.style.color='var(--brand-teal)'" onmouseover="this.style.background='var(--brand-teal)'; this.style.color='white'" style="color: var(--brand-teal); text-decoration: none; font-weight: 500; padding: 0.5rem 1rem; border: 1px solid var(--brand-teal); border-radius: 25px; display: inline-block; transition: all 0.3s ease;">← Back to Location &amp; Activities Overview</a>
 </div>
 </div>
 <!-- Collapsible Guide Sections -->
@@ -4901,14 +4901,14 @@ Select accommodation and dates to see pricing
 <div class="card-content">
 <h3 class="card-title">🚴 Cycle the Lake Dunstan Trail</h3>
 <p class="card-text">Step directly from our energy-positive property onto the historic Cromwell-Clyde Trail. This flat, family-friendly route follows the lake shore with stunning mountain views.</p>
-<div style="color: var(--brand-teal); font-weight: 600; margin-top: 1rem;">300m from property • <a href="#" onclick="showPage('blog')" style="color: var(--brand-teal); text-decoration: none;">→ Get cycling guide</a></div>
+<div style="color: var(--brand-teal); font-weight: 600; margin-top: 1rem;">300m from property • <a href="#" onclick="showPage('blog'); return false;" style="color: var(--brand-teal); text-decoration: none;">→ Get cycling guide</a></div>
 </div>
 </div>
 <div class="card" id="wine-section">
 <div class="card-content">
 <h3 class="card-title">🍷 Wine Country Location</h3>
 <p class="card-text">You're in the heart of Central Otago wine country, famous for world-class Pinot Noir. Multiple award-winning cellar doors within 15 minutes of your accommodation.</p>
-<div style="color: var(--brand-teal); font-weight: 600; margin-top: 1rem;"><a href="#" onclick="showPage('blog')" style="color: var(--brand-teal); text-decoration: none;">→ Get detailed winery guide</a></div>
+<div style="color: var(--brand-teal); font-weight: 600; margin-top: 1rem;"><a href="#" onclick="showPage('blog'); return false;" style="color: var(--brand-teal); text-decoration: none;">→ Get detailed winery guide</a></div>
 </div>
 </div>
 <div class="card">
@@ -4950,7 +4950,7 @@ Select accommodation and dates to see pricing
 <div class="card-content">
 <h3 class="card-title">🏔️ Strategic Location</h3>
 <p class="card-text">Perfectly positioned between Queenstown (55min) and Wanaka (30min). Experience the best of both adventure destinations while staying in peaceful wine country.</p>
-<div style="color: var(--brand-teal); font-weight: 600; margin-top: 1rem;"><a href="#" onclick="showPage('blog')" style="color: var(--brand-teal); text-decoration: none;">→ Get detailed day trip planners</a></div>
+<div style="color: var(--brand-teal); font-weight: 600; margin-top: 1rem;"><a href="#" onclick="showPage('blog'); return false;" style="color: var(--brand-teal); text-decoration: none;">→ Get detailed day trip planners</a></div>
 </div>
 </div>
 <div class="card">
@@ -4966,7 +4966,7 @@ Select accommodation and dates to see pricing
 <div class="card-content">
 <h3 class="card-title">Planning Your Energy-Positive Central Otago Adventure?</h3>
 <p class="card-text">We're happy to help you plan the perfect itinerary based on your interests and the season of your visit. Plus, we love sharing insights about renewable energy technology!</p>
-<a class="btn btn-primary" href="#" onclick="showPage('contact')">Get Local &amp; Tech Recommendations</a>
+<a class="btn btn-primary" href="#" onclick="showPage('contact'); return false;">Get Local &amp; Tech Recommendations</a>
 </div>
 </div>
 </div>
@@ -5085,22 +5085,22 @@ Select accommodation and dates to see pricing
 <!-- Accommodation Links -->
 <div class="footer-section">
 <h3>Accommodation</h3>
-<a href="#" onclick="showPage('stay')">Solar-Powered Eco Domes</a>
-<a href="#" onclick="showPage('stay')">Central Otago Glamping</a>
-<a href="#" onclick="showPage('stay')">Lake Dunstan Accommodation</a>
-<a href="#" onclick="showPage('stay')">Cromwell Luxury Lodging</a>
-<a href="#" onclick="showPage('stay')">Sustainable Accommodation</a>
-<a href="#" onclick="showPage('stay')">Wine Country Stays</a>
+<a href="#" onclick="showPage('stay'); return false;">Solar-Powered Eco Domes</a>
+<a href="#" onclick="showPage('stay'); return false;">Central Otago Glamping</a>
+<a href="#" onclick="showPage('stay'); return false;">Lake Dunstan Accommodation</a>
+<a href="#" onclick="showPage('stay'); return false;">Cromwell Luxury Lodging</a>
+<a href="#" onclick="showPage('stay'); return false;">Sustainable Accommodation</a>
+<a href="#" onclick="showPage('stay'); return false;">Wine Country Stays</a>
 </div>
 <!-- Activities & Local -->
 <div class="footer-section">
 <h3>Central Otago Experiences</h3>
-<a href="#" onclick="showPage('explore')">Otago Rail Trail Cycling</a>
-<a href="#" onclick="showPage('explore')">Wine Tours &amp; Tastings</a>
-<a href="#" onclick="showPage('explore')">Lake Dunstan Activities</a>
-<a href="#" onclick="showPage('explore')">Cromwell Attractions</a>
-<a href="#" onclick="showPage('explore')">Gibbston Valley Tours</a>
-<a href="#" onclick="showPage('explore')">Premium Winery Visits</a>
+<a href="#" onclick="showPage('explore'); return false;">Otago Rail Trail Cycling</a>
+<a href="#" onclick="showPage('explore'); return false;">Wine Tours &amp; Tastings</a>
+<a href="#" onclick="showPage('explore'); return false;">Lake Dunstan Activities</a>
+<a href="#" onclick="showPage('explore'); return false;">Cromwell Attractions</a>
+<a href="#" onclick="showPage('explore'); return false;">Gibbston Valley Tours</a>
+<a href="#" onclick="showPage('explore'); return false;">Premium Winery Visits</a>
 </div>
 <!-- Legal Information -->
 <div class="footer-section">
@@ -7113,7 +7113,7 @@ Select accommodation and dates to see pricing
                 link.classList.remove('active');
             });
             
-            const activeLink = document.querySelector(`[onclick="showPage('${pageName}')"]`);
+            const activeLink = document.querySelector(`[onclick="showPage('${pageName}'); return false;"]`);
             if (activeLink && activeLink.classList.contains('nav-link')) {
                 activeLink.classList.add('active');
             }
