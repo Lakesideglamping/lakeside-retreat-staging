@@ -18,6 +18,13 @@ if (!process.env.DATABASE_URL) {
     console.error('DATABASE_URL environment variable is missing!');
     process.exit(1);
 }
+if (!process.env.JWT_SECRET) {
+    console.error('JWT_SECRET environment variable is missing!');
+    process.exit(1);
+}
+if (!process.env.PUBLIC_BASE_URL) {
+    console.warn('PUBLIC_BASE_URL not set, using default. Set this for production security.');
+}
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { v4: uuidv4 } = require('uuid');
 const crypto = require('crypto');
@@ -102,32 +109,41 @@ const adminLimiter = rateLimit({
     legacyHeaders: false,
 });
 
+const contactLimiter = rateLimit({
+    windowMs: 10 * 60 * 1000, // 10 minutes
+    max: 3, // limit each IP to 3 contact form submissions per 10 minutes
+    message: { error: 'Too many messages sent, please try again in 10 minutes' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
 // Apply rate limiting
 app.use(generalLimiter);
 
 // Enable compression for all responses (60-80% size reduction)
 app.use(compression());
 
-// Minimal safe security headers (won't break frontend)
+// Security headers
 app.use(helmet({
-    // SAFE: These headers are very conservative
-    xContentTypeOptions: true,        // Prevents MIME sniffing (replaces noSniff)
-    xFrameOptions: { action: 'sameorigin' }, // Allows same-origin frames
-    xXssProtection: true,             // Basic XSS protection
+    xContentTypeOptions: true,
+    xFrameOptions: { action: 'sameorigin' },
+    xXssProtection: true,
     referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
     
-    // DISABLED: These could break your site
-    contentSecurityPolicy: false,    // Don't enable CSP - too risky
-    crossOriginEmbedderPolicy: false, // Don't block embeds
-    crossOriginResourcePolicy: false, // Don't block cross-origin resources
-    originAgentCluster: false,        // Don't isolate origins
+    hsts: {
+        maxAge: 31536000,
+        includeSubDomains: false,
+        preload: false
+    },
     
-    // KEEP PERMISSIVE: Allow all functionality
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: false,
+    originAgentCluster: false,
     permittedCrossDomainPolicies: false,
     
-    // Standard safe defaults
     ieNoOpen: true,
-    dnsPrefetchControl: { allow: true }  // Allow DNS prefetching for performance
+    dnsPrefetchControl: { allow: true }
 }));
 
 app.post('/api/stripe/webhook', express.raw({type: 'application/json'}), async (req, res) => {
@@ -176,8 +192,8 @@ app.post('/api/stripe/webhook', express.raw({type: 'application/json'}), async (
 });
 
 // Middleware (AFTER Stripe webhook route)
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10kb' }));
+app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
 // Secure static file serving - only serve files from public directory
 // This prevents exposure of sensitive files like lakeside.db, server.js, .env
@@ -209,23 +225,6 @@ app.get('/api/health', async (req, res) => {
     }
 });
 
-// CSRF Token endpoint
-app.get('/api/csrf-token', (req, res) => {
-    try {
-        const token = crypto.randomBytes(32).toString('hex');
-        res.json({ 
-            success: true,
-            token: token,
-            expires: Date.now() + (60 * 60 * 1000) // 1 hour
-        });
-    } catch (error) {
-        console.error('❌ CSRF token generation error:', error);
-        res.status(500).json({ 
-            success: false,
-            error: 'Failed to generate security token' 
-        });
-    }
-});
 
 // Accommodations endpoint
 app.get('/api/accommodations', (req, res) => {
@@ -282,7 +281,7 @@ app.get('/api/accommodations', (req, res) => {
 });
 
 // Contact form endpoint
-app.post('/api/contact', [
+app.post('/api/contact', contactLimiter, [
     body('name').trim().isLength({ min: 2, max: 100 }).escape(),
     body('email').isEmail().normalizeEmail(),
     body('message').trim().isLength({ min: 10, max: 1000 }).escape()
@@ -311,13 +310,13 @@ app.post('/api/contact', [
         const mailOptions = {
             from: process.env.EMAIL_USER,
             to: process.env.CONTACT_EMAIL || process.env.EMAIL_USER,
-            subject: `Website Contact from ${sanitizedData.name}`,
+            subject: `Website Contact from ${escapeHtml(sanitizedData.name)}`,
             html: `
                 <h2>New Contact Form Submission</h2>
-                <p><strong>Name:</strong> ${sanitizedData.name}</p>
-                <p><strong>Email:</strong> ${sanitizedData.email}</p>
+                <p><strong>Name:</strong> ${escapeHtml(sanitizedData.name)}</p>
+                <p><strong>Email:</strong> ${escapeHtml(sanitizedData.email)}</p>
                 <p><strong>Message:</strong></p>
-                <p>${sanitizedData.message.replace(/\n/g, '<br>')}</p>
+                <p>${escapeHtml(sanitizedData.message).replace(/\n/g, '<br>')}</p>
                 <hr>
                 <p><small>Sent from Lakeside Retreat website contact form</small></p>
             `,
@@ -375,6 +374,18 @@ const validateBooking = [
 function sanitizeInput(input) {
     if (typeof input !== 'string') return input;
     return input.replace(/[<>\"\']/g, '');
+}
+
+function escapeHtml(text) {
+    if (typeof text !== 'string') return text;
+    const htmlEntities = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    };
+    return text.replace(/[&<>"']/g, char => htmlEntities[char]);
 }
 
 function calculateNights(checkIn, checkOut) {
@@ -635,16 +646,16 @@ async function sendBookingConfirmation(bookingData) {
         subject: 'Booking Confirmation - Lakeside Retreat',
         html: `
             <h2>Booking Confirmation</h2>
-            <p>Dear ${bookingData.guest_name},</p>
+            <p>Dear ${escapeHtml(bookingData.guest_name)},</p>
             <p>Your booking has been confirmed!</p>
             
             <h3>Booking Details:</h3>
             <ul>
-                <li><strong>Accommodation:</strong> ${bookingData.accommodation}</li>
-                <li><strong>Check-in:</strong> ${bookingData.check_in}</li>
-                <li><strong>Check-out:</strong> ${bookingData.check_out}</li>
-                <li><strong>Guests:</strong> ${bookingData.guests}</li>
-                <li><strong>Total:</strong> $${bookingData.total_price} NZD</li>
+                <li><strong>Accommodation:</strong> ${escapeHtml(bookingData.accommodation)}</li>
+                <li><strong>Check-in:</strong> ${escapeHtml(bookingData.check_in)}</li>
+                <li><strong>Check-out:</strong> ${escapeHtml(bookingData.check_out)}</li>
+                <li><strong>Guests:</strong> ${escapeHtml(String(bookingData.guests))}</li>
+                <li><strong>Total:</strong> $${escapeHtml(String(bookingData.total_price))} NZD</li>
             </ul>
             
             <p>We look forward to hosting you!</p>
@@ -749,9 +760,7 @@ app.post('/api/process-booking', bookingLimiter, validateBooking, async (req, re
             });
         }
 
-        console.log('💳 Creating Stripe checkout session...');
-        console.log('🔑 Stripe key configured:', process.env.STRIPE_SECRET_KEY ? 'YES' : 'NO');
-        console.log('🛒 Booking data:', sanitizedData);
+        console.log('Creating Stripe checkout session for accommodation:', sanitizedData.accommodation);
 
         // Create Stripe checkout session
         let session;
@@ -770,8 +779,8 @@ app.post('/api/process-booking', bookingLimiter, validateBooking, async (req, re
                 quantity: 1
             }],
             mode: 'payment',
-            success_url: `${req.protocol}://${req.get('host')}/booking-success?session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `${req.protocol}://${req.get('host')}/booking-cancelled`,
+            success_url: `${process.env.PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`}/booking-success?session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${process.env.PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`}/booking-cancelled`,
             metadata: {
                 guest_name: sanitizedData.guest_name,
                 guest_email: sanitizedData.guest_email,
