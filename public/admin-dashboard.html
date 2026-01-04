@@ -476,6 +476,7 @@
                     </div>
                 </div>
                 <div class="quick-actions">
+                    <button class="btn btn-success" onclick="syncUplistingBookings()" id="syncUplistingBtn">📥 Sync Uplisting Bookings</button>
                     <a href="/system-settings.html" class="btn">Settings</a>
                     <a href="/backup-system.html" class="btn btn-secondary">Backup</a>
                 </div>
@@ -938,6 +939,55 @@
                     <button class="btn btn-secondary" onclick="closeModal()">Close</button>
                 </div>
             `;
+        }
+
+        // Sync all Uplisting bookings function
+        async function syncUplistingBookings() {
+            const syncBtn = document.getElementById('syncUplistingBtn');
+            const originalText = syncBtn.innerHTML;
+            
+            if (!confirm('This will import all existing bookings from Uplisting into the local database. Continue?')) return;
+            
+            try {
+                syncBtn.innerHTML = '⏳ Syncing...';
+                syncBtn.disabled = true;
+                
+                const response = await fetch('/api/admin/sync-uplisting-bookings', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    let message = `Sync complete!\n\n`;
+                    message += `- ${data.results.imported} new bookings imported\n`;
+                    message += `- ${data.results.updated} existing bookings updated\n`;
+                    
+                    if (data.results.errors.length > 0) {
+                        message += `\n⚠️ ${data.results.errors.length} errors occurred:\n`;
+                        message += data.results.errors.slice(0, 3).join('\n');
+                        if (data.results.errors.length > 3) {
+                            message += `\n... and ${data.results.errors.length - 3} more`;
+                        }
+                    }
+                    
+                    alert(message);
+                    refreshBookings();
+                    loadDashboardData();
+                } else {
+                    alert(`Sync failed: ${data.error}\n\n${data.details || ''}`);
+                }
+            } catch (error) {
+                console.error('Error syncing Uplisting bookings:', error);
+                alert('Failed to sync Uplisting bookings. Check console for details.');
+            } finally {
+                syncBtn.innerHTML = originalText;
+                syncBtn.disabled = false;
+            }
         }
 
         // Retry sync function

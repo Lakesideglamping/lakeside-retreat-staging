@@ -907,6 +907,208 @@ app.post('/api/uplisting/webhook', express.raw({type: 'application/json'}), asyn
         
     } catch (error) {
         console.error('Uplisting webhook error:', error);
+    }
+});
+
+// Admin endpoint to sync existing bookings from Uplisting
+// This fetches bookings from Uplisting API and imports them into the local database
+app.post('/api/admin/sync-uplisting-bookings', verifyAdmin, async (req, res) => {
+    try {
+        if (!process.env.UPLISTING_API_KEY) {
+            return res.status(400).json({
+                success: false,
+                error: 'Uplisting API key not configured'
+            });
+        }
+        
+        const results = {
+            total: 0,
+            imported: 0,
+            updated: 0,
+            errors: [],
+            bookings: []
+        };
+        
+        // Get all property IDs
+        const propertyMapping = getUplistingPropertyMapping();
+        const properties = Object.entries(propertyMapping).filter(([_, id]) => id);
+        
+        if (properties.length === 0) {
+            return res.status(400).json({
+                success: false,
+                error: 'No Uplisting property IDs configured'
+            });
+        }
+        
+        console.log('📥 Starting Uplisting bookings sync for properties:', properties.map(p => p[0]));
+        
+        // Try to fetch bookings from Uplisting API
+        // First, try the /bookings endpoint with property filter
+        for (const [accommodation, propertyId] of properties) {
+            try {
+                // Calculate date range: today to 12 months from now
+                const today = new Date();
+                const endDate = new Date(today);
+                endDate.setMonth(endDate.getMonth() + 12);
+                
+                const startDateStr = today.toISOString().split('T')[0];
+                const endDateStr = endDate.toISOString().split('T')[0];
+                
+                // Try fetching bookings for this property
+                // Uplisting API endpoint for listing bookings (may vary based on API version)
+                const bookingsUrl = `https://connect.uplisting.io/bookings?property_id=${propertyId}&start_date=${startDateStr}&end_date=${endDateStr}`;
+                
+                console.log(`🔍 Fetching bookings for ${accommodation} from: ${bookingsUrl}`);
+                
+                const response = await fetch(bookingsUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Basic ${Buffer.from(process.env.UPLISTING_API_KEY).toString('base64')}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                console.log(`📡 Uplisting API response for ${accommodation}: ${response.status}`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log(`📝 Uplisting bookings data for ${accommodation}:`, JSON.stringify(data).substring(0, 500));
+                    
+                    // Handle different response formats
+                    let bookings = [];
+                    if (Array.isArray(data)) {
+                        bookings = data;
+                    } else if (data.data && Array.isArray(data.data)) {
+                        bookings = data.data;
+                    } else if (data.bookings && Array.isArray(data.bookings)) {
+                        bookings = data.bookings;
+                    }
+                    
+                    results.total += bookings.length;
+                    
+                    for (const booking of bookings) {
+                        try {
+                            // Extract booking data (handle different API response formats)
+                            const bookingData = {
+                                id: `uplisting-${booking.id || booking.attributes?.id}`,
+                                guest_name: sanitizeInput(
+                                    booking.guest?.first_name && booking.guest?.last_name
+                                        ? `${booking.guest.first_name} ${booking.guest.last_name}`.trim()
+                                        : booking.attributes?.guest_name || 'Guest'
+                                ),
+                                guest_email: sanitizeInput(booking.guest?.email || booking.attributes?.guest_email || ''),
+                                guest_phone: sanitizeInput(booking.guest?.phone || booking.attributes?.guest_phone || ''),
+                                accommodation: accommodation,
+                                check_in: booking.check_in || booking.attributes?.check_in,
+                                check_out: booking.check_out || booking.attributes?.check_out,
+                                guests: booking.guests || booking.attributes?.guests || 2,
+                                total_price: booking.total_amount || booking.attributes?.total_amount || 0,
+                                status: (booking.status || booking.attributes?.status) === 'confirmed' ? 'confirmed' : 'pending',
+                                payment_status: booking.payment_status || booking.attributes?.payment_status || 'completed',
+                                notes: sanitizeInput(booking.notes || booking.attributes?.notes || 'Synced from Uplisting'),
+                                uplisting_id: booking.id || booking.attributes?.id
+                            };
+                            
+                            // Skip if missing required dates
+                            if (!bookingData.check_in || !bookingData.check_out) {
+                                console.log(`⚠️ Skipping booking ${bookingData.id} - missing dates`);
+                                continue;
+                            }
+                            
+                            // Check if booking already exists
+                            const existing = await db.getOne(
+                                'SELECT id FROM bookings WHERE id = $1 OR uplisting_id = $2',
+                                [bookingData.id, bookingData.uplisting_id]
+                            );
+                            
+                            await db.run(
+                                `INSERT INTO bookings (
+                                    id, guest_name, guest_email, guest_phone, accommodation,
+                                    check_in, check_out, guests, total_price, status,
+                                    payment_status, notes, uplisting_id, created_at
+                                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW())
+                                ON CONFLICT (id) DO UPDATE SET
+                                    guest_name = EXCLUDED.guest_name,
+                                    guest_email = EXCLUDED.guest_email,
+                                    guest_phone = EXCLUDED.guest_phone,
+                                    accommodation = EXCLUDED.accommodation,
+                                    check_in = EXCLUDED.check_in,
+                                    check_out = EXCLUDED.check_out,
+                                    guests = EXCLUDED.guests,
+                                    total_price = EXCLUDED.total_price,
+                                    status = EXCLUDED.status,
+                                    payment_status = EXCLUDED.payment_status,
+                                    notes = EXCLUDED.notes,
+                                    uplisting_id = EXCLUDED.uplisting_id,
+                                    updated_at = NOW()`,
+                                [
+                                    bookingData.id,
+                                    bookingData.guest_name,
+                                    bookingData.guest_email,
+                                    bookingData.guest_phone,
+                                    bookingData.accommodation,
+                                    bookingData.check_in,
+                                    bookingData.check_out,
+                                    bookingData.guests,
+                                    bookingData.total_price,
+                                    bookingData.status,
+                                    bookingData.payment_status,
+                                    bookingData.notes,
+                                    bookingData.uplisting_id
+                                ]
+                            );
+                            
+                            if (existing) {
+                                results.updated++;
+                            } else {
+                                results.imported++;
+                            }
+                            
+                            results.bookings.push({
+                                id: bookingData.id,
+                                accommodation: bookingData.accommodation,
+                                check_in: bookingData.check_in,
+                                check_out: bookingData.check_out,
+                                status: existing ? 'updated' : 'imported'
+                            });
+                            
+                        } catch (bookingErr) {
+                            console.error(`❌ Error importing booking:`, bookingErr);
+                            results.errors.push(`Booking import error: ${bookingErr.message}`);
+                        }
+                    }
+                } else {
+                    const errorText = await response.text();
+                    console.error(`❌ Uplisting API error for ${accommodation}:`, response.status, errorText);
+                    results.errors.push(`${accommodation}: API returned ${response.status} - ${errorText.substring(0, 200)}`);
+                }
+                
+            } catch (propErr) {
+                console.error(`❌ Error fetching bookings for ${accommodation}:`, propErr);
+                results.errors.push(`${accommodation}: ${propErr.message}`);
+            }
+        }
+        
+        // Clear the blocked dates cache so new bookings show immediately
+        blockedDatesCache.clear();
+        
+        console.log(`✅ Uplisting sync complete: ${results.imported} imported, ${results.updated} updated, ${results.errors.length} errors`);
+        
+        res.json({
+            success: true,
+            message: `Sync complete: ${results.imported} new bookings imported, ${results.updated} updated`,
+            results
+        });
+        
+    } catch (error) {
+        console.error('❌ Uplisting sync error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to sync bookings from Uplisting',
+            details: error.message
+        });
+    }
+});
         res.status(500).json({ error: 'Webhook processing failed' });
     }
 });
