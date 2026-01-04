@@ -136,7 +136,21 @@ app.use(helmet({
         preload: false
     },
     
-    contentSecurityPolicy: false,
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "https://js.stripe.com"],
+            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
+            fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
+            imgSrc: ["'self'", "data:", "https:"],
+            connectSrc: ["'self'", "https://api.stripe.com"],
+            frameSrc: ["'self'", "https://js.stripe.com", "https://hooks.stripe.com"],
+            objectSrc: ["'none'"],
+            baseUri: ["'self'"],
+            formAction: ["'self'"],
+            upgradeInsecureRequests: []
+        }
+    },
     crossOriginEmbedderPolicy: false,
     crossOriginResourcePolicy: false,
     originAgentCluster: false,
@@ -325,7 +339,7 @@ app.post('/api/contact', contactLimiter, [
 
         try {
             await emailTransporter.sendMail(mailOptions);
-            console.log('✅ Contact form email sent from:', sanitizedData.email);
+            console.log('✅ Contact form email sent successfully');
         } catch (emailError) {
             console.error('❌ Failed to send contact email:', emailError);
             // Don't fail the request if email fails
@@ -553,13 +567,23 @@ async function syncBookingToUplisting(bookingData) {
     }
 }
 
-app.post('/api/uplisting/webhook', express.json(), async (req, res) => {
+app.post('/api/uplisting/webhook', express.raw({type: 'application/json'}), async (req, res) => {
     try {
+        const rawBody = req.body;
+        let parsedBody;
+        
+        try {
+            parsedBody = JSON.parse(rawBody.toString());
+        } catch (parseErr) {
+            console.error('Invalid JSON in Uplisting webhook');
+            return res.status(400).json({ error: 'Invalid JSON' });
+        }
+        
         if (process.env.UPLISTING_WEBHOOK_SECRET) {
             const signature = req.headers['x-uplisting-signature'];
             const expectedSignature = crypto
                 .createHmac('sha256', process.env.UPLISTING_WEBHOOK_SECRET)
-                .update(JSON.stringify(req.body))
+                .update(rawBody)
                 .digest('hex');
             
             if (signature !== expectedSignature) {
@@ -568,7 +592,7 @@ app.post('/api/uplisting/webhook', express.json(), async (req, res) => {
             }
         }
         
-        const { event, data } = req.body;
+        const { event, data } = parsedBody;
         
         if (event === 'booking.created' || event === 'booking.updated') {
             const bookingData = {
@@ -665,7 +689,7 @@ async function sendBookingConfirmation(bookingData) {
     
     try {
         await emailTransporter.sendMail(mailOptions);
-        console.log('✅ Booking confirmation email sent to:', bookingData.guest_email);
+        console.log('✅ Booking confirmation email sent successfully');
     } catch (error) {
         console.error('❌ Failed to send booking confirmation:', error);
     }
