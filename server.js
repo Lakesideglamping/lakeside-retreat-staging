@@ -54,6 +54,19 @@ const emailTransporter = nodemailer.createTransport({
     }
 });
 
+// Centralized Uplisting API configuration
+// Returns the base URL for Uplisting API calls
+function getUplistingBaseUrl() {
+    return process.env.UPLISTING_API_URL || process.env.UPLISTING_BASE_URL || 'https://connect.uplisting.io';
+}
+
+// Returns the Authorization header for Uplisting API calls
+// Basic auth format requires base64(username:password) - API key is the username with empty password
+function getUplistingAuthHeader() {
+    const apiKey = process.env.UPLISTING_API_KEY || '';
+    return `Basic ${Buffer.from(`${apiKey}:`).toString('base64')}`;
+}
+
 // Centralized Uplisting property mapping configuration
 // Maps accommodation names to their Uplisting property IDs
 function getUplistingPropertyMapping() {
@@ -699,7 +712,7 @@ async function checkUplistingAvailability(accommodation, checkIn, checkOut) {
         const response = await fetch(url, {
             method: 'GET',
             headers: {
-                'Authorization': `Basic ${Buffer.from(process.env.UPLISTING_API_KEY).toString('base64')}`,
+                'Authorization': getUplistingAuthHeader(),
                 'Content-Type': 'application/json'
             }
         });
@@ -788,7 +801,7 @@ async function syncBookingToUplisting(bookingData) {
         const response = await fetch('https://connect.uplisting.io/bookings', {
             method: 'POST',
             headers: {
-                'Authorization': `Basic ${Buffer.from(process.env.UPLISTING_API_KEY).toString('base64')}`,
+                'Authorization': getUplistingAuthHeader(),
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(uplistingBooking)
@@ -1294,7 +1307,7 @@ app.post('/api/admin/sync-uplisting-bookings', verifyAdmin, async (req, res) => 
                 const response = await fetch(bookingsUrl, {
                     method: 'GET',
                     headers: {
-                        'Authorization': `Basic ${Buffer.from(process.env.UPLISTING_API_KEY).toString('base64')}`,
+                        'Authorization': getUplistingAuthHeader(),
                         'Content-Type': 'application/json'
                     }
                 });
@@ -1697,7 +1710,7 @@ app.get('/api/admin/uplisting-booking/:bookingId', verifyAdmin, async (req, res)
         
         const response = await fetch(`https://connect.uplisting.io/bookings/${bookingId}`, {
             headers: {
-                'Authorization': `Basic ${Buffer.from(process.env.UPLISTING_API_KEY).toString('base64')}`,
+                'Authorization': getUplistingAuthHeader(),
                 'Content-Type': 'application/json'
             }
         });
@@ -1803,7 +1816,7 @@ async function cancelUplistingBooking(uplistingId) {
         const response = await fetch(`https://connect.uplisting.io/bookings/${uplistingId}/cancel`, {
             method: 'POST',
             headers: {
-                'Authorization': `Basic ${Buffer.from(process.env.UPLISTING_API_KEY).toString('base64')}`,
+                'Authorization': getUplistingAuthHeader(),
                 'Content-Type': 'application/json'
             }
         });
