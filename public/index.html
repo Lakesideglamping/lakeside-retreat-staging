@@ -8,7 +8,7 @@
         // Version-gated cache clearing - only clears when version changes
         // This preserves admin tokens and user preferences between page loads
         (function() {
-            const CURRENT_VERSION = 'v3.0.0';
+            const CURRENT_VERSION = 'v3.1.0';
             const storedVersion = localStorage.getItem('app-version');
             
             if (storedVersion !== CURRENT_VERSION) {
@@ -24,20 +24,7 @@
     </script>
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
-<!-- Content Security Policy - Allows necessary inline styles and event handlers -->
-<meta http-equiv="Content-Security-Policy" content="
-    default-src 'self'; 
-    script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://www.clarity.ms https://js.stripe.com; 
-    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; 
-    font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; 
-    img-src 'self' data: https: blob:; 
-    connect-src 'self' https: wss:;
-    media-src 'self' https:;
-    object-src 'none';
-    base-uri 'self';
-    form-action 'self';
-    worker-src 'self';
-    child-src 'self';">
+<!-- CSP is now set via HTTP header in server.js (helmet) for single source of truth -->
     <title>Luxury Glamping Domes | Lake Dunstan, Central Otago NZ</title>
     
     <!-- Critical CSS - Inline for performance -->
