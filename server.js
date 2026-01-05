@@ -62,9 +62,10 @@ function getUplistingBaseUrl() {
 
 // Returns auth headers for Uplisting API calls
 // Configurable auth mode via UPLISTING_AUTH_MODE env var:
-// - 'bearer' (default): Authorization: Bearer {api_key}
+// - 'basic' (default): Authorization: Basic base64({api_key}) - Uplisting's documented format
 // - 'basic_username': Authorization: Basic base64({api_key}:)
 // - 'basic_password': Authorization: Basic base64(:{api_key})
+// - 'bearer': Authorization: Bearer {api_key}
 // - 'token': Authorization: Token token="{api_key}"
 // - 'token_simple': Authorization: Token {api_key}
 // - 'apikey': Authorization: ApiKey {api_key}
@@ -91,13 +92,18 @@ function getUplistingAuthHeaders() {
     
     if (!apiKey) {
         console.warn('Warning: UPLISTING_API_KEY is not set or empty');
-        return { 'Authorization': 'Bearer ' };
+        return { 'Authorization': 'Basic ' };
     }
     
-    const authMode = (process.env.UPLISTING_AUTH_MODE || 'bearer').toLowerCase().trim();
+    // Default to 'basic' which is Uplisting's documented auth format
+    const authMode = (process.env.UPLISTING_AUTH_MODE || 'basic').toLowerCase().trim();
     console.log(`Uplisting auth mode: ${authMode}, API key length: ${apiKey.length}`);
     
     switch (authMode) {
+        case 'basic':
+            // Uplisting's documented format: API key base64 encoded directly
+            // See: https://documenter.getpostman.com/view/1320372/SWTBfdW6
+            return { 'Authorization': `Basic ${Buffer.from(apiKey).toString('base64')}` };
         case 'basic_username':
             // API key as username with empty password
             return { 'Authorization': `Basic ${Buffer.from(`${apiKey}:`).toString('base64')}` };
@@ -117,8 +123,10 @@ function getUplistingAuthHeaders() {
             // X-API-Key custom header (not Authorization)
             return { 'X-API-Key': apiKey };
         case 'bearer':
-        default:
             return { 'Authorization': `Bearer ${apiKey}` };
+        default:
+            // Default to Uplisting's documented format
+            return { 'Authorization': `Basic ${Buffer.from(apiKey).toString('base64')}` };
     }
 }
 
