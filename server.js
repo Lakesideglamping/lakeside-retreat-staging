@@ -1357,6 +1357,73 @@ const verifyAdmin = (req, res, next) => {
 };
 
 // Admin endpoint to sync existing bookings from Uplisting
+// Verify Uplisting API key by calling /users/me endpoint
+// This is the recommended way to verify API key per Uplisting docs
+app.get('/api/admin/uplisting/verify', verifyAdmin, async (req, res) => {
+    try {
+        if (!process.env.UPLISTING_API_KEY) {
+            return res.status(400).json({
+                success: false,
+                error: 'Uplisting API key not configured',
+                configured: false
+            });
+        }
+        
+        const baseUrl = getUplistingBaseUrl();
+        const verifyUrl = `${baseUrl}/users/me`;
+        const authHeaders = getUplistingAuthHeaders();
+        
+        // Log configuration (without exposing secrets)
+        console.log('🔑 Verifying Uplisting API key...');
+        console.log(`📍 Base URL: ${baseUrl}`);
+        console.log(`🔐 Auth mode: ${process.env.UPLISTING_AUTH_MODE || 'basic'}`);
+        
+        const response = await fetch(verifyUrl, {
+            method: 'GET',
+            headers: {
+                ...authHeaders,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        console.log(`📡 Uplisting verify response: ${response.status}`);
+        
+        if (response.ok) {
+            const data = await response.json();
+            console.log('✅ Uplisting API key verified successfully');
+            return res.json({
+                success: true,
+                message: 'Uplisting API key is valid',
+                configured: true,
+                baseUrl: baseUrl,
+                authMode: process.env.UPLISTING_AUTH_MODE || 'basic',
+                user: data
+            });
+        } else {
+            const errorText = await response.text();
+            console.error(`❌ Uplisting API key verification failed: ${response.status}`, errorText);
+            return res.status(response.status).json({
+                success: false,
+                error: `Uplisting API returned ${response.status}`,
+                details: errorText,
+                configured: true,
+                baseUrl: baseUrl,
+                authMode: process.env.UPLISTING_AUTH_MODE || 'basic',
+                suggestion: response.status === 401 
+                    ? 'Check that UPLISTING_API_KEY is from Connect > API Key (not Webhook). Try setting UPLISTING_AUTH_MODE=basic_username if using standard HTTP Basic auth.'
+                    : null
+            });
+        }
+    } catch (error) {
+        console.error('❌ Uplisting verification error:', error);
+        return res.status(500).json({
+            success: false,
+            error: error.message,
+            configured: !!process.env.UPLISTING_API_KEY
+        });
+    }
+});
+
 // This fetches bookings from Uplisting API and imports them into the local database
 app.post('/api/admin/sync-uplisting-bookings', verifyAdmin, async (req, res) => {
     try {
@@ -1402,7 +1469,7 @@ app.post('/api/admin/sync-uplisting-bookings', verifyAdmin, async (req, res) => 
                 
                 // Try fetching bookings for this property
                 // Use the same URL pattern as the availability endpoint: /properties/{id}/bookings
-                const baseUrl = process.env.UPLISTING_API_URL || process.env.UPLISTING_BASE_URL || 'https://connect.uplisting.io';
+                const baseUrl = getUplistingBaseUrl();
                 const bookingsUrl = `${baseUrl}/properties/${propertyId}/bookings?start_date=${startDateStr}&end_date=${endDateStr}`;
                 
                 console.log(`🔍 Fetching bookings for ${accommodation} from: ${bookingsUrl}`);
