@@ -546,14 +546,25 @@ app.post('/api/availability', bookingLimiter, async (req, res) => {
         
         console.log('🔍 Checking availability for:', accommodation, formattedCheckIn, 'to', formattedCheckOut);
         
-        // Check availability using existing function
-        const isAvailable = await checkAvailability(accommodation, formattedCheckIn, formattedCheckOut);
+        // Check availability using existing function (returns object with available and error)
+        const availabilityResult = await checkAvailability(accommodation, formattedCheckIn, formattedCheckOut);
         
-        console.log('📅 Availability result:', isAvailable);
+        console.log('📅 Availability result:', availabilityResult);
+        
+        if (!availabilityResult.available) {
+            return res.status(409).json({
+                success: false,
+                available: false,
+                error: availabilityResult.error || 'Selected dates are not available',
+                accommodation: accommodation,
+                checkIn: formattedCheckIn,
+                checkOut: formattedCheckOut
+            });
+        }
         
         res.json({
             success: true,
-            available: isAvailable,
+            available: true,
             accommodation: accommodation,
             checkIn: formattedCheckIn,
             checkOut: formattedCheckOut
@@ -756,17 +767,23 @@ function validateSeasonalMinimumStay(accommodation, checkIn, checkOut) {
 
 // Uplisting API integration
 async function checkUplistingAvailability(accommodation, checkIn, checkOut) {
+    // FAIL-CLOSED: If Uplisting is configured, we MUST verify availability
+    // to prevent overbookings from external channels (Booking.com, Airbnb, etc.)
+    
     if (!process.env.UPLISTING_API_KEY) {
         console.warn('⚠️ Uplisting API key not configured, using local availability only');
-        return true;
+        return { available: true, error: null };
     }
     
     try {
         // Use centralized property mapping
         const propertyId = getPropertyIdFromAccommodation(accommodation);
         if (!propertyId) {
-            console.warn(`⚠️ No Uplisting property ID configured for ${accommodation}`);
-            return true;
+            console.error(`❌ No Uplisting property ID configured for ${accommodation} - blocking booking to prevent overbooking`);
+            return { 
+                available: false, 
+                error: 'Property configuration error. Please contact us directly to book.' 
+            };
         }
         
         const baseUrl = getUplistingBaseUrl();
@@ -786,16 +803,24 @@ async function checkUplistingAvailability(accommodation, checkIn, checkOut) {
         if (!response.ok) {
             const errorText = await response.text();
             console.error('❌ Uplisting API error:', response.status, errorText);
-            return true; // Fail open - allow booking if API is down
+            // FAIL-CLOSED: Block booking if we can't verify availability
+            return { 
+                available: false, 
+                error: 'Unable to verify availability with our booking system. Please try again later or contact us directly.' 
+            };
         }
         
         const data = await response.json();
         console.log('📝 Uplisting availability data:', data);
-        return data.available === true;
+        return { available: data.available === true, error: null };
         
     } catch (error) {
         console.error('❌ Uplisting availability check failed:', error);
-        return true; // Fail open - allow booking if API fails
+        // FAIL-CLOSED: Block booking if API fails to prevent overbookings
+        return { 
+            available: false, 
+            error: 'Unable to verify availability. Please try again later or contact us directly.' 
+        };
     }
 }
 
@@ -818,15 +843,20 @@ async function checkAvailability(accommodation, checkIn, checkOut) {
         localAvailable = !row || parseInt(row.conflicts) === 0;
         
         if (!localAvailable) {
-            return false;
+            return { available: false, error: 'These dates are already booked in our system.' };
         }
         
-        const uplistingAvailable = await checkUplistingAvailability(accommodation, checkIn, checkOut);
-        return uplistingAvailable;
+        // Check Uplisting availability (returns object with available and error properties)
+        const uplistingResult = await checkUplistingAvailability(accommodation, checkIn, checkOut);
+        return uplistingResult;
         
     } catch (error) {
         console.error('Availability check error:', error);
-        return localAvailable;
+        // FAIL-CLOSED: If we can't check availability, block the booking
+        return { 
+            available: false, 
+            error: 'Unable to verify availability. Please try again later or contact us directly.' 
+        };
     }
 }
 
@@ -1094,19 +1124,19 @@ app.post('/api/process-booking', bookingLimiter, validateBooking, async (req, re
 
         console.log('🔍 Checking availability for dates:', sanitizedData.check_in, 'to', sanitizedData.check_out);
         
-        // Check availability
-        const isAvailable = await checkAvailability(
+        // Check availability (returns object with available and error properties)
+        const availabilityResult = await checkAvailability(
             sanitizedData.accommodation,
             sanitizedData.check_in,
             sanitizedData.check_out
         );
 
-        console.log('📅 Availability check result:', isAvailable);
+        console.log('📅 Availability check result:', availabilityResult);
 
-        if (!isAvailable) {
+        if (!availabilityResult.available) {
             return res.status(409).json({
                 success: false,
-                error: 'Selected dates are not available'
+                error: availabilityResult.error || 'Selected dates are not available'
             });
         }
 
