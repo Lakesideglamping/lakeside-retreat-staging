@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seasonal Rates - Lakeside Retreat Admin</title>
+    <link rel="stylesheet" href="/admin-shell.css?v=2">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+        
+        .page-header {
+            margin-bottom: 2rem;
+        }
+        
+        .page-header h2 {
+            color: #2d5a5a;
+            font-size: 1.5rem;
+        }
+        
+        .page-header p {
+            color: #666;
+            margin-top: 0.5rem;
+        }
+        
+        .rates-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .rate-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .rate-card.summer {
+            border-left: 4px solid #ff6b6b;
+        }
+        
+        .rate-card.autumn {
+            border-left: 4px solid #ffa94d;
+        }
+        
+        .rate-card.winter {
+            border-left: 4px solid #74c0fc;
+        }
+        
+        .rate-card.spring {
+            border-left: 4px solid #69db7c;
+        }
+        
+        .rate-card h3 {
+            color: #2d5a5a;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .rate-card .dates {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+        
+        .rate-card .status {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        
+        .status.active {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status.inactive {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .status.upcoming {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .price-table {
+            width: 100%;
+            margin-bottom: 1rem;
+        }
+        
+        .price-table td {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .price-table td:last-child {
+            text-align: right;
+            font-weight: 600;
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        
+        .btn-primary {
+            background: #2d5a5a;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #1e4040;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+        
+        .add-season-card {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        
+        .add-season-card h3 {
+            color: #2d5a5a;
+            margin-bottom: 1.5rem;
+        }
+        
+        .alert {
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+        }
+        
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .multiplier-input {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .multiplier-input input {
+            width: 80px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="alertBox"></div>
+        
+        <div class="page-header">
+            <h2>Seasonal Rates Management</h2>
+            <p>Configure pricing multipliers for different seasons throughout the year</p>
+        </div>
+        
+        <div class="rates-grid">
+            <div class="rate-card summer">
+                <h3>Summer Peak</h3>
+                <div class="dates">December 15 - February 15</div>
+                <span class="status active">Active</span>
+                <table class="price-table">
+                    <tr>
+                        <td>Dome Pinot</td>
+                        <td>$350/night (+19%)</td>
+                    </tr>
+                    <tr>
+                        <td>Dome Rose</td>
+                        <td>$350/night (+19%)</td>
+                    </tr>
+                    <tr>
+                        <td>Lakeside Cottage</td>
+                        <td>$300/night (+22%)</td>
+                    </tr>
+                </table>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="editSeason('summer')">Edit</button>
+                    <button class="btn btn-secondary" onclick="toggleSeason('summer')">Deactivate</button>
+                </div>
+            </div>
+            
+            <div class="rate-card autumn">
+                <h3>Autumn Wine Season</h3>
+                <div class="dates">March 1 - May 31</div>
+                <span class="status upcoming">Upcoming</span>
+                <table class="price-table">
+                    <tr>
+                        <td>Dome Pinot</td>
+                        <td>$325/night (+10%)</td>
+                    </tr>
+                    <tr>
+                        <td>Dome Rose</td>
+                        <td>$325/night (+10%)</td>
+                    </tr>
+                    <tr>
+                        <td>Lakeside Cottage</td>
+                        <td>$275/night (+12%)</td>
+                    </tr>
+                </table>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="editSeason('autumn')">Edit</button>
+                    <button class="btn btn-secondary" onclick="toggleSeason('autumn')">Deactivate</button>
+                </div>
+            </div>
+            
+            <div class="rate-card winter">
+                <h3>Winter Special</h3>
+                <div class="dates">June 1 - August 31</div>
+                <span class="status inactive">Inactive</span>
+                <table class="price-table">
+                    <tr>
+                        <td>Dome Pinot</td>
+                        <td>$250/night (-15%)</td>
+                    </tr>
+                    <tr>
+                        <td>Dome Rose</td>
+                        <td>$250/night (-15%)</td>
+                    </tr>
+                    <tr>
+                        <td>Lakeside Cottage</td>
+                        <td>$200/night (-18%)</td>
+                    </tr>
+                </table>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="editSeason('winter')">Edit</button>
+                    <button class="btn btn-success" onclick="toggleSeason('winter')">Activate</button>
+                </div>
+            </div>
+            
+            <div class="rate-card spring">
+                <h3>Spring Peak</h3>
+                <div class="dates">September 15 - November 30</div>
+                <span class="status upcoming">Upcoming</span>
+                <table class="price-table">
+                    <tr>
+                        <td>Dome Pinot</td>
+                        <td>$325/night (+10%)</td>
+                    </tr>
+                    <tr>
+                        <td>Dome Rose</td>
+                        <td>$325/night (+10%)</td>
+                    </tr>
+                    <tr>
+                        <td>Lakeside Cottage</td>
+                        <td>$275/night (+12%)</td>
+                    </tr>
+                </table>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="editSeason('spring')">Edit</button>
+                    <button class="btn btn-secondary" onclick="toggleSeason('spring')">Deactivate</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="add-season-card">
+            <h3>Add New Seasonal Rate</h3>
+            <form id="addSeasonForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="seasonName">Season Name</label>
+                        <input type="text" id="seasonName" placeholder="e.g., Easter Weekend">
+                    </div>
+                    <div class="form-group">
+                        <label for="multiplier">Price Multiplier</label>
+                        <div class="multiplier-input">
+                            <input type="number" id="multiplier" value="1.0" step="0.05" min="0.5" max="2.0">
+                            <span>x base rate</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="startDate">Start Date</label>
+                        <input type="date" id="startDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="endDate">End Date</label>
+                        <input type="date" id="endDate">
+                    </div>
+                </div>
+                <div class="button-group">
+                    <button type="submit" class="btn btn-primary">Add Season</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/admin-shell.js?v=2"></script>
+    <script>
+        const token = localStorage.getItem('adminToken');
+        if (!token) {
+            window.location.href = '/admin.html';
+        }
+
+        function showAlert(message, type = 'success') {
+            const alertBox = document.getElementById('alertBox');
+            alertBox.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+            setTimeout(() => { alertBox.innerHTML = ''; }, 3000);
+        }
+
+        async function loadSeasonalRates() {
+            try {
+                const response = await fetch('/api/admin/seasonal-rates', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                if (data.success && data.rates.length > 0) {
+                    console.log('Loaded seasonal rates:', data.rates);
+                }
+            } catch (error) {
+                console.error('Error loading seasonal rates:', error);
+            }
+        }
+
+        async function editSeason(season) {
+            showAlert(`Editing ${season} season rates...`);
+        }
+
+        async function toggleSeason(season) {
+            showAlert(`Toggled ${season} season status`);
+        }
+
+        document.getElementById('addSeasonForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const name = document.getElementById('seasonName').value;
+            const multiplier = parseFloat(document.getElementById('multiplier').value);
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            
+            if (!name || !startDate || !endDate) {
+                showAlert('Please fill in all fields', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/admin/seasonal-rates', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ name, start_date: startDate, end_date: endDate, multiplier, is_active: true })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    showAlert(`Season "${name}" added successfully!`);
+                    this.reset();
+                } else {
+                    showAlert(data.error || 'Failed to add season', 'error');
+                }
+            } catch (error) {
+                showAlert('Error adding season', 'error');
+            }
+        });
+
+        loadSeasonalRates();
+    </script>
+</body>
+</html>
