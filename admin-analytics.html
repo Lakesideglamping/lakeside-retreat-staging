@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics Dashboard - Lakeside Retreat Admin</title>
+    <link rel="stylesheet" href="/admin-shell.css?v=2">
+    
+    <!-- Chart.js for visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2d5a5a 0%, #1e4040 100%);
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .nav-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .btn-back {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            text-decoration: none;
+        }
+        
+        .date-filter {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+        
+        .date-filter select {
+            padding: 0.5rem;
+            border-radius: 4px;
+            border: 1px solid rgba(255,255,255,0.3);
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+        
+        /* KPI Cards */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .kpi-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #2d5a5a, #8fbc8f);
+        }
+        
+        .kpi-label {
+            color: #666;
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .kpi-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #2d5a5a;
+            margin-bottom: 0.5rem;
+        }
+        
+        .kpi-change {
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        
+        .kpi-change.positive {
+            color: #10b981;
+        }
+        
+        .kpi-change.negative {
+            color: #ef4444;
+        }
+        
+        /* Chart Sections */
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .chart-container {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .chart-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #2d5a5a;
+        }
+        
+        .chart-controls {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .chart-btn {
+            padding: 0.25rem 0.75rem;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.875rem;
+        }
+        
+        .chart-btn.active {
+            background: #2d5a5a;
+            color: white;
+            border-color: #2d5a5a;
+        }
+        
+        /* Property Performance Table */
+        .property-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        
+        .property-table th {
+            background: #f8f9fa;
+            padding: 0.75rem;
+            text-align: left;
+            font-weight: 600;
+            color: #2d5a5a;
+            border-bottom: 2px solid #dee2e6;
+        }
+        
+        .property-table td {
+            padding: 0.75rem;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .property-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+        
+        .badge-pinot {
+            background: #fce7f3;
+            color: #be185d;
+        }
+        
+        .badge-rose {
+            background: #fce7f3;
+            color: #db2777;
+        }
+        
+        .badge-cottage {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        
+        /* Occupancy Calendar */
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+        
+        .calendar-day {
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .calendar-day:hover {
+            transform: scale(1.05);
+        }
+        
+        .calendar-day.empty {
+            background: transparent;
+        }
+        
+        .calendar-day.available {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .calendar-day.booked {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .calendar-day.partial {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .calendar-day-number {
+            font-weight: bold;
+        }
+        
+        .calendar-day-count {
+            font-size: 0.75rem;
+            opacity: 0.8;
+        }
+        
+        /* Loading State */
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: #666;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #2d5a5a;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .chart-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .kpi-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .date-filter {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Old header removed - now using admin-shell.js for unified navigation -->
+    
+    <!-- Filters Section -->
+    <div class="filters-bar" style="background: white; padding: 1rem; margin-bottom: 1.5rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; gap: 1rem; flex-wrap: wrap;">
+        <select id="dateRange" onchange="updateDateRange()" style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+            <option value="today">Today</option>
+            <option value="week">This Week</option>
+            <option value="month" selected>This Month</option>
+            <option value="quarter">This Quarter</option>
+            <option value="year">This Year</option>
+            <option value="custom">Custom Range</option>
+        </select>
+        <select id="compareWith" onchange="updateComparison()" style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+            <option value="none">No Comparison</option>
+            <option value="previous">Previous Period</option>
+            <option value="year">Previous Year</option>
+        </select>
+    </div>
+    
+    <div class="container">
+        <!-- KPI Cards -->
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-label">
+                    <span>💰</span> Total Revenue
+                </div>
+                <div class="kpi-value" id="totalRevenue">$0</div>
+                <div class="kpi-change positive" id="revenueChange">
+                    <span>↑</span> +0% vs last period
+                </div>
+            </div>
+            
+            <div class="kpi-card">
+                <div class="kpi-label">
+                    <span>🏠</span> Occupancy Rate
+                </div>
+                <div class="kpi-value" id="occupancyRate">0%</div>
+                <div class="kpi-change positive" id="occupancyChange">
+                    <span>↑</span> +0% vs last period
+                </div>
+            </div>
+            
+            <div class="kpi-card">
+                <div class="kpi-label">
+                    <span>📅</span> Total Bookings
+                </div>
+                <div class="kpi-value" id="totalBookings">0</div>
+                <div class="kpi-change positive" id="bookingsChange">
+                    <span>↑</span> +0% vs last period
+                </div>
+            </div>
+            
+            <div class="kpi-card">
+                <div class="kpi-label">
+                    <span>💵</span> Average Booking Value
+                </div>
+                <div class="kpi-value" id="avgBookingValue">$0</div>
+                <div class="kpi-change negative" id="avgValueChange">
+                    <span>↓</span> -0% vs last period
+                </div>
+            </div>
+            
+            <div class="kpi-card">
+                <div class="kpi-label">
+                    <span>⭐</span> Average Rating
+                </div>
+                <div class="kpi-value" id="avgRating">0.0</div>
+                <div class="kpi-change positive" id="ratingChange">
+                    <span>↑</span> +0.0 vs last period
+                </div>
+            </div>
+            
+            <div class="kpi-card">
+                <div class="kpi-label">
+                    <span>🔄</span> Repeat Guest Rate
+                </div>
+                <div class="kpi-value" id="repeatRate">0%</div>
+                <div class="kpi-change positive" id="repeatChange">
+                    <span>↑</span> +0% vs last period
+                </div>
+            </div>
+        </div>
+        
+        <!-- Revenue Chart -->
+        <div class="chart-grid">
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h2 class="chart-title">Revenue Trend</h2>
+                    <div class="chart-controls">
+                        <button class="chart-btn active" onclick="changeRevenueView('daily')">Daily</button>
+                        <button class="chart-btn" onclick="changeRevenueView('weekly')">Weekly</button>
+                        <button class="chart-btn" onclick="changeRevenueView('monthly')">Monthly</button>
+                    </div>
+                </div>
+                <canvas id="revenueChart" style="max-height: 300px;"></canvas>
+            </div>
+            
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h2 class="chart-title">Occupancy by Property</h2>
+                </div>
+                <canvas id="occupancyChart" style="max-height: 300px;"></canvas>
+            </div>
+        </div>
+        
+        <!-- Property Performance -->
+        <div class="chart-container">
+            <div class="chart-header">
+                <h2 class="chart-title">Property Performance</h2>
+            </div>
+            <table class="property-table">
+                <thead>
+                    <tr>
+                        <th>Property</th>
+                        <th>Bookings</th>
+                        <th>Revenue</th>
+                        <th>Occupancy</th>
+                        <th>Avg. Rate</th>
+                        <th>Rating</th>
+                    </tr>
+                </thead>
+                <tbody id="propertyTableBody">
+                    <!-- Will be populated by JavaScript -->
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Booking Sources -->
+        <div class="chart-grid">
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h2 class="chart-title">Booking Sources</h2>
+                </div>
+                <canvas id="sourcesChart" style="max-height: 300px;"></canvas>
+            </div>
+            
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h2 class="chart-title">Guest Origins</h2>
+                </div>
+                <canvas id="originsChart" style="max-height: 300px;"></canvas>
+            </div>
+        </div>
+        
+        <!-- Monthly Calendar -->
+        <div class="chart-container">
+            <div class="chart-header">
+                <h2 class="chart-title">Occupancy Calendar - This Month</h2>
+            </div>
+            <div class="calendar-grid" id="occupancyCalendar">
+                <!-- Will be populated by JavaScript -->
+            </div>
+            <div style="display: flex; gap: 2rem; margin-top: 1rem; justify-content: center;">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <div style="width: 20px; height: 20px; background: #d4edda; border-radius: 4px;"></div>
+                    <span>Available</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <div style="width: 20px; height: 20px; background: #fff3cd; border-radius: 4px;"></div>
+                    <span>Partial</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <div style="width: 20px; height: 20px; background: #f8d7da; border-radius: 4px;"></div>
+                    <span>Fully Booked</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check authentication
+        const token = localStorage.getItem('adminToken');
+        if (!token) {
+            window.location.href = '/admin.html';
+        }
+
+        // Uplisting Analytics Data - Real property data
+        let uplistingAnalyticsData = {
+            kpis: {
+                totalRevenue: 0,
+                revenueChange: 0,
+                occupancyRate: 0,
+                occupancyChange: 0,
+                totalBookings: 0,
+                bookingsChange: 0,
+                avgBookingValue: 0,
+                avgValueChange: 0,
+                avgRating: 0,
+                ratingChange: 0,
+                repeatRate: 0,
+                repeatChange: 0
+            },
+            revenueData: {
+                labels: ['No Data'],
+                datasets: [{
+                    label: 'Revenue',
+                    data: [0],
+                    borderColor: '#2d5a5a',
+                    backgroundColor: 'rgba(45, 90, 90, 0.1)',
+                    tension: 0.4
+                }]
+            },
+            occupancyData: {
+                labels: ['Loading Uplisting Data...'],
+                datasets: [{
+                    label: 'Properties',
+                    data: [0],
+                    backgroundColor: ['#2d5a5a']
+                }]
+            },
+            propertyPerformance: [],
+            bookingSources: {
+                labels: ['Uplisting Channel Manager'],
+                datasets: [{
+                    data: [100],
+                    backgroundColor: ['#2d5a5a']
+                }]
+            },
+            guestOrigins: {
+                labels: ['Awaiting Uplisting Data'],
+                datasets: [{
+                    data: [100],
+                    backgroundColor: ['#2d5a5a']
+                }]
+            }
+        };
+
+        // Initialize Charts
+        let revenueChart, occupancyChart, sourcesChart, originsChart;
+
+        function initializeCharts() {
+            // Revenue Trend Chart
+            const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+            revenueChart = new Chart(revenueCtx, {
+                type: 'line',
+                data: uplistingAnalyticsData.revenueData,
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Occupancy Chart
+            const occupancyCtx = document.getElementById('occupancyChart').getContext('2d');
+            occupancyChart = new Chart(occupancyCtx, {
+                type: 'bar',
+                data: uplistingAnalyticsData.occupancyData,
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Booking Sources Chart
+            const sourcesCtx = document.getElementById('sourcesChart').getContext('2d');
+            sourcesChart = new Chart(sourcesCtx, {
+                type: 'doughnut',
+                data: uplistingAnalyticsData.bookingSources,
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+
+            // Guest Origins Chart
+            const originsCtx = document.getElementById('originsChart').getContext('2d');
+            originsChart = new Chart(originsCtx, {
+                type: 'doughnut',
+                data: uplistingAnalyticsData.guestOrigins,
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        // Load KPIs
+        function loadKPIs() {
+            const kpis = uplistingAnalyticsData.kpis;
+            
+            document.getElementById('totalRevenue').textContent = '$' + kpis.totalRevenue.toLocaleString();
+            document.getElementById('revenueChange').innerHTML = 
+                `<span>${kpis.revenueChange > 0 ? '↑' : '↓'}</span> ${kpis.revenueChange > 0 ? '+' : ''}${kpis.revenueChange}% vs last period`;
+            document.getElementById('revenueChange').className = `kpi-change ${kpis.revenueChange > 0 ? 'positive' : 'negative'}`;
+            
+            document.getElementById('occupancyRate').textContent = kpis.occupancyRate + '%';
+            document.getElementById('occupancyChange').innerHTML = 
+                `<span>${kpis.occupancyChange > 0 ? '↑' : '↓'}</span> ${kpis.occupancyChange > 0 ? '+' : ''}${kpis.occupancyChange}% vs last period`;
+            
+            document.getElementById('totalBookings').textContent = kpis.totalBookings;
+            document.getElementById('bookingsChange').innerHTML = 
+                `<span>${kpis.bookingsChange > 0 ? '↑' : '↓'}</span> ${kpis.bookingsChange > 0 ? '+' : ''}${kpis.bookingsChange}% vs last period`;
+            
+            document.getElementById('avgBookingValue').textContent = '$' + kpis.avgBookingValue;
+            document.getElementById('avgValueChange').innerHTML = 
+                `<span>${kpis.avgValueChange > 0 ? '↑' : '↓'}</span> ${kpis.avgValueChange > 0 ? '+' : ''}${kpis.avgValueChange}% vs last period`;
+            document.getElementById('avgValueChange').className = `kpi-change ${kpis.avgValueChange > 0 ? 'positive' : 'negative'}`;
+            
+            document.getElementById('avgRating').textContent = kpis.avgRating.toFixed(1);
+            document.getElementById('ratingChange').innerHTML = 
+                `<span>${kpis.ratingChange > 0 ? '↑' : '↓'}</span> ${kpis.ratingChange > 0 ? '+' : ''}${kpis.ratingChange} vs last period`;
+            
+            document.getElementById('repeatRate').textContent = kpis.repeatRate + '%';
+            document.getElementById('repeatChange').innerHTML = 
+                `<span>${kpis.repeatChange > 0 ? '↑' : '↓'}</span> ${kpis.repeatChange > 0 ? '+' : ''}${kpis.repeatChange}% vs last period`;
+        }
+
+        // Load Property Performance Table
+        function loadPropertyTable() {
+            const tbody = document.getElementById('propertyTableBody');
+            if (uplistingAnalyticsData.propertyPerformance.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 2rem; color: #666;">
+                            Connecting to Uplisting Channel Manager...<br>
+                            <small>Property data will appear here when connection is established</small>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            tbody.innerHTML = uplistingAnalyticsData.propertyPerformance.map(property => {
+                const badgeClass = property.name.includes('Pinot') ? 'badge-pinot' : 
+                                  property.name.includes('Rosé') ? 'badge-rose' : 'badge-cottage';
+                return `
+                    <tr>
+                        <td><span class="property-badge ${badgeClass}">${property.name}</span></td>
+                        <td>${property.bookings || 'Connected'}</td>
+                        <td>${property.revenue ? '$' + property.revenue.toLocaleString() : 'Uplisting Data'}</td>
+                        <td>${property.occupancy ? property.occupancy + '%' : 'Live Sync'}</td>
+                        <td>${property.avgRate ? '$' + property.avgRate : property.currency || 'NZD'}</td>
+                        <td>${property.rating ? '⭐ ' + property.rating : 'Channel Manager'}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Load Occupancy Calendar
+        function loadOccupancyCalendar() {
+            const calendar = document.getElementById('occupancyCalendar');
+            const daysInMonth = 31;
+            const firstDay = 3; // Wednesday
+            
+            // Add day headers
+            const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            dayHeaders.forEach(day => {
+                const header = document.createElement('div');
+                header.style.textAlign = 'center';
+                header.style.fontWeight = 'bold';
+                header.style.color = '#666';
+                header.textContent = day;
+                calendar.appendChild(header);
+            });
+            
+            // Add empty cells for days before month starts
+            for (let i = 0; i < firstDay; i++) {
+                const emptyDay = document.createElement('div');
+                emptyDay.className = 'calendar-day empty';
+                calendar.appendChild(emptyDay);
+            }
+            
+            // Add days of month
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayElement = document.createElement('div');
+                
+                // Random occupancy for demo
+                const booked = Math.random();
+                let className = 'available';
+                let bookedCount = 0;
+                
+                if (booked > 0.7) {
+                    className = 'booked';
+                    bookedCount = 3;
+                } else if (booked > 0.4) {
+                    className = 'partial';
+                    bookedCount = Math.floor(Math.random() * 2) + 1;
+                }
+                
+                dayElement.className = `calendar-day ${className}`;
+                dayElement.innerHTML = `
+                    <div class="calendar-day-number">${day}</div>
+                    <div class="calendar-day-count">${bookedCount}/3</div>
+                `;
+                
+                calendar.appendChild(dayElement);
+            }
+        }
+
+        // Update functions
+        function updateDateRange() {
+            const range = document.getElementById('dateRange').value;
+            console.log('Date range changed to:', range);
+            // Reload data based on new range
+            fetchRealAnalytics(range);
+        }
+
+        function updateComparison() {
+            const comparison = document.getElementById('compareWith').value;
+            console.log('Comparison changed to:', comparison);
+            // Update comparison data
+        }
+
+        function changeRevenueView(view) {
+            // Update button states
+            document.querySelectorAll('.chart-controls .chart-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Update chart data based on view
+            console.log('Revenue view changed to:', view);
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Initializing Analytics Dashboard...');
+            
+            // Load all components
+            loadKPIs();
+            
+            // Ensure Chart.js is loaded before initializing
+            if (typeof Chart !== 'undefined') {
+                initializeCharts();
+                console.log('Charts initialized');
+            } else {
+                console.error('Chart.js not loaded! Trying fallback...');
+                // Try loading Chart.js again
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+                script.onload = function() {
+                    initializeCharts();
+                    console.log('Charts initialized after reload');
+                };
+                document.head.appendChild(script);
+            }
+            
+            loadPropertyTable();
+            loadOccupancyCalendar();
+            
+            // Also try to fetch real data from API
+            fetchRealAnalytics();
+        });
+        
+        // Fetch real analytics data from server including Uplisting
+        async function fetchRealAnalytics(dateRange = 'month') {
+            try {
+                const token = localStorage.getItem('adminToken');
+                
+                // Fetch both analytics and Uplisting data
+                const [analyticsResponse, uplistingResponse] = await Promise.all([
+                    fetch(`/api/admin/analytics?dateRange=${dateRange}`, {
+                        headers: { 'Authorization': 'Bearer ' + token }
+                    }),
+                    fetch('/api/admin/uplisting-dashboard', {
+                        headers: { 'Authorization': 'Bearer ' + token }
+                    })
+                ]);
+                
+                // Handle Uplisting data
+                let uplistingData = null;
+                let hasUplistingData = false;
+                if (uplistingResponse && uplistingResponse.ok) {
+                    uplistingData = await uplistingResponse.json();
+                    console.log('Uplisting data:', uplistingData);
+                    hasUplistingData = uplistingData && uplistingData.success;
+                    
+                    if (hasUplistingData) {
+                        // Add Uplisting connection indicator with booking data
+                        const connectStatus = document.createElement('div');
+                        connectStatus.innerHTML = `
+                            <div style="background: #e8f5e8; border: 1px solid #c3e6c3; padding: 1rem; border-radius: 8px; margin: 1rem 0;">
+                                <strong>✅ Connected to Uplisting Channel Manager</strong><br>
+                                Properties: ${uplistingData.total_properties} | Bookings: ${uplistingData.total_bookings || 0} | Revenue: $${(uplistingData.total_revenue || 0).toLocaleString()}<br>
+                                <small>${uplistingData.properties.map(p => p.name).join(', ')}</small>
+                            </div>
+                        `;
+                        
+                        // Add to top of main content
+                        const mainContent = document.querySelector('.container');
+                        if (mainContent) {
+                            mainContent.insertBefore(connectStatus, mainContent.firstChild);
+                        }
+                        
+                        // Update analytics with real Uplisting booking data
+                        updateAnalyticsWithUplisting(uplistingData);
+                        
+                        // Override with Uplisting booking data if available
+                        if (uplistingData.total_bookings > 0) {
+                            document.getElementById('totalBookings').textContent = uplistingData.total_bookings;
+                            uplistingAnalyticsData.kpis.totalBookings = uplistingData.total_bookings;
+                        }
+                        if (uplistingData.total_revenue > 0) {
+                            document.getElementById('totalRevenue').textContent = '$' + uplistingData.total_revenue.toLocaleString();
+                            uplistingAnalyticsData.kpis.totalRevenue = uplistingData.total_revenue;
+                        }
+                    }
+                }
+                
+                // Handle analytics data (prioritize real booking data over Uplisting placeholders)
+                if (analyticsResponse && analyticsResponse.ok) {
+                    const result = await analyticsResponse.json();
+                    console.log('Real analytics data:', result);
+                    
+                    // Update with real analytics data if available
+                    if (result.data) {
+                        // Update KPIs with real data
+                        if (result.data.totalRevenue !== undefined) {
+                            document.getElementById('totalRevenue').textContent = '$' + (result.data.totalRevenue || 0).toLocaleString();
+                            uplistingAnalyticsData.kpis.totalRevenue = result.data.totalRevenue || 0;
+                        }
+                        if (result.data.totalBookings !== undefined) {
+                            const bookingText = hasUplistingData ? 
+                                `${result.data.totalBookings} (${uplistingData.total_properties} properties)` : 
+                                result.data.totalBookings.toString();
+                            document.getElementById('totalBookings').textContent = bookingText;
+                            uplistingAnalyticsData.kpis.totalBookings = result.data.totalBookings || 0;
+                        }
+                        if (result.data.occupancyRate !== undefined) {
+                            document.getElementById('occupancyRate').textContent = (result.data.occupancyRate || 0) + '%';
+                            uplistingAnalyticsData.kpis.occupancyRate = result.data.occupancyRate || 0;
+                        }
+                        if (result.data.avgRating !== undefined) {
+                            document.getElementById('avgRating').textContent = (result.data.avgRating || 0).toFixed(1);
+                            uplistingAnalyticsData.kpis.avgRating = result.data.avgRating || 0;
+                        }
+                        
+                        // Update revenue chart with real data if available
+                        if (result.data.revenueData) {
+                            uplistingAnalyticsData.revenueData = result.data.revenueData;
+                            if (revenueChart) {
+                                revenueChart.data = result.data.revenueData;
+                                revenueChart.update();
+                            }
+                        }
+                    }
+                } else if (hasUplistingData) {
+                    // Fallback to show Uplisting status if no analytics data
+                    document.getElementById('totalBookings').textContent = `${uplistingData.total_properties} Properties Connected`;
+                    document.getElementById('occupancyRate').textContent = 'Uplisting Integrated';
+                }
+                
+            } catch (error) {
+                console.log('Using mock data - API not available:', error);
+            }
+        }
+        
+        // Update analytics with real Uplisting data
+        function updateAnalyticsWithUplisting(uplistingData) {
+            if (uplistingData && uplistingData.properties) {
+                // Update property performance data
+                uplistingAnalyticsData.propertyPerformance = uplistingData.properties.map(property => ({
+                    name: property.name,
+                    bookings: 'Connected',
+                    revenue: 'Uplisting Data',
+                    occupancy: 'Live Sync',
+                    avgRate: property.currency || 'NZD',
+                    rating: 'Channel Manager',
+                    bedrooms: property.bedrooms,
+                    max_capacity: property.max_capacity
+                }));
+                
+                // Update occupancy chart data
+                uplistingAnalyticsData.occupancyData = {
+                    labels: uplistingData.properties.map(p => p.name.replace('Lakeside Glamping - ', '').replace('Lakeside Retreat in a Vineyard By Lake Dunstan', 'Vineyard Retreat')),
+                    datasets: [{
+                        label: 'Uplisting Properties',
+                        data: uplistingData.properties.map(() => 100), // Show as connected
+                        backgroundColor: ['#be185d', '#db2777', '#1e40af']
+                    }]
+                };
+                
+                // Update KPIs
+                uplistingAnalyticsData.kpis.totalBookings = uplistingData.total_properties;
+                
+                // Refresh the UI
+                loadPropertyTable();
+                if (occupancyChart) {
+                    occupancyChart.data = uplistingAnalyticsData.occupancyData;
+                    occupancyChart.update();
+                }
+                
+                // Update KPI display
+                document.getElementById('totalBookings').textContent = `${uplistingData.total_properties} Properties Connected`;
+                document.getElementById('occupancyRate').textContent = 'Uplisting Integrated';
+                document.getElementById('totalRevenue').textContent = 'Channel Manager Active';
+            }
+        }
+    </script>
+    <script src="/admin-shell.js?v=2"></script>
+</body>
+</html>

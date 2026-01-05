@@ -1,0 +1,213 @@
+{
+  "business": {
+    "name": "Lakeside Retreat Central Otago",
+    "tagline": "Luxury glamping accommodation on Lake Dunstan",
+    "location": {
+      "address": "96 Smiths Way, Mount Pisa, Cromwell, Central Otago 9310, New Zealand",
+      "coordinates": { "lat": -45.03871, "lng": 169.197693 },
+      "distances": {
+        "cromwell": "12km (5 minutes)",
+        "queenstown_airport": "55km (45 minutes)",
+        "wanaka": "45km (35 minutes)",
+        "cycle_trail": "300 metres walk"
+      }
+    },
+    "contact": {
+      "phone": "+64-21-368-682",
+      "email": "info@lakesideretreat.co.nz",
+      "whatsapp": "https://wa.me/6421368682"
+    },
+    "hosts": "Stephen & Sandy",
+    "features": {
+      "solar_system": "16.72kW commercial-grade solar array with 38 x 440W Helios Panels",
+      "battery": "16kWh Signergy battery storage",
+      "inverter": "20kW Hybrid Inverter with real-time monitoring",
+      "sustainability": "Energy-positive operations contributing to NZ grid"
+    },
+    "rating": { "score": 4.9, "reviews": 127 }
+  },
+  "accommodations": [
+    {
+      "id": "dome-pinot",
+      "name": "Dome Pinot",
+      "type": "Luxury Glamping Dome",
+      "size": "50sqm",
+      "maxGuests": 2,
+      "price": { "base": 580, "currency": "NZD" },
+      "description": "Our flagship 50sqm luxury eco-dome with panoramic Lake Dunstan views and private spa bath. Perfect for couples seeking a romantic Central Otago escape.",
+      "amenities": [
+        "King bed with premium linens",
+        "Private spa bath with lake views",
+        "55\" OLED TV",
+        "Air conditioning/heating",
+        "Stovetop cooking & Weber BBQ",
+        "Continental breakfast included",
+        "Free WiFi",
+        "Parking",
+        "Solar power system tour available"
+      ],
+      "views": "Lake Dunstan and mountain panorama",
+      "petFriendly": false
+    },
+    {
+      "id": "dome-rose",
+      "name": "Dome Rose",
+      "type": "Romantic Glamping Dome",
+      "size": "40sqm",
+      "maxGuests": 2,
+      "price": { "base": 550, "currency": "NZD" },
+      "description": "A romantic 40sqm eco-dome with vineyard views and outdoor spa. Ideal for couples looking for an intimate wine country retreat.",
+      "amenities": [
+        "King bed with premium linens",
+        "Outdoor spa with vineyard views",
+        "55\" OLED TV",
+        "Air conditioning/heating",
+        "Stovetop cooking & Weber BBQ",
+        "Continental breakfast included",
+        "Free WiFi",
+        "Parking",
+        "Solar power system tour available"
+      ],
+      "views": "Vineyard and mountain views",
+      "petFriendly": false
+    },
+    {
+      "id": "lakeside-cottage",
+      "name": "Lakeside Cottage",
+      "type": "Family Cottage",
+      "size": "Full cottage",
+      "maxGuests": 6,
+      "price": { "base": 300, "currency": "NZD", "extraGuestFee": 100, "petFee": 25 },
+      "description": "Spacious family-friendly cottage with direct lake access and wood-fired hot tub. Perfect for families or groups wanting space and lake activities.",
+      "amenities": [
+        "2 bedrooms",
+        "Full kitchen with cooking facilities",
+        "Wood-fired hot tub",
+        "Direct lake access",
+        "Garage parking",
+        "Washing machine",
+        "Outdoor BBQ",
+        "Free WiFi",
+        "Pet-friendly (max 2 pets, $25 fee per pet)"
+      ],
+      "views": "Direct Lake Dunstan access and views",
+      "petFriendly": true,
+      "petPolicy": "Maximum 2 pets. $25 cleaning fee per pet. Pets must be supervised and not left alone in the cottage."
+    }
+  ],
+  "policies": {
+    "checkIn": {
+      "time": "3:00 PM",
+      "earlyCheckIn": "Often available upon request",
+      "selfCheckIn": "Digital codes provided for flexible arrival"
+    },
+    "checkOut": {
+      "time": "11:00 AM",
+      "lateCheckOut": "Available by arrangement"
+    },
+    "securityDeposit": {
+      "amount": 350,
+      "currency": "NZD",
+      "note": "Authorization hold - automatically released 48 hours after checkout"
+    },
+    "cancellation": "Please contact us for our cancellation policy details",
+    "pets": "Only allowed at Lakeside Cottage. Maximum 2 pets with $25 fee per pet.",
+    "smoking": "Not permitted in any accommodation"
+  },
+  "faqs": [
+    {
+      "question": "What's included in my stay?",
+      "answer": "Dome guests receive: Continental breakfast, private spa access, stovetop cooking & Weber BBQ, 55\" OLED TV, air conditioning, free WiFi, and parking. Cottage guests receive: Complete cooking facilities with outdoor BBQ, wood-fired hot tub, garage parking, washing machine, pet-friendly accommodation, and direct lake access. All guests enjoy: Access to 16.72kW solar system tours, cycle trail maps, local winery recommendations, and Stephen & Sandy's personal hosting.",
+      "keywords": ["included", "amenities", "breakfast", "spa", "wifi", "parking"]
+    },
+    {
+      "question": "How close are the nearest wineries?",
+      "answer": "Walking distance: Rippon Vineyard (5min walk), Mt Difficulty (8min walk). Short drive: Gibbston Valley (15min), Chard Farm (20min), Peregrine (25min). We can arrange private wine tours or recommend local operators. You're literally in the heart of Central Otago's premium wine region with 15+ wineries within 15km!",
+      "keywords": ["wine", "winery", "wineries", "vineyard", "pinot", "cellar", "tasting"]
+    },
+    {
+      "question": "What are your check-in and check-out times?",
+      "answer": "Check-in: 3:00 PM (early check-in often available). Check-out: 11:00 AM (late check-out by arrangement). Self check-in: Digital codes provided for flexible arrival. Hosts available: Stephen & Sandy live on-property for immediate assistance. We provide detailed arrival instructions and local recommendations 48 hours before your stay.",
+      "keywords": ["check-in", "checkout", "check-out", "arrival", "time", "early", "late"]
+    },
+    {
+      "question": "What's the weather like year-round?",
+      "answer": "Summer (Dec-Feb): Warm days (25-30C), cool nights (10-15C), perfect for outdoor activities. Autumn (Mar-May): Mild days (15-25C), crisp nights (5-10C), stunning vineyard colors. Winter (Jun-Aug): Cool days (5-15C), cold nights (-5 to 5C), occasional snow, cozy indoor comfort. Spring (Sep-Nov): Pleasant days (15-25C), fresh nights (5-15C), blooming landscapes. All accommodations have heating/cooling for year-round comfort!",
+      "keywords": ["weather", "temperature", "summer", "winter", "autumn", "spring", "cold", "hot", "warm"]
+    },
+    {
+      "question": "Can we bring our pet?",
+      "answer": "The Lakeside Cottage is pet-friendly! Your furry friends are welcome with prior arrangement. Maximum 2 pets with a $25 cleaning fee per pet. Pets must be supervised and not left alone in the cottage. The geodesic domes are not suitable for pets.",
+      "keywords": ["pet", "pets", "dog", "dogs", "cat", "animal", "furry"]
+    },
+    {
+      "question": "How far are you from Queenstown/Wanaka?",
+      "answer": "We're perfectly positioned: 45 minutes from Queenstown Airport, 35 minutes from Wanaka, and just 5 minutes from Cromwell. Ideal for exploring all of Central Otago while enjoying peaceful lakeside luxury.",
+      "keywords": ["queenstown", "wanaka", "distance", "far", "drive", "airport", "cromwell"]
+    },
+    {
+      "question": "Where exactly are you located?",
+      "answer": "Lakeside Retreat is located at 96 Smiths Way, Mount Pisa, just 12km from Cromwell town centre. We're positioned directly on Lake Dunstan in the heart of Central Otago wine country, with the Otago Rail Trail cycle trail just 300m from our accommodation.",
+      "keywords": ["location", "address", "where", "find", "directions", "map"]
+    },
+    {
+      "question": "What type of accommodation do you offer?",
+      "answer": "We offer luxury glamping domes and a family cottage, all with Lake Dunstan and mountain views. Dome Pinot (50sqm) and Dome Rose (40sqm) are perfect for couples, while our Lakeside Cottage accommodates families with direct lake access. All accommodation is powered by grid-tied solar with battery backup.",
+      "keywords": ["accommodation", "type", "dome", "cottage", "options", "stay"]
+    },
+    {
+      "question": "How does your solar power system work?",
+      "answer": "Our 16.72kW grid-tied solar system with 16kWh Signergy battery provides clean energy while maintaining 100% reliability for guests. Being grid-tied means you'll never experience power outages, while we contribute excess renewable energy back to New Zealand's grid. We offer tours of our solar system for interested guests!",
+      "keywords": ["solar", "power", "energy", "sustainable", "green", "eco", "battery", "electricity"]
+    },
+    {
+      "question": "Can I access the Otago Rail Trail from your accommodation?",
+      "answer": "Yes! The famous Otago Rail Trail is just a 300-metre walk from our domes. You can easily access the Cromwell to Clyde section, rent bikes in Cromwell, and arrange luggage transfers. It's perfect for wine country cycling and exploring Central Otago's heritage.",
+      "keywords": ["cycle", "cycling", "bike", "trail", "rail trail", "otago"]
+    },
+    {
+      "question": "What activities are available on Lake Dunstan?",
+      "answer": "Lake Dunstan offers kayaking, paddleboarding, fishing, and scenic walks right from our doorstep. The lake is perfect for photography, bird watching, and water sports. The Cromwell Gorge walks provide stunning views and heritage sites.",
+      "keywords": ["lake", "activities", "kayak", "paddleboard", "fishing", "swim", "water"]
+    },
+    {
+      "question": "How do I book?",
+      "answer": "You can book directly through our website by clicking the 'Book Now' button, selecting your preferred accommodation and dates. We accept credit card payments through Stripe. You'll receive instant confirmation and detailed arrival instructions 48 hours before your stay.",
+      "keywords": ["book", "booking", "reserve", "reservation", "payment", "pay"]
+    },
+    {
+      "question": "What is the security deposit?",
+      "answer": "We require a $350 NZD security deposit as an authorization hold on your card. This is NOT charged - it's just a hold that is automatically released 48 hours after checkout, assuming no damage to the property.",
+      "keywords": ["deposit", "security", "bond", "hold", "charge"]
+    }
+  ],
+  "intents": {
+    "greeting": {
+      "patterns": ["hello", "hi", "hey", "good morning", "good afternoon", "good evening", "howdy"],
+      "response": "Hello! Welcome to Lakeside Retreat. I'm here to help you with any questions about our luxury glamping accommodation in Central Otago. How can I assist you today?"
+    },
+    "booking": {
+      "patterns": ["book", "reserve", "availability", "available", "dates", "stay"],
+      "response": "I'd be happy to help you book! You can check availability and book directly on our website by clicking the 'Book Now' button. We have three accommodation options: Dome Pinot ($580/night), Dome Rose ($550/night), and Lakeside Cottage ($300/night). Would you like more details about any of these?"
+    },
+    "pricing": {
+      "patterns": ["price", "cost", "rate", "how much", "expensive", "cheap", "afford"],
+      "response": "Our nightly rates are: Dome Pinot (50sqm luxury dome) - $580 NZD, Dome Rose (40sqm romantic dome) - $550 NZD, and Lakeside Cottage (family cottage) - $300 NZD. The cottage has an extra guest fee of $100 and pet fee of $25. All prices include continental breakfast for dome guests. Would you like to know more about what's included?"
+    },
+    "contact_human": {
+      "patterns": ["speak to someone", "talk to human", "real person", "contact", "call", "phone", "email"],
+      "response": "Of course! You can reach Stephen & Sandy directly: Phone/WhatsApp: +64-21-368-682, Email: info@lakesideretreat.co.nz. They live on-property and are always happy to help with any questions or special requests."
+    },
+    "thanks": {
+      "patterns": ["thank", "thanks", "cheers", "appreciate"],
+      "response": "You're welcome! If you have any other questions about your stay at Lakeside Retreat, feel free to ask. We look forward to hosting you in Central Otago!"
+    },
+    "goodbye": {
+      "patterns": ["bye", "goodbye", "see you", "later", "quit", "exit"],
+      "response": "Thank you for chatting with us! We hope to welcome you to Lakeside Retreat soon. Have a wonderful day!"
+    }
+  },
+  "fallback": {
+    "response": "I'm not sure I understand that question. I can help you with information about our accommodations, pricing, location, amenities, check-in/out times, and local activities. You can also contact Stephen & Sandy directly at +64-21-368-682 or info@lakesideretreat.co.nz for personalized assistance."
+  }
+}

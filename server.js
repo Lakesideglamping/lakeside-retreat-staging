@@ -8,38 +8,83 @@ const rateLimit = require('express-rate-limit');
 const { body, validationResult } = require('express-validator');
 require('dotenv').config();
 const nodemailer = require('nodemailer');
-const db = require('./db');
 
+// Import database abstraction layer (supports both SQLite and PostgreSQL)
+const database = require('./database');
+
+// Initialize Stripe with error handling
 if (!process.env.STRIPE_SECRET_KEY) {
-    console.error('STRIPE_SECRET_KEY environment variable is missing!');
-    process.exit(1);
-}
-if (!process.env.DATABASE_URL) {
-    console.error('DATABASE_URL environment variable is missing!');
+    console.error('❌ STRIPE_SECRET_KEY environment variable is missing!');
     process.exit(1);
 }
 if (!process.env.JWT_SECRET) {
-    console.error('JWT_SECRET environment variable is missing!');
+    console.error('❌ JWT_SECRET environment variable is missing!');
     process.exit(1);
 }
 if (!process.env.PUBLIC_BASE_URL) {
-    console.warn('PUBLIC_BASE_URL not set, using default. Set this for production security.');
+    console.warn('⚠️ PUBLIC_BASE_URL not set, using default. Set this for production security.');
 }
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { v4: uuidv4 } = require('uuid');
 const crypto = require('crypto');
 
+// Import monitoring system
+const { 
+    monitor, 
+    trackBookingStart, 
+    trackBookingStep, 
+    trackBookingSuccess, 
+    trackBookingFailure,
+    log,
+    middleware: monitoringMiddleware,
+    generateReport,
+    getMetrics
+} = require('./monitoring-system');
+
+// Import request queuing system
+const { bookingQueue, generalQueue, paymentQueue } = require('./request-queue');
+
+// Import caching system
+const { accommodationCache, CacheManager } = require('./cache-system');
+
+// Import chatbot service
+const ChatbotService = require('./chatbot-service');
+const chatbot = new ChatbotService();
+
+// Import marketing automation service
+const MarketingAutomation = require('./marketing-automation');
+let marketingAutomation = null;
+
 const app = express();
 const PORT = process.env.PORT || 10000;
 
+// Trust proxy for Render deployment (fixes rate limiting behind proxy)
 app.set('trust proxy', 1);
 
-db.initializeDatabase()
-    .then(() => {
-        console.log('Connected to PostgreSQL database');
+// Database connection - will be initialized asynchronously
+let db = null;
+
+// Initialize database (supports both SQLite and PostgreSQL via DATABASE_URL env var)
+database.initializeDatabase()
+    .then(async dbConnection => {
+        db = dbConnection;
+        console.log('✅ Database initialized successfully');
+        if (database.isUsingPostgres()) {
+            console.log('🐘 Using PostgreSQL database');
+        } else {
+            console.log('📁 Using SQLite database');
+        }
+        
+        // Initialize marketing automation after database is ready
+        try {
+            marketingAutomation = new MarketingAutomation(db, emailTransporter);
+            await marketingAutomation.initialize();
+        } catch (err) {
+            console.error('⚠️ Marketing automation initialization failed:', err.message);
+        }
     })
-    .catch((err) => {
-        console.error('Error connecting to database:', err.message);
+    .catch(err => {
+        console.error('❌ Failed to initialize database:', err.message);
         process.exit(1);
     });
 
@@ -54,143 +99,15 @@ const emailTransporter = nodemailer.createTransport({
     }
 });
 
-// Centralized Uplisting API configuration
-// Returns the base URL for Uplisting API calls
-function getUplistingBaseUrl() {
-    return process.env.UPLISTING_API_URL || process.env.UPLISTING_BASE_URL || 'https://connect.uplisting.io';
-}
+// Health check endpoints - MUST be before rate limiting to avoid 429 errors on health checks
+// These endpoints are used by Render to verify the service is running
+app.get('/health', (req, res) => {
+    res.json({ status: 'healthy', timestamp: new Date().toISOString() });
+});
 
-// Returns auth headers for Uplisting API calls
-// Configurable auth mode via UPLISTING_AUTH_MODE env var:
-// - 'basic' (default): Authorization: Basic base64({api_key}) - Uplisting's documented format
-// - 'basic_username': Authorization: Basic base64({api_key}:)
-// - 'basic_password': Authorization: Basic base64(:{api_key})
-// - 'bearer': Authorization: Bearer {api_key}
-// - 'token': Authorization: Token token="{api_key}"
-// - 'token_simple': Authorization: Token {api_key}
-// - 'apikey': Authorization: ApiKey {api_key}
-// - 'x_api_key': X-API-Key: {api_key} (custom header, not Authorization)
-function getUplistingApiKey() {
-    const rawApiKey = process.env.UPLISTING_API_KEY || '';
-    // Trim whitespace and remove any accidental scheme prefixes
-    let apiKey = rawApiKey.trim();
-    
-    // Check if the key already has a scheme prefix and strip it
-    if (apiKey.toLowerCase().startsWith('bearer ')) {
-        apiKey = apiKey.substring(7).trim();
-    } else if (apiKey.toLowerCase().startsWith('basic ')) {
-        apiKey = apiKey.substring(6).trim();
-    } else if (apiKey.toLowerCase().startsWith('token ')) {
-        apiKey = apiKey.substring(6).trim();
-    }
-    
-    return apiKey;
-}
-
-function getUplistingAuthHeaders() {
-    const apiKey = getUplistingApiKey();
-    const clientId = process.env.UPLISTING_CLIENT_ID;
-    
-    if (!apiKey) {
-        console.warn('Warning: UPLISTING_API_KEY is not set or empty');
-        return { 'Authorization': 'Basic ' };
-    }
-    
-    // Default to 'basic' which is Uplisting's documented auth format
-    const authMode = (process.env.UPLISTING_AUTH_MODE || 'basic').toLowerCase().trim();
-    console.log(`Uplisting auth mode: ${authMode}, API key length: ${apiKey.length}, Client ID: ${clientId ? 'configured' : 'not configured'}`);
-    
-    let headers = {};
-    
-    switch (authMode) {
-        case 'basic':
-            // Uplisting's documented format: API key base64 encoded directly
-            // See: https://documenter.getpostman.com/view/1320372/SWTBfdW6
-            headers['Authorization'] = `Basic ${Buffer.from(apiKey).toString('base64')}`;
-            break;
-        case 'basic_username':
-            // API key as username with empty password
-            headers['Authorization'] = `Basic ${Buffer.from(`${apiKey}:`).toString('base64')}`;
-            break;
-        case 'basic_password':
-            // Empty username with API key as password
-            headers['Authorization'] = `Basic ${Buffer.from(`:${apiKey}`).toString('base64')}`;
-            break;
-        case 'token':
-            // Rails-style token auth with token= syntax
-            headers['Authorization'] = `Token token="${apiKey}"`;
-            break;
-        case 'token_simple':
-            // Simple token auth without token= syntax
-            headers['Authorization'] = `Token ${apiKey}`;
-            break;
-        case 'apikey':
-            // ApiKey scheme
-            headers['Authorization'] = `ApiKey ${apiKey}`;
-            break;
-        case 'x_api_key':
-            // X-API-Key custom header (not Authorization)
-            headers['X-API-Key'] = apiKey;
-            break;
-        case 'bearer':
-            headers['Authorization'] = `Bearer ${apiKey}`;
-            break;
-        default:
-            // Default to Uplisting's documented format
-            headers['Authorization'] = `Basic ${Buffer.from(apiKey).toString('base64')}`;
-    }
-    
-    // Add X-Uplisting-Client-ID header if configured (required for V2 Partner API endpoints)
-    if (clientId) {
-        headers['X-Uplisting-Client-ID'] = clientId;
-    }
-    
-    return headers;
-}
-
-// Legacy function for backward compatibility - returns just the Authorization header value
-function getUplistingAuthHeader() {
-    const headers = getUplistingAuthHeaders();
-    // Return the Authorization header value, or empty string if using X-API-Key
-    return headers['Authorization'] || '';
-}
-
-// Centralized Uplisting property mapping configuration
-// Maps accommodation names to their Uplisting property IDs
-function getUplistingPropertyMapping() {
-    return {
-        'dome-pinot': process.env.UPLISTING_PINOT_ID,
-        'dome-rose': process.env.UPLISTING_ROSE_ID,
-        'lakeside-cottage': process.env.UPLISTING_COTTAGE_ID
-    };
-}
-
-// Get Uplisting property ID from accommodation name
-function getPropertyIdFromAccommodation(accommodation) {
-    const mapping = getUplistingPropertyMapping();
-    return mapping[accommodation] || null;
-}
-
-// Get accommodation name from Uplisting property ID (reverse lookup)
-function getAccommodationFromPropertyId(propertyId) {
-    if (!propertyId) {
-        return 'unknown';
-    }
-    const mapping = getUplistingPropertyMapping();
-    for (const [accommodation, id] of Object.entries(mapping)) {
-        if (id && id === propertyId) {
-            return accommodation;
-        }
-    }
-    return 'unknown';
-}
-
-// Health check skip function - handles trailing slashes and uses startsWith for robustness
-const isHealthCheckPath = (req) => {
-    const path = req.path.replace(/\/+$/, '') || '/';
-    return path === '/health' || path === '/healthz' || path === '/api/health' || 
-           path.startsWith('/health') || path.startsWith('/api/health');
-};
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'healthy', timestamp: new Date().toISOString() });
+});
 
 // Rate limiting middleware
 const generalLimiter = rateLimit({
@@ -199,8 +116,6 @@ const generalLimiter = rateLimit({
     message: { error: 'Too many requests, please try again later' },
     standardHeaders: true,
     legacyHeaders: false,
-    // Skip rate limiting for health check endpoints (Render health checks are frequent)
-    skip: isHealthCheckPath,
 });
 
 const bookingLimiter = rateLimit({
@@ -219,6 +134,7 @@ const adminLimiter = rateLimit({
     legacyHeaders: false,
 });
 
+// Enhanced contact form rate limiter (prevent spam)
 const contactLimiter = rateLimit({
     windowMs: 10 * 60 * 1000, // 10 minutes
     max: 3, // limit each IP to 3 contact form submissions per 10 minutes
@@ -227,83 +143,53 @@ const contactLimiter = rateLimit({
     legacyHeaders: false,
 });
 
-// Health check endpoints - defined BEFORE rate limiting to ensure they're never blocked
-// This is a belt-and-suspenders approach: even if skip logic fails, health checks work
-app.get('/health', (req, res) => {
-    res.json({ status: 'healthy' });
-});
-
-app.get('/healthz', async (req, res) => {
-    try {
-        const dbHealthy = await db.healthCheck();
-        if (dbHealthy) {
-            res.json({ status: 'healthy', database: 'connected', timestamp: new Date().toISOString() });
-        } else {
-            res.status(503).json({ status: 'unhealthy', database: 'disconnected' });
-        }
-    } catch (err) {
-        res.status(503).json({ status: 'unhealthy', error: err.message });
-    }
-});
-
-app.get('/api/health', async (req, res) => {
-    try {
-        const dbHealthy = await db.healthCheck();
-        res.json({ status: 'healthy', database: dbHealthy ? 'connected' : 'disconnected', timestamp: new Date().toISOString() });
-    } catch (err) {
-        res.json({ status: 'degraded', database: 'error', timestamp: new Date().toISOString() });
-    }
-});
-
-// Apply rate limiting (after health check routes so they're never rate limited)
+// Apply rate limiting
 app.use(generalLimiter);
 
 // Enable compression for all responses (60-80% size reduction)
 app.use(compression());
 
-// Security headers
+// Add monitoring middleware (must be early in the chain)
+app.use(monitoringMiddleware());
+
+// Enhanced security headers (safe configuration)
 app.use(helmet({
-    xContentTypeOptions: true,
-    xFrameOptions: { action: 'sameorigin' },
-    xXssProtection: true,
+    // SAFE: These headers are very conservative
+    xContentTypeOptions: true,        // Prevents MIME sniffing (replaces noSniff)
+    xFrameOptions: { action: 'sameorigin' }, // Allows same-origin frames
+    xXssProtection: true,             // Basic XSS protection
     referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
     
+    // ENHANCED: Additional security headers
     hsts: {
-        maxAge: 31536000,
+        maxAge: 31536000, // 1 year
         includeSubDomains: false,
         preload: false
     },
     
+    // SECURITY: Content Security Policy enabled with permissive directives
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
             scriptSrc: [
                 "'self'", 
-                "'unsafe-inline'", 
+                "'unsafe-inline'",  // Required for inline scripts in HTML
                 "https://js.stripe.com",
                 "https://www.googletagmanager.com",
                 "https://www.google-analytics.com",
                 "https://www.clarity.ms",
-                "https://scripts.clarity.ms",
-                "https://cdn.jsdelivr.net"
+                "https://scripts.clarity.ms"
             ],
-            // Allow inline event handlers (onclick, onchange, etc.) - required for site navigation
             scriptSrcAttr: ["'unsafe-inline'"],
-            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
-            fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
+            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
             imgSrc: ["'self'", "data:", "https:", "blob:"],
-                        connectSrc: [
-                            "'self'", 
-                            "https://api.stripe.com",
-                            "https://www.google-analytics.com",
-                            "https://*.google-analytics.com",
-                            "https://www.clarity.ms",
-                            "https://c.clarity.ms",
-                            "https://k.clarity.ms",
-                            "https://scripts.clarity.ms",
-                            "https://fonts.googleapis.com",
-                            "https://cdnjs.cloudflare.com"
-                        ],
+            fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
+            connectSrc: [
+                "'self'",
+                "https://api.stripe.com",
+                "https://www.google-analytics.com",
+                "https://www.clarity.ms"
+            ],
             frameSrc: ["'self'", "https://js.stripe.com", "https://hooks.stripe.com"],
             objectSrc: ["'none'"],
             baseUri: ["'self'"],
@@ -311,15 +197,29 @@ app.use(helmet({
             upgradeInsecureRequests: []
         }
     },
-    crossOriginEmbedderPolicy: false,
-    crossOriginResourcePolicy: false,
-    originAgentCluster: false,
+    crossOriginEmbedderPolicy: false, // Don't block embeds
+    crossOriginResourcePolicy: false, // Don't block cross-origin resources
+    originAgentCluster: false,        // Don't isolate origins
+    
+    // KEEP PERMISSIVE: Allow all functionality
     permittedCrossDomainPolicies: false,
     
+    // Standard safe defaults
     ieNoOpen: true,
-    dnsPrefetchControl: { allow: true }
+    dnsPrefetchControl: { allow: true }  // Allow DNS prefetching for performance
 }));
 
+// Additional security headers middleware
+app.use((req, res, next) => {
+    // X-Frame-Options for extra clickjacking protection
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    // Hide server information
+    res.removeHeader('X-Powered-By');
+    next();
+});
+
+// CRITICAL: Stripe webhook MUST be defined BEFORE express.json() middleware
+// because Stripe signature verification requires the raw request body
 app.post('/api/stripe/webhook', express.raw({type: 'application/json'}), async (req, res) => {
     const sig = req.headers['stripe-signature'];
     let event;
@@ -328,56 +228,154 @@ app.post('/api/stripe/webhook', express.raw({type: 'application/json'}), async (
         event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
     } catch (err) {
         console.error('Webhook signature verification failed:', err.message);
-        return res.status(400).send(`Webhook Error: ${err.message}`);
+        return res.status(400).send('Webhook signature verification failed');
     }
 
-    if (event.type === 'checkout.session.completed') {
-        const session = event.data.object;
-        
-        try {
-            await db.run(
-                `UPDATE bookings 
-                 SET payment_status = 'completed', status = 'confirmed', stripe_payment_id = $1, updated_at = NOW()
-                 WHERE stripe_session_id = $2`,
-                [session.payment_intent, session.id]
-            );
-            console.log('Booking confirmed for session:', session.id);
-            
-            const booking = await db.getOne('SELECT * FROM bookings WHERE stripe_session_id = $1', [session.id]);
-            if (booking) {
-                await syncBookingToUplisting(booking);
-                
-                await sendBookingConfirmation({
-                    guest_name: session.metadata.guest_name,
-                    guest_email: session.metadata.guest_email,
-                    accommodation: session.metadata.accommodation,
-                    check_in: session.metadata.check_in,
-                    check_out: session.metadata.check_out,
-                    guests: session.metadata.guests,
-                    total_price: (session.amount_total / 100).toFixed(2)
-                });
-            }
-        } catch (err) {
-            console.error('Failed to update booking status:', err);
-        }
+    // Delegate to the webhook handler function defined later
+    try {
+        await handleStripeWebhook(event, res);
+    } catch (err) {
+        console.error('Webhook handler error:', err.message);
+        return res.status(500).send('Webhook handler error');
     }
-
-    res.json({received: true});
 });
 
-// Middleware (AFTER Stripe webhook route)
+// CRITICAL: Uplisting webhook MUST be defined BEFORE express.json() middleware
+// because signature verification requires the raw request body
+app.post('/api/uplisting/webhook', express.raw({type: 'application/json'}), (req, res) => {
+    try {
+        const rawBody = req.body;
+        let parsedBody;
+        
+        try {
+            parsedBody = JSON.parse(rawBody.toString());
+        } catch (parseErr) {
+            console.error('Invalid JSON in Uplisting webhook');
+            return res.status(400).json({ error: 'Invalid JSON' });
+        }
+        
+        // Verify webhook signature if secret is configured
+        if (process.env.UPLISTING_WEBHOOK_SECRET) {
+            const signature = req.headers['x-uplisting-signature'];
+            const expectedSignature = crypto
+                .createHmac('sha256', process.env.UPLISTING_WEBHOOK_SECRET)
+                .update(rawBody)
+                .digest('hex');
+            
+            if (signature !== expectedSignature) {
+                console.error('Invalid Uplisting webhook signature');
+                return res.status(400).json({ error: 'Invalid signature' });
+            }
+        } else {
+            // In production, require webhook secret
+            if (process.env.NODE_ENV === 'production') {
+                console.error('UPLISTING_WEBHOOK_SECRET not configured in production');
+                return res.status(503).json({ error: 'Webhook not configured' });
+            }
+        }
+        
+        // Delegate to the webhook handler function defined later
+        handleUplistingWebhook(parsedBody, res);
+        
+    } catch (error) {
+        console.error('Uplisting webhook error:', error.message);
+        return res.status(500).json({ error: 'Webhook processing failed' });
+    }
+});
+
+// Middleware (AFTER webhook routes that need raw body)
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
-// Secure static file serving - only serve files from public directory
-// This prevents exposure of sensitive files like lakeside.db, server.js, .env
-app.use(express.static(path.join(__dirname, 'public')));
+// SECURITY: Block access to sensitive files before static file serving
+// This prevents exposure of server code, database, and configuration files
+// NOTE: Only block specific known sensitive files, not all .js files (client-side JS is needed)
+app.use((req, res, next) => {
+    const requestPath = req.path.toLowerCase();
+    
+    // Block specific sensitive files and directories
+    const blockedPaths = [
+        // Server-side JavaScript files (exact matches)
+        '/server.js',
+        '/monitoring-system.js',
+        '/request-queue.js',
+        '/cache-system.js',
+        '/backup-system.js',
+        '/email-notifications.js',
+        '/get-uplisting-pricing.js',
+        '/get-uplisting-properties.js',
+        '/eslint.config.js',
+        '/chatbot-service.js',
+        '/chatbot-knowledge-base.json',
+        // Database files
+        '/lakeside.db',
+        '/lakeside.db-wal',
+        '/lakeside.db-shm',
+        // Configuration files
+        '/package.json',
+        '/package-lock.json',
+        '/.env',
+        '/.gitignore',
+        // Documentation
+        '/readme.md',
+        // Shell scripts
+        '/deploy.sh'
+    ];
+    
+    // Block entire directories
+    const blockedDirectories = [
+        '/node_modules',
+        '/.git',
+        '/backups',
+        '/services',
+        '/lakeside-staging'
+    ];
+    
+    // Check if exact path is blocked
+    if (blockedPaths.includes(requestPath)) {
+        return res.status(404).send('Not found');
+    }
+    
+    // Check if path starts with a blocked directory
+    if (blockedDirectories.some(dir => requestPath.startsWith(dir))) {
+        return res.status(404).send('Not found');
+    }
+    
+    next();
+});
 
-// Note: Health check routes (/health, /healthz, /api/health) are defined earlier
-// before rate limiting middleware to ensure they're never blocked
+// Enhanced static file serving with proper caching
+app.use(express.static(__dirname, {
+    maxAge: '1h', // Default cache for most files
+    setHeaders: (res, filePath) => {
+        // Set specific cache headers for different file types
+        if (filePath.includes('/images/')) {
+            // Images: cache for 1 year with immutable flag
+            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+            res.setHeader('X-Content-Type-Options', 'nosniff');
+        } else if (filePath.endsWith('.css')) {
+            // CSS: cache for 30 days
+            res.setHeader('Cache-Control', 'public, max-age=2592000');
+        } else if (filePath.endsWith('.html')) {
+            // HTML: shorter cache for dynamic content
+            res.setHeader('Cache-Control', 'public, max-age=3600');
+        }
+    }
+}));
 
-// Accommodations endpoint
-app.get('/api/accommodations', (req, res) => {
+// NOTE: Health check endpoints are defined earlier in the file (before rate limiting)
+// to ensure they are not rate limited and Render health checks always succeed
+
+// MONITORING ENDPOINTS - Moved after verifyAdmin definition
+
+
+// Accommodations endpoint (with caching)
+app.get('/api/accommodations', 
+    accommodationCache.middleware({
+        ttl: 600000, // 10 minutes
+        keyGenerator: (req) => 'accommodations:all'
+    }),
+    (req, res) => {
     try {
         const accommodations = [
             {
@@ -433,8 +431,18 @@ app.get('/api/accommodations', (req, res) => {
 // Contact form endpoint
 app.post('/api/contact', contactLimiter, [
     body('name').trim().isLength({ min: 2, max: 100 }).escape(),
-    body('email').isEmail().normalizeEmail(),
-    body('message').trim().isLength({ min: 10, max: 1000 }).escape()
+    body('email')
+        .isEmail()
+        .matches(/^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/)
+        .normalizeEmail({
+            gmail_remove_dots: false,
+            gmail_remove_subaddress: false,
+            outlookdotcom_remove_subaddress: false,
+            yahoo_remove_subaddress: false,
+            icloud_remove_subaddress: false
+        }),
+    body('message').trim().isLength({ min: 10, max: 1000 }).escape(),
+    body('subject').optional().trim().isLength({ max: 200 }).escape()
 ], async (req, res) => {
     try {
         // Check validation errors
@@ -475,23 +483,26 @@ app.post('/api/contact', contactLimiter, [
 
         try {
             await emailTransporter.sendMail(mailOptions);
-            console.log('✅ Contact form email sent successfully');
+            console.log('✅ Contact form email sent from:', sanitizedData.email);
         } catch (emailError) {
             console.error('❌ Failed to send contact email:', emailError);
             // Don't fail the request if email fails
         }
 
-        try {
-            const result = await db.run(
-                `INSERT INTO contact_messages (name, email, message, created_at)
-                 VALUES ($1, $2, $3, NOW())
-                 RETURNING id`,
-                [sanitizedData.name, sanitizedData.email, sanitizedData.message]
-            );
-            console.log('Contact message stored with ID:', result.rows[0]?.id);
-        } catch (dbErr) {
-            console.error('Failed to store contact message:', dbErr);
-        }
+        // Store in database (optional)
+        const sql = `
+            INSERT INTO contact_messages (name, email, message, created_at)
+            VALUES (?, ?, ?, datetime('now'))
+        `;
+
+        db.run(sql, [sanitizedData.name, sanitizedData.email, sanitizedData.message], function(err) {
+            if (err) {
+                console.error('❌ Failed to store contact message:', err);
+                // Don't fail the request if database storage fails
+            } else {
+                console.log('✅ Contact message stored with ID:', this.lastID);
+            }
+        });
 
         res.json({
             success: true,
@@ -507,236 +518,19 @@ app.post('/api/contact', contactLimiter, [
     }
 });
 
-// Availability check endpoint (called by frontend before booking)
-app.post('/api/availability', bookingLimiter, async (req, res) => {
-    try {
-        const { accommodation, checkIn, checkOut, guests } = req.body;
-        
-        // Validate required fields
-        if (!accommodation || !checkIn || !checkOut) {
-            return res.status(400).json({
-                success: false,
-                error: 'Missing required fields: accommodation, checkIn, checkOut'
-            });
-        }
-        
-        // Validate accommodation type
-        const validAccommodations = ['dome-pinot', 'dome-rose', 'lakeside-cottage'];
-        if (!validAccommodations.includes(accommodation)) {
-            return res.status(400).json({
-                success: false,
-                error: 'Invalid accommodation type'
-            });
-        }
-        
-        // Validate dates
-        const checkInDate = new Date(checkIn);
-        const checkOutDate = new Date(checkOut);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
-        if (isNaN(checkInDate.getTime()) || isNaN(checkOutDate.getTime())) {
-            return res.status(400).json({
-                success: false,
-                error: 'Invalid date format'
-            });
-        }
-        
-        if (checkInDate < today) {
-            return res.status(400).json({
-                success: false,
-                error: 'Check-in date cannot be in the past'
-            });
-        }
-        
-        if (checkOutDate <= checkInDate) {
-            return res.status(400).json({
-                success: false,
-                error: 'Check-out date must be after check-in date'
-            });
-        }
-        
-        // Format dates for availability check
-        const formattedCheckIn = checkInDate.toISOString().split('T')[0];
-        const formattedCheckOut = checkOutDate.toISOString().split('T')[0];
-        
-        // Validate seasonal minimum stay for cottage
-        const seasonalValidation = validateSeasonalMinimumStay(accommodation, formattedCheckIn, formattedCheckOut);
-        if (!seasonalValidation.valid) {
-            return res.status(400).json({
-                success: false,
-                error: seasonalValidation.error,
-                available: false
-            });
-        }
-        
-        console.log('🔍 Checking availability for:', accommodation, formattedCheckIn, 'to', formattedCheckOut);
-        
-        // Check availability using existing function (returns object with available and error)
-        const availabilityResult = await checkAvailability(accommodation, formattedCheckIn, formattedCheckOut);
-        
-        console.log('📅 Availability result:', availabilityResult);
-        
-        if (!availabilityResult.available) {
-            return res.status(409).json({
-                success: false,
-                available: false,
-                error: availabilityResult.error || 'Selected dates are not available',
-                accommodation: accommodation,
-                checkIn: formattedCheckIn,
-                checkOut: formattedCheckOut
-            });
-        }
-        
-        res.json({
-            success: true,
-            available: true,
-            accommodation: accommodation,
-            checkIn: formattedCheckIn,
-            checkOut: formattedCheckOut
-        });
-        
-    } catch (error) {
-        console.error('❌ Availability check error:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Failed to check availability. Please try again.'
-        });
-    }
-});
-
-// Simple in-memory cache for blocked dates (5 minute TTL)
-const blockedDatesCache = new Map();
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-
-// Blocked dates endpoint for calendar display
-app.get('/api/blocked-dates', generalLimiter, async (req, res) => {
-    try {
-        const { accommodation, startDate, endDate } = req.query;
-        
-        // Validate required fields
-        if (!accommodation) {
-            return res.status(400).json({
-                success: false,
-                error: 'Missing required field: accommodation'
-            });
-        }
-        
-        // Validate accommodation type
-        const validAccommodations = ['dome-pinot', 'dome-rose', 'lakeside-cottage'];
-        if (!validAccommodations.includes(accommodation)) {
-            return res.status(400).json({
-                success: false,
-                error: 'Invalid accommodation type'
-            });
-        }
-        
-        // Default date range: today to 12 months from now
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const defaultEnd = new Date(today);
-        defaultEnd.setMonth(defaultEnd.getMonth() + 12);
-        
-        const start = startDate ? new Date(startDate) : today;
-        const end = endDate ? new Date(endDate) : defaultEnd;
-        
-        if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-            return res.status(400).json({
-                success: false,
-                error: 'Invalid date format'
-            });
-        }
-        
-        const formattedStart = start.toISOString().split('T')[0];
-        const formattedEnd = end.toISOString().split('T')[0];
-        
-        // Check cache first
-        const cacheKey = `${accommodation}-${formattedStart}-${formattedEnd}`;
-        const cached = blockedDatesCache.get(cacheKey);
-        if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-            return res.json({
-                success: true,
-                blockedDates: cached.dates,
-                accommodation: accommodation,
-                startDate: formattedStart,
-                endDate: formattedEnd,
-                cached: true
-            });
-        }
-        
-        // Query local database for confirmed bookings
-        const bookings = await db.getAll(
-            `SELECT check_in, check_out 
-             FROM bookings 
-             WHERE accommodation = $1 
-             AND payment_status IN ('completed', 'pending')
-             AND check_out > $2 
-             AND check_in < $3
-             ORDER BY check_in`,
-            [accommodation, formattedStart, formattedEnd]
-        );
-        
-        // Generate list of blocked dates (all dates from check_in to check_out - 1)
-        // Check-out day is NOT blocked (guest can check in on someone else's check-out day)
-        const blockedDates = new Set();
-        
-        for (const booking of bookings) {
-            const checkIn = new Date(booking.check_in);
-            const checkOut = new Date(booking.check_out);
-            
-            // Add all dates from check_in to check_out - 1
-            const current = new Date(checkIn);
-            while (current < checkOut) {
-                const dateStr = current.toISOString().split('T')[0];
-                if (dateStr >= formattedStart && dateStr <= formattedEnd) {
-                    blockedDates.add(dateStr);
-                }
-                current.setDate(current.getDate() + 1);
-            }
-        }
-        
-        // Also block past dates
-        const pastDate = new Date(today);
-        pastDate.setDate(pastDate.getDate() - 1);
-        const startLoop = new Date(start);
-        while (startLoop <= pastDate && startLoop <= end) {
-            blockedDates.add(startLoop.toISOString().split('T')[0]);
-            startLoop.setDate(startLoop.getDate() + 1);
-        }
-        
-        const blockedArray = Array.from(blockedDates).sort();
-        
-        // Cache the result
-        blockedDatesCache.set(cacheKey, {
-            dates: blockedArray,
-            timestamp: Date.now()
-        });
-        
-        console.log(`📅 Blocked dates for ${accommodation}: ${blockedArray.length} dates`);
-        
-        res.json({
-            success: true,
-            blockedDates: blockedArray,
-            accommodation: accommodation,
-            startDate: formattedStart,
-            endDate: formattedEnd,
-            cached: false
-        });
-        
-    } catch (error) {
-        console.error('❌ Blocked dates error:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Failed to fetch blocked dates.'
-        });
-    }
-});
-
 // Input validation middleware
 const validateBooking = [
     body('guest_name').trim().isLength({ min: 2, max: 100 }).escape(),
     body('guest_email').isEmail().normalizeEmail(),
-    body('guest_phone').optional().isMobilePhone(),
+    body('guest_phone').optional().custom((value) => {
+        if (!value) return true; // Allow empty phone numbers
+        // More flexible phone validation - allow international formats
+        const phoneRegex = /^[\+]?[\d\s\-\(\)\.]{7,20}$/;
+        if (!phoneRegex.test(value)) {
+            throw new Error('Please enter a valid phone number (7-20 digits, may include +, spaces, dashes, dots, or parentheses)');
+        }
+        return true;
+    }),
     body('accommodation').isIn(['dome-pinot', 'dome-rose', 'lakeside-cottage']),
     body('check_in').isISO8601().toDate(),
     body('check_out').isISO8601().toDate(),
@@ -763,63 +557,195 @@ function escapeHtml(text) {
     return text.replace(/[&<>"']/g, char => htmlEntities[char]);
 }
 
-function calculateNights(checkIn, checkOut) {
-    const checkInDate = new Date(checkIn);
-    const checkOutDate = new Date(checkOut);
-    const timeDifference = checkOutDate.getTime() - checkInDate.getTime();
-    return Math.ceil(timeDifference / (1000 * 3600 * 24));
+function validateEmailFormat(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
 }
 
-function validateSeasonalMinimumStay(accommodation, checkIn, checkOut) {
-    if (accommodation === 'lakeside-cottage') {
-        const checkInDate = new Date(checkIn);
-        const month = checkInDate.getMonth() + 1; // JS months are 0-based
-        
-        // Peak season: Oct (10) through May (5) - includes crossing year boundary
-        const isPeakSeason = month >= 10 || month <= 5;
-        
-        if (isPeakSeason) {
-            const nights = calculateNights(checkIn, checkOut);
-            if (nights < 2) {
-                return {
-                    valid: false,
-                    error: "Minimum 2-night stay required for Lakeside Cottage during peak season (October to May)"
-                };
-            }
+// Standardized error response system
+function createErrorResponse(code, message, details = null, requestId = null) {
+    const response = {
+        success: false,
+        error: {
+            code: code,
+            message: message,
+            timestamp: new Date().toISOString(),
+            ...(details && { details }),
+            ...(requestId && { requestId })
         }
+    };
+    
+    // Add debug info in development
+    if (process.env.NODE_ENV === 'development' && details) {
+        response.debug = details;
     }
-    return { valid: true };
+    
+    return response;
+}
+
+// Standard error codes
+const ERROR_CODES = {
+    // Validation errors (400)
+    VALIDATION_ERROR: 'VALIDATION_ERROR',
+    INVALID_INPUT: 'INVALID_INPUT',
+    MISSING_REQUIRED_FIELDS: 'MISSING_REQUIRED_FIELDS',
+    INVALID_DATE_RANGE: 'INVALID_DATE_RANGE',
+    
+    // Authentication errors (401)
+    AUTHENTICATION_REQUIRED: 'AUTHENTICATION_REQUIRED',
+    INVALID_CREDENTIALS: 'INVALID_CREDENTIALS',
+    TOKEN_EXPIRED: 'TOKEN_EXPIRED',
+    INVALID_TOKEN: 'INVALID_TOKEN',
+    
+    // Authorization errors (403)
+    INSUFFICIENT_PERMISSIONS: 'INSUFFICIENT_PERMISSIONS',
+    ADMIN_ACCESS_REQUIRED: 'ADMIN_ACCESS_REQUIRED',
+    
+    // Not found errors (404)
+    RESOURCE_NOT_FOUND: 'RESOURCE_NOT_FOUND',
+    BOOKING_NOT_FOUND: 'BOOKING_NOT_FOUND',
+    ENDPOINT_NOT_FOUND: 'ENDPOINT_NOT_FOUND',
+    
+    // Conflict errors (409)
+    RESOURCE_CONFLICT: 'RESOURCE_CONFLICT',
+    DATES_NOT_AVAILABLE: 'DATES_NOT_AVAILABLE',
+    BOOKING_ALREADY_EXISTS: 'BOOKING_ALREADY_EXISTS',
+    
+    // Server errors (500)
+    INTERNAL_SERVER_ERROR: 'INTERNAL_SERVER_ERROR',
+    DATABASE_ERROR: 'DATABASE_ERROR',
+    PAYMENT_ERROR: 'PAYMENT_ERROR',
+    EMAIL_ERROR: 'EMAIL_ERROR',
+    EXTERNAL_API_ERROR: 'EXTERNAL_API_ERROR'
+};
+
+// Helper function to send standardized error responses
+function sendError(res, statusCode, errorCode, message, details = null, requestId = null) {
+    const errorResponse = createErrorResponse(errorCode, message, details, requestId);
+    return res.status(statusCode).json(errorResponse);
+}
+
+// Helper function to send standardized success responses
+function sendSuccess(res, data = null, message = null, statusCode = 200) {
+    const response = {
+        success: true,
+        timestamp: new Date().toISOString(),
+        ...(message && { message }),
+        ...(data && { data })
+    };
+    
+    return res.status(statusCode).json(response);
+}
+
+// Database operation wrapper with retry logic and better error handling
+async function executeDbOperation(operation, params = [], retries = 3) {
+    return new Promise((resolve, reject) => {
+        const attemptOperation = (attemptsLeft) => {
+            const startTime = Date.now();
+            
+            operation(db, params, (err, result) => {
+                const duration = Date.now() - startTime;
+                
+                // Log slow queries
+                if (duration > 1000) {
+                    log('WARN', `Slow database operation: ${duration}ms`, {
+                        duration,
+                        performance: 'slow_query'
+                    });
+                }
+                
+                if (err) {
+                    // Retry on database busy errors
+                    if ((err.code === 'SQLITE_BUSY' || err.code === 'SQLITE_LOCKED') && attemptsLeft > 0) {
+                        const retryDelay = Math.random() * 1000 + 500; // 500-1500ms random delay
+                        setTimeout(() => attemptOperation(attemptsLeft - 1), retryDelay);
+                        return;
+                    }
+                    
+                    log('ERROR', `Database operation failed: ${err.message}`, {
+                        error: err.message,
+                        code: err.code,
+                        duration,
+                        retriesLeft: attemptsLeft
+                    });
+                    reject(err);
+                } else {
+                    resolve(result);
+                }
+            });
+        };
+        
+        attemptOperation(retries);
+    });
+}
+
+// Enhanced database transaction wrapper
+async function executeTransaction(operations) {
+    return new Promise((resolve, reject) => {
+        db.serialize(() => {
+            db.run('BEGIN IMMEDIATE TRANSACTION;', (err) => {
+                if (err) {
+                    reject(err);
+                    return;
+                }
+                
+                const executeOperations = async () => {
+                    try {
+                        const results = [];
+                        for (const operation of operations) {
+                            const result = await executeDbOperation(operation.query, operation.params, 1);
+                            results.push(result);
+                        }
+                        
+                        db.run('COMMIT;', (err) => {
+                            if (err) {
+                                reject(err);
+                            } else {
+                                resolve(results);
+                            }
+                        });
+                    } catch (error) {
+                        db.run('ROLLBACK;', () => {
+                            reject(error);
+                        });
+                    }
+                };
+                
+                executeOperations();
+            });
+        });
+    });
 }
 
 // Uplisting API integration
 async function checkUplistingAvailability(accommodation, checkIn, checkOut) {
-    // FAIL-CLOSED: If Uplisting is configured, we MUST verify availability
-    // to prevent overbookings from external channels (Booking.com, Airbnb, etc.)
-    
     if (!process.env.UPLISTING_API_KEY) {
         console.warn('⚠️ Uplisting API key not configured, using local availability only');
-        return { available: true, error: null };
+        return true;
     }
     
     try {
-        // Use centralized property mapping
-        const propertyId = getPropertyIdFromAccommodation(accommodation);
+        // Map accommodation names to Uplisting property IDs
+        const propertyMapping = {
+            'dome-pinot': process.env.UPLISTING_PROPERTY_PINOT_ID,
+            'dome-rose': process.env.UPLISTING_PROPERTY_ROSE_ID,
+            'lakeside-cottage': process.env.UPLISTING_PROPERTY_COTTAGE_ID
+        };
+        
+        const propertyId = propertyMapping[accommodation];
         if (!propertyId) {
-            console.error(`❌ No Uplisting property ID configured for ${accommodation} - blocking booking to prevent overbooking`);
-            return { 
-                available: false, 
-                error: 'Property configuration error. Please contact us directly to book.' 
-            };
+            console.warn(`⚠️ No Uplisting property ID configured for ${accommodation}`);
+            return true;
         }
         
-        const baseUrl = getUplistingBaseUrl();
-        const url = `${baseUrl}/properties/${propertyId}/availability?start_date=${checkIn}&end_date=${checkOut}`;
+        const base64ApiKey = Buffer.from(process.env.UPLISTING_API_KEY).toString('base64');
+        const url = `https://connect.uplisting.io/properties/${propertyId}/availability?start_date=${checkIn}&end_date=${checkOut}`;
         console.log('🔍 Checking Uplisting availability:', url);
         
         const response = await fetch(url, {
             method: 'GET',
             headers: {
-                ...getUplistingAuthHeaders(),
+                'Authorization': `Basic ${base64ApiKey}`,
                 'Content-Type': 'application/json'
             }
         });
@@ -829,60 +755,61 @@ async function checkUplistingAvailability(accommodation, checkIn, checkOut) {
         if (!response.ok) {
             const errorText = await response.text();
             console.error('❌ Uplisting API error:', response.status, errorText);
-            // FAIL-CLOSED: Block booking if we can't verify availability
-            return { 
-                available: false, 
-                error: 'Unable to verify availability with our booking system. Please try again later or contact us directly.' 
-            };
+            return true; // Fail open - allow booking if API is down
         }
         
         const data = await response.json();
         console.log('📝 Uplisting availability data:', data);
-        return { available: data.available === true, error: null };
+        return data.available === true;
         
     } catch (error) {
         console.error('❌ Uplisting availability check failed:', error);
-        // FAIL-CLOSED: Block booking if API fails to prevent overbookings
-        return { 
-            available: false, 
-            error: 'Unable to verify availability. Please try again later or contact us directly.' 
-        };
+        return true; // Fail open - allow booking if API fails
     }
 }
 
+// Booking availability check (checks both local DB and Uplisting)
 async function checkAvailability(accommodation, checkIn, checkOut) {
-    let localAvailable = true;
+    let localAvailable = true; // Default to available
     
     try {
-        const row = await db.getOne(
-            `SELECT COUNT(*) as conflicts 
-             FROM bookings 
-             WHERE accommodation = $1 
-             AND payment_status = 'completed'
-             AND (
-                 (check_in <= $2 AND check_out > $2) OR
-                 (check_in < $3 AND check_out >= $3) OR
-                 (check_in >= $2 AND check_out <= $3)
-             )`,
-            [accommodation, checkIn, checkOut]
-        );
-        localAvailable = !row || parseInt(row.conflicts) === 0;
+        // Check local database first
+        localAvailable = await new Promise((resolve, reject) => {
+            const sql = `
+                SELECT COUNT(*) as conflicts 
+                FROM bookings 
+                WHERE accommodation = ? 
+                AND payment_status = 'completed'
+                AND (
+                    (check_in <= ? AND check_out > ?) OR
+                    (check_in < ? AND check_out >= ?) OR
+                    (check_in >= ? AND check_out <= ?)
+                )
+            `;
+            
+            db.get(sql, [accommodation, checkIn, checkIn, checkOut, checkOut, checkIn, checkOut], (err, row) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(row.conflicts === 0);
+                }
+            });
+        });
         
         if (!localAvailable) {
-            return { available: false, error: 'These dates are already booked in our system.' };
+            return false; // Local conflict found
         }
         
-        // Check Uplisting availability (returns object with available and error properties)
-        const uplistingResult = await checkUplistingAvailability(accommodation, checkIn, checkOut);
-        return uplistingResult;
+        // Check Uplisting availability
+        const uplistingAvailable = await checkUplistingAvailability(accommodation, checkIn, checkOut);
+        
+        return uplistingAvailable;
         
     } catch (error) {
-        console.error('Availability check error:', error);
-        // FAIL-CLOSED: If we can't check availability, block the booking
-        return { 
-            available: false, 
-            error: 'Unable to verify availability. Please try again later or contact us directly.' 
-        };
+        console.error('❌ Availability check error:', error);
+        console.log('📝 Availability check failed, allowing booking based on local DB only');
+        // If availability check fails, return the local DB result (default to true if DB check failed)
+        return localAvailable;
     }
 }
 
@@ -894,8 +821,13 @@ async function syncBookingToUplisting(bookingData) {
     }
     
     try {
-        // Use centralized property mapping
-        const propertyId = getPropertyIdFromAccommodation(bookingData.accommodation);
+        const propertyMapping = {
+            'dome-pinot': process.env.UPLISTING_PROPERTY_PINOT_ID,
+            'dome-rose': process.env.UPLISTING_PROPERTY_ROSE_ID,
+            'lakeside-cottage': process.env.UPLISTING_PROPERTY_COTTAGE_ID
+        };
+        
+        const propertyId = propertyMapping[bookingData.accommodation];
         if (!propertyId) {
             console.warn(`⚠️ No Uplisting property ID configured for ${bookingData.accommodation}`);
             return;
@@ -918,11 +850,10 @@ async function syncBookingToUplisting(bookingData) {
             notes: bookingData.notes || ''
         };
         
-        const baseUrl = getUplistingBaseUrl();
-        const response = await fetch(`${baseUrl}/bookings`, {
+        const response = await fetch('https://connect.uplisting.io/bookings', {
             method: 'POST',
             headers: {
-                ...getUplistingAuthHeaders(),
+                'Authorization': `Basic ${Buffer.from(process.env.UPLISTING_API_KEY).toString('base64')}`,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(uplistingBooking)
@@ -930,18 +861,20 @@ async function syncBookingToUplisting(bookingData) {
         
         if (response.ok) {
             const uplistingResponse = await response.json();
-            console.log('Booking synced to Uplisting:', uplistingResponse.id);
+            console.log('✅ Booking synced to Uplisting:', uplistingResponse.id);
             
-            try {
-                await db.run(
-                    'UPDATE bookings SET uplisting_id = $1, updated_at = NOW() WHERE id = $2',
-                    [uplistingResponse.id, bookingData.id]
-                );
-            } catch (err) {
-                console.error('Failed to update Uplisting ID:', err);
-            }
+            // Update local booking with Uplisting ID
+            db.run(
+                'UPDATE bookings SET uplisting_id = ? WHERE id = ?',
+                [uplistingResponse.id, bookingData.id],
+                (err) => {
+                    if (err) {
+                        console.error('❌ Failed to update Uplisting ID:', err);
+                    }
+                }
+            );
         } else {
-            console.error('Failed to sync booking to Uplisting:', response.status);
+            console.error('❌ Failed to sync booking to Uplisting:', response.status);
         }
         
     } catch (error) {
@@ -949,174 +882,270 @@ async function syncBookingToUplisting(bookingData) {
     }
 }
 
-app.post('/api/uplisting/webhook', express.raw({type: 'application/json'}), async (req, res) => {
-    try {
-        const rawBody = req.body;
-        let parsedBody;
+// Uplisting webhook handler function (called from route defined before express.json middleware)
+function handleUplistingWebhook(parsedBody, res) {
+    const { event, data } = parsedBody;
+    
+    if (event === 'booking.created' || event === 'booking.updated') {
+        // Sanitize external data before storing to prevent stored XSS
+        const bookingData = {
+            id: `uplisting-${data.id}`,
+            guest_name: sanitizeInput(`${data.guest.first_name} ${data.guest.last_name}`.trim()),
+            guest_email: sanitizeInput(data.guest.email),
+            guest_phone: sanitizeInput(data.guest.phone || ''),
+            accommodation: getAccommodationFromPropertyId(data.property_id),
+            check_in: data.check_in,
+            check_out: data.check_out,
+            guests: data.guests,
+            total_price: data.total_amount,
+            status: data.status === 'confirmed' ? 'confirmed' : 'pending',
+            payment_status: data.payment_status || 'completed',
+            notes: sanitizeInput(data.notes || 'Booking from Uplisting'),
+            uplisting_id: data.id
+        };
         
-        try {
-            parsedBody = JSON.parse(rawBody.toString());
-        } catch (parseErr) {
-            console.error('Invalid JSON in Uplisting webhook');
-            return res.status(400).json({ error: 'Invalid JSON' });
-        }
+        // Insert or update booking
+        const sql = `
+            INSERT OR REPLACE INTO bookings (
+                id, guest_name, guest_email, guest_phone, accommodation,
+                check_in, check_out, guests, total_price, status,
+                payment_status, notes, uplisting_id, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+        `;
         
-        if (process.env.UPLISTING_WEBHOOK_SECRET) {
-            const signature = req.headers['x-uplisting-signature'];
-            const expectedSignature = crypto
-                .createHmac('sha256', process.env.UPLISTING_WEBHOOK_SECRET)
-                .update(rawBody)
-                .digest('hex');
-            
-            if (signature !== expectedSignature) {
-                console.error('Invalid Uplisting webhook signature');
-                return res.status(400).json({ error: 'Invalid signature' });
-            }
-        }
-        
-        const { event, data } = parsedBody;
-        
-        if (event === 'booking.created' || event === 'booking.updated') {
-            // Sanitize external data before storing to prevent stored XSS
-            const bookingData = {
-                id: `uplisting-${data.id}`,
-                guest_name: sanitizeInput(`${data.guest.first_name} ${data.guest.last_name}`.trim()),
-                guest_email: sanitizeInput(data.guest.email),
-                guest_phone: sanitizeInput(data.guest.phone || ''),
-                accommodation: getAccommodationFromPropertyId(data.property_id),
-                check_in: data.check_in,
-                check_out: data.check_out,
-                guests: data.guests,
-                total_price: data.total_amount,
-                status: data.status === 'confirmed' ? 'confirmed' : 'pending',
-                payment_status: data.payment_status || 'completed',
-                notes: sanitizeInput(data.notes || 'Booking from Uplisting'),
-                uplisting_id: data.id
-            };
-            
-            try {
-                await db.run(
-                    `INSERT INTO bookings (
-                        id, guest_name, guest_email, guest_phone, accommodation,
-                        check_in, check_out, guests, total_price, status,
-                        payment_status, notes, uplisting_id, created_at
-                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW())
-                    ON CONFLICT (id) DO UPDATE SET
-                        guest_name = EXCLUDED.guest_name,
-                        guest_email = EXCLUDED.guest_email,
-                        guest_phone = EXCLUDED.guest_phone,
-                        accommodation = EXCLUDED.accommodation,
-                        check_in = EXCLUDED.check_in,
-                        check_out = EXCLUDED.check_out,
-                        guests = EXCLUDED.guests,
-                        total_price = EXCLUDED.total_price,
-                        status = EXCLUDED.status,
-                        payment_status = EXCLUDED.payment_status,
-                        notes = EXCLUDED.notes,
-                        uplisting_id = EXCLUDED.uplisting_id,
-                        updated_at = NOW()`,
-                    [
-                        bookingData.id,
-                        bookingData.guest_name,
-                        bookingData.guest_email,
-                        bookingData.guest_phone,
-                        bookingData.accommodation,
-                        bookingData.check_in,
-                        bookingData.check_out,
-                        bookingData.guests,
-                        bookingData.total_price,
-                        bookingData.status,
-                        bookingData.payment_status,
-                        bookingData.notes,
-                        bookingData.uplisting_id
-                    ]
-                );
+        db.run(sql, [
+            bookingData.id,
+            bookingData.guest_name,
+            bookingData.guest_email,
+            bookingData.guest_phone,
+            bookingData.accommodation,
+            bookingData.check_in,
+            bookingData.check_out,
+            bookingData.guests,
+            bookingData.total_price,
+            bookingData.status,
+            bookingData.payment_status,
+            bookingData.notes,
+            bookingData.uplisting_id
+        ], (err) => {
+            if (err) {
+                console.error('Failed to sync Uplisting booking:', err.message);
+            } else {
                 console.log('Uplisting booking synced:', data.id);
-            } catch (err) {
-                console.error('Failed to sync Uplisting booking:', err);
             }
-        }
-        
-        res.json({ received: true });
-        
-    } catch (error) {
-        console.error('Uplisting webhook error:', error);
+        });
     }
-});
+    
+    res.json({ received: true });
+}
+
+// Helper function to map Uplisting property IDs back to accommodation names
+function getAccommodationFromPropertyId(propertyId) {
+    const propertyMapping = {
+        [process.env.UPLISTING_PROPERTY_PINOT_ID]: 'dome-pinot',
+        [process.env.UPLISTING_PROPERTY_ROSE_ID]: 'dome-rose',
+        [process.env.UPLISTING_PROPERTY_COTTAGE_ID]: 'lakeside-cottage'
+    };
+    
+    return propertyMapping[propertyId] || 'unknown';
+}
 
 // Send booking confirmation email
 async function sendBookingConfirmation(bookingData) {
+    // Check if email is configured
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+        console.log('⚠️ Email not configured - skipping booking confirmation email');
+        console.log('📧 Booking confirmation would be sent to:', bookingData.guest_email);
+        return;
+    }
+
     const mailOptions = {
         from: process.env.EMAIL_USER,
         to: bookingData.guest_email,
-        subject: 'Booking Confirmation - Lakeside Retreat',
+        subject: 'Booking Request Received - Lakeside Retreat',
         html: `
-            <h2>Booking Confirmation</h2>
-            <p>Dear ${escapeHtml(bookingData.guest_name)},</p>
-            <p>Your booking has been confirmed!</p>
+            <h2>Booking Request Received</h2>
+            <p>Dear ${escapeHtml(bookingData.guest_name || bookingData.firstName + ' ' + bookingData.lastName)},</p>
+            <p>Thank you for your booking request! We have received your details and will send final confirmation after payment is complete.</p>
             
             <h3>Booking Details:</h3>
             <ul>
                 <li><strong>Accommodation:</strong> ${escapeHtml(bookingData.accommodation)}</li>
-                <li><strong>Check-in:</strong> ${escapeHtml(bookingData.check_in)}</li>
-                <li><strong>Check-out:</strong> ${escapeHtml(bookingData.check_out)}</li>
+                <li><strong>Check-in:</strong> ${escapeHtml(bookingData.check_in || bookingData.checkin)}</li>
+                <li><strong>Check-out:</strong> ${escapeHtml(bookingData.check_out || bookingData.checkout)}</li>
                 <li><strong>Guests:</strong> ${escapeHtml(String(bookingData.guests))}</li>
-                <li><strong>Total:</strong> $${escapeHtml(String(bookingData.total_price))} NZD</li>
+                <li><strong>Total:</strong> $${escapeHtml(String(bookingData.total_price || bookingData.totalAmount))} NZD</li>
             </ul>
             
-            <p>We look forward to hosting you!</p>
-            <p>Best regards,<br>Lakeside Retreat Team</p>
+            <p><strong>Next Steps:</strong></p>
+            <p>Complete your secure payment to confirm your booking. Once payment is processed, you'll receive a final confirmation email with detailed check-in instructions.</p>
+            
+            <p>Questions? Contact us at info@lakesideretreat.co.nz or +64 27 888 5888</p>
+            
+            <p>Best regards,<br>Stephen &amp; Sandy<br>Lakeside Retreat Team</p>
         `
     };
     
     try {
         await emailTransporter.sendMail(mailOptions);
-        console.log('✅ Booking confirmation email sent successfully');
+        console.log('✅ Booking confirmation email sent to:', bookingData.guest_email || bookingData.email);
     } catch (error) {
         console.error('❌ Failed to send booking confirmation:', error);
+        // Don't throw error - booking should still proceed even if email fails
+    }
+}
+
+// Send payment confirmation email (after successful payment)
+async function sendPaymentConfirmation(bookingData) {
+    // Check if email is configured
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+        console.log('⚠️ Email not configured - skipping payment confirmation email');
+        console.log('📧 Payment confirmation would be sent to:', bookingData.guest_email);
+        return;
+    }
+
+    const mailOptions = {
+        from: process.env.EMAIL_USER,
+        to: bookingData.guest_email,
+        subject: 'Payment Confirmed - Your Lakeside Retreat Booking is Confirmed!',
+        html: `
+            <h2>Booking Confirmed - Payment Received!</h2>
+            <p>Dear ${escapeHtml(bookingData.guest_name)},</p>
+            <p><strong>Congratulations! Your payment has been successfully processed and your booking is now confirmed.</strong></p>
+            
+            <h3>Confirmed Booking Details:</h3>
+            <ul>
+                <li><strong>Booking ID:</strong> ${escapeHtml(bookingData.booking_id)}</li>
+                <li><strong>Accommodation:</strong> ${escapeHtml(bookingData.accommodation)}</li>
+                <li><strong>Check-in:</strong> ${escapeHtml(bookingData.check_in)}</li>
+                <li><strong>Check-out:</strong> ${escapeHtml(bookingData.check_out)}</li>
+                <li><strong>Guests:</strong> ${escapeHtml(String(bookingData.guests))}</li>
+                <li><strong>Total Paid:</strong> $${escapeHtml(String(bookingData.total_price))} NZD</li>
+            </ul>
+            
+            <h3>Check-in Information:</h3>
+            <p><strong>Check-in Time:</strong> 3:00 PM<br>
+            <strong>Check-out Time:</strong> 10:00 AM<br>
+            <strong>Address:</strong> 123 Lakeside Road, Cromwell, Central Otago</p>
+            
+            <p><strong>What's Next:</strong></p>
+            <ul>
+                <li>We'll send detailed check-in instructions 48 hours before your arrival</li>
+                <li>If you have any special requests, please reply to this email</li>
+                <li>For urgent matters, call us at +64 27 888 5888</li>
+            </ul>
+            
+            <p><strong>Looking forward to hosting you at our energy-positive geodesic domes!</strong></p>
+            
+            <p>Warm regards,<br>
+            Stephen &amp; Sandy<br>
+            <strong>Lakeside Retreat Team</strong><br>
+            +64 27 888 5888<br>
+            info@lakesideretreat.co.nz</p>
+        `
+    };
+    
+    try {
+        await emailTransporter.sendMail(mailOptions);
+        console.log('✅ Payment confirmation email sent to:', bookingData.guest_email);
+    } catch (error) {
+        console.error('❌ Failed to send payment confirmation:', error);
     }
 }
 
 // BOOKING ENDPOINTS
 
-// Process booking endpoint (called by frontend)
-app.post('/api/process-booking', bookingLimiter, validateBooking, async (req, res) => {
+// Legacy booking endpoint - redirects to main endpoint for compatibility
+app.post('/api/process-booking', bookingLimiter, async (req, res) => {
+    console.log('⚠️ Legacy endpoint /api/process-booking called, redirecting to /api/bookings');
+    
+    // Transform legacy request format to new format
+    const legacyData = req.body;
+    const newData = {
+        firstName: legacyData.guest_name?.split(' ')[0] || '',
+        lastName: legacyData.guest_name?.split(' ').slice(1).join(' ') || '',
+        email: legacyData.guest_email,
+        phone: legacyData.guest_phone,
+        accommodation: legacyData.accommodation,
+        checkin: legacyData.check_in,
+        checkout: legacyData.check_out,
+        guests: legacyData.guests,
+        totalAmount: legacyData.total_price,
+        specialRequests: legacyData.notes
+    };
+    
+    // Forward to main endpoint
+    req.body = newData;
+    return app._router.handle({ ...req, url: '/api/bookings', method: 'POST' }, res);
+});
+
+// Legacy booking endpoint - redirects to main endpoint for compatibility
+app.post('/api/create-booking', bookingLimiter, async (req, res) => {
+    console.log('⚠️ Legacy endpoint /api/create-booking called, redirecting to /api/bookings');
+    return app._router.handle({ ...req, url: '/api/bookings', method: 'POST' }, res);
+});
+
+// Consolidated booking endpoint - handles all booking creation (with queuing)
+app.post('/api/bookings', 
+    bookingLimiter,
+    bookingQueue.middleware({ queueName: 'booking', priority: 'high' }),
+    [
+    body('firstName').trim().isLength({ min: 2, max: 100 }).escape(),
+    body('lastName').trim().isLength({ min: 2, max: 100 }).escape(),
+    body('email').isEmail().normalizeEmail(),
+    body('phone').optional().custom((value) => {
+        if (!value) return true;
+        const phoneRegex = /^[\+]?[\d\s\-\(\)\.]{7,20}$/;
+        if (!phoneRegex.test(value)) {
+            throw new Error('Please enter a valid phone number');
+        }
+        return true;
+    }),
+    body('accommodation').isIn(['dome-pinot', 'dome-rose', 'lakeside-cottage']),
+    body('checkin').isISO8601().toDate(),
+    body('checkout').isISO8601().toDate(),
+    body('guests').isInt({ min: 1, max: 8 }),
+    body('totalAmount').isFloat({ min: 0 }),
+    body('specialRequests').optional().isLength({ max: 500 }).escape()
+], async (req, res) => {
     try {
         // Check validation errors
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
-            return res.status(400).json({
-                success: false,
-                error: 'Invalid booking data',
-                details: errors.array()
-            });
+            return sendError(res, 400, ERROR_CODES.VALIDATION_ERROR, 'Invalid booking data', errors.array());
         }
 
         const {
-            guest_name,
-            guest_email,
-            guest_phone,
             accommodation,
-            check_in,
-            check_out,
+            checkin,
+            checkout,
             guests,
-            total_price,
-            notes
+            petFriendly,
+            firstName,
+            lastName,
+            email,
+            phone,
+            specialRequests,
+            totalAmount
         } = req.body;
 
-        console.log('📝 Processing booking request for:', req.body.accommodation);
+        console.log('📝 Processing booking request for:', accommodation);
         
+        // Track booking flow start
+        trackBookingStart(req.body, req.requestId);
+        trackBookingStep('validation', req.requestId, { accommodation });
+
         // Sanitize inputs
         const sanitizedData = {
-            guest_name: sanitizeInput(guest_name),
-            guest_email: guest_email,
-            guest_phone: sanitizeInput(guest_phone),
+            guest_name: sanitizeInput(`${firstName} ${lastName}`),
+            guest_email: email,
+            guest_phone: sanitizeInput(phone),
             accommodation: accommodation,
-            check_in: new Date(check_in).toISOString().split('T')[0],
-            check_out: new Date(check_out).toISOString().split('T')[0],
+            check_in: new Date(checkin).toISOString().split('T')[0],
+            check_out: new Date(checkout).toISOString().split('T')[0],
             guests: parseInt(guests),
-            total_price: parseFloat(total_price),
-            notes: sanitizeInput(notes)
+            total_price: parseFloat(totalAmount),
+            notes: sanitizeInput(specialRequests)
         };
 
         // Validate dates
@@ -1126,174 +1155,468 @@ app.post('/api/process-booking', bookingLimiter, validateBooking, async (req, re
         today.setHours(0, 0, 0, 0);
 
         if (checkInDate < today) {
-            return res.status(400).json({
-                success: false,
-                error: 'Check-in date cannot be in the past'
-            });
+            return sendError(res, 400, ERROR_CODES.INVALID_DATE_RANGE, 'Check-in date cannot be in the past');
         }
 
         if (checkOutDate <= checkInDate) {
-            return res.status(400).json({
-                success: false,
-                error: 'Check-out date must be after check-in date'
-            });
-        }
-
-        // Validate seasonal minimum stay for cottage (October to May = 2 nights minimum)
-        const seasonalValidation = validateSeasonalMinimumStay(sanitizedData.accommodation, sanitizedData.check_in, sanitizedData.check_out);
-        if (!seasonalValidation.valid) {
-            return res.status(400).json({
-                success: false,
-                error: seasonalValidation.error
-            });
+            return sendError(res, 400, ERROR_CODES.INVALID_DATE_RANGE, 'Check-out date must be after check-in date');
         }
 
         console.log('🔍 Checking availability for dates:', sanitizedData.check_in, 'to', sanitizedData.check_out);
-        
-        // Check availability (returns object with available and error properties)
-        const availabilityResult = await checkAvailability(
+        trackBookingStep('availability_check', req.requestId, { 
+            checkIn: sanitizedData.check_in, 
+            checkOut: sanitizedData.check_out 
+        });
+
+        // Check availability
+        const isAvailable = await checkAvailability(
             sanitizedData.accommodation,
             sanitizedData.check_in,
             sanitizedData.check_out
         );
 
-        console.log('📅 Availability check result:', availabilityResult);
+        console.log('📅 Availability check result:', isAvailable);
 
-        if (!availabilityResult.available) {
-            return res.status(409).json({
-                success: false,
-                error: availabilityResult.error || 'Selected dates are not available'
-            });
+        if (!isAvailable) {
+            return sendError(res, 409, ERROR_CODES.DATES_NOT_AVAILABLE, 'Selected dates are not available');
         }
 
-        console.log('Creating Stripe checkout session for accommodation:', sanitizedData.accommodation);
-
-        // Create Stripe checkout session
-        let session;
-        try {
-            session = await stripe.checkout.sessions.create({
-            payment_method_types: ['card'],
-            line_items: [{
-                price_data: {
-                    currency: 'nzd',
-                    product_data: {
-                        name: `${accommodation} - Lakeside Retreat`,
-                        description: `${sanitizedData.check_in} to ${sanitizedData.check_out} (${sanitizedData.guests} guests)`
-                    },
-                    unit_amount: Math.round(sanitizedData.total_price * 100) // Convert to cents
-                },
-                quantity: 1
-            }],
-            mode: 'payment',
-            success_url: `${process.env.PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`}/booking-success?session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `${process.env.PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`}/booking-cancelled`,
-            metadata: {
-                guest_name: sanitizedData.guest_name,
-                guest_email: sanitizedData.guest_email,
-                guest_phone: sanitizedData.guest_phone || '',
-                accommodation: sanitizedData.accommodation,
-                check_in: sanitizedData.check_in,
-                check_out: sanitizedData.check_out,
-                guests: sanitizedData.guests.toString(),
-                notes: sanitizedData.notes || ''
-            }
-        });
-            console.log('✅ Stripe session created successfully:', session.id);
-        } catch (stripeError) {
-            console.error('❌ Stripe session creation failed:', stripeError.message);
-            console.error('❌ Stripe error details:', stripeError);
-            return res.status(500).json({
-                success: false,
-                error: 'Payment system error. Please try again or contact support.'
-            });
-        }
-
+        // Generate booking ID
         const bookingId = uuidv4();
-        console.log('Storing booking with ID:', bookingId);
-        
-        try {
-            await db.run(
-                `INSERT INTO bookings (
-                    id, guest_name, guest_email, guest_phone, accommodation,
-                    check_in, check_out, guests, total_price, status,
-                    payment_status, notes, stripe_session_id, created_at
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'pending', 'pending', $10, $11, NOW())`,
-                [
-                    bookingId,
-                    sanitizedData.guest_name,
-                    sanitizedData.guest_email,
-                    sanitizedData.guest_phone,
-                    sanitizedData.accommodation,
-                    sanitizedData.check_in,
-                    sanitizedData.check_out,
-                    sanitizedData.guests,
-                    sanitizedData.total_price,
-                    sanitizedData.notes,
-                    session.id
-                ]
-            );
+        console.log('🗄️ Storing booking with ID:', bookingId);
 
-            console.log('Booking stored successfully with ID:', bookingId);
-            res.json({
-                success: true,
-                booking_id: bookingId,
-                checkout_url: session.url,
-                message: 'Booking created successfully'
-            });
-        } catch (dbErr) {
-            console.error('Database error:', dbErr);
-            return res.status(500).json({
-                success: false,
-                error: 'Database error: ' + dbErr.message
-            });
-        }
+        // Insert booking into database
+        const sql = `
+            INSERT INTO bookings (
+                id, guest_name, guest_email, guest_phone, 
+                accommodation, check_in, check_out, guests, 
+                total_price, status, payment_status, notes, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'pending', ?, datetime('now'))
+        `;
+
+        const booking = await executeDbOperation(
+            (database, params, callback) => {
+                database.run(sql, params, function(err) {
+                    if (err) {
+                        callback(err);
+                    } else {
+                        console.log('✅ Booking stored successfully with ID:', bookingId);
+                        trackBookingStep('database_save', req.requestId, { bookingId });
+                        callback(null, {
+                            id: bookingId,
+                            guest_name: sanitizedData.guest_name,
+                            guest_email: sanitizedData.guest_email,
+                            guest_phone: sanitizedData.guest_phone,
+                            accommodation: sanitizedData.accommodation,
+                            check_in: sanitizedData.check_in,
+                            check_out: sanitizedData.check_out,
+                            guests: sanitizedData.guests,
+                            total_price: sanitizedData.total_price,
+                            status: 'pending',
+                            payment_status: 'pending'
+                        });
+                    }
+                });
+            },
+            [
+                bookingId,
+                sanitizedData.guest_name,
+                sanitizedData.guest_email,
+                sanitizedData.guest_phone,
+                sanitizedData.accommodation,
+                sanitizedData.check_in,
+                sanitizedData.check_out,
+                sanitizedData.guests,
+                sanitizedData.total_price,
+                sanitizedData.notes || ''
+            ]
+        );
+
+        // Track successful booking completion
+        trackBookingSuccess(booking.id, req.requestId, booking.total_price);
+        trackBookingStep('completion', req.requestId, { 
+            bookingId: booking.id, 
+            totalAmount: booking.total_price 
+        });
+
+        // Send response immediately to client
+        const responseData = { booking };
+        res.status(201).json({
+            success: true,
+            timestamp: new Date().toISOString(),
+            message: 'Booking created successfully',
+            data: responseData
+        });
+
+        // Send booking confirmation email asynchronously (after response sent)
+        const bookingData = {
+            id: bookingId,
+            guest_name: sanitizedData.guest_name,
+            guest_email: sanitizedData.guest_email,
+            guest_phone: sanitizedData.guest_phone,
+            accommodation: sanitizedData.accommodation,
+            check_in: sanitizedData.check_in,
+            check_out: sanitizedData.check_out,
+            guests: sanitizedData.guests,
+            total_price: sanitizedData.total_price,
+            status: 'pending',
+            payment_status: 'pending',
+            notes: sanitizedData.notes
+        };
+
+        // Email confirmation will be sent after successful payment via Stripe webhook
+        // No need to send email here - booking is still pending payment
 
     } catch (error) {
-        console.error('❌ Booking processing error:', error);
-        console.error('❌ Error stack:', error.stack);
-        
-        // More specific error messages for debugging
-        let errorMessage = 'Internal server error';
-        if (error.message.includes('stripe')) {
-            errorMessage = 'Payment processing error: ' + error.message;
-        } else if (error.message.includes('database')) {
-            errorMessage = 'Database error: ' + error.message;
-        } else if (error.message.includes('validation')) {
-            errorMessage = 'Validation error: ' + error.message;
-        }
-        
-        res.status(500).json({
-            success: false,
-            error: errorMessage,
-            debug: process.env.NODE_ENV === 'development' ? error.message : undefined
-        });
+        console.error('❌ Booking creation error:', error);
+        trackBookingFailure(error, req.requestId, 'unknown');
+        return sendError(res, 500, ERROR_CODES.INTERNAL_SERVER_ERROR, 'Failed to create booking', error.message);
     }
 });
 
-// Note: /api/create-booking endpoint removed - use /api/process-booking instead
-// Note: Stripe webhook moved to top of file (before express.json middleware) for proper raw body handling
+// Create Stripe payment session endpoint (with payment queue)
+app.post('/api/payments/create-session', 
+    paymentQueue.middleware({ queueName: 'payment', priority: 'high' }),
+    async (req, res) => {
+    try {
+        const { bookingId } = req.body;
+        
+        if (!bookingId) {
+            return sendError(res, 400, ERROR_CODES.VALIDATION_ERROR, 'Booking ID is required');
+        }
+        
+        // Get booking details from database
+        const booking = await new Promise((resolve, reject) => {
+            db.get('SELECT * FROM bookings WHERE id = ?', [bookingId], (err, row) => {
+                if (err) reject(err);
+                else resolve(row);
+            });
+        });
+        
+        if (!booking) {
+            return sendError(res, 404, ERROR_CODES.BOOKING_NOT_FOUND, 'Booking not found');
+        }
+        
+        // Determine if booking has security deposit
+        const securityDepositAmount = booking.security_deposit_amount || 350.00; // Default to $350 if not set
+        const hasSecurityDeposit = securityDepositAmount > 0;
+        
+        // Create line items
+        const lineItems = [
+            {
+                price_data: {
+                    currency: 'nzd',
+                    product_data: {
+                        name: `Lakeside Retreat - ${booking.accommodation}`,
+                        description: `${booking.check_in} to ${booking.check_out} (${booking.guests} guests)`
+                    },
+                    unit_amount: Math.round(booking.total_price * 100) // Convert to cents
+                },
+                quantity: 1
+            }
+        ];
+        
+        // Add security deposit line item if applicable
+        if (hasSecurityDeposit) {
+            lineItems.push({
+                price_data: {
+                    currency: 'nzd',
+                    product_data: {
+                        name: 'Security Deposit (Authorization Hold)',
+                        description: 'Refundable security deposit - will be released automatically 48 hours after checkout'
+                    },
+                    unit_amount: Math.round(securityDepositAmount * 100) // Convert to cents
+                },
+                quantity: 1
+            });
+        }
+        
+        // Create Stripe checkout session
+        const sessionConfig = {
+            payment_method_types: ['card'],
+            mode: 'payment',
+            customer_email: booking.guest_email,
+            metadata: {
+                bookingId: booking.id,
+                hasSecurityDeposit: hasSecurityDeposit.toString()
+            },
+            line_items: lineItems,
+            success_url: `${process.env.PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`}/booking-success?session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${process.env.PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`}/booking-cancelled`
+        };
+        
+        // Add payment intent data for authorization holds if security deposit exists
+        if (hasSecurityDeposit) {
+            sessionConfig.payment_intent_data = {
+                capture_method: 'manual', // This creates an authorization hold
+                metadata: {
+                    bookingId: booking.id,
+                    booking_amount: Math.round(booking.total_price * 100),
+                    security_deposit_amount: Math.round(securityDepositAmount * 100)
+                }
+            };
+        }
+        
+        const session = await stripe.checkout.sessions.create(sessionConfig);
+        
+        // Update booking with payment session ID
+        await new Promise((resolve, reject) => {
+            db.run('UPDATE bookings SET stripe_session_id = ? WHERE id = ?', 
+                [session.id, bookingId], (err) => {
+                if (err) reject(err);
+                else resolve();
+            });
+        });
+        
+        res.json({
+            sessionId: session.id,
+            url: session.url
+        });
+        
+    } catch (error) {
+        console.error('❌ Payment session creation error:', error);
+        
+        // Enhanced Stripe error handling for better UX
+        if (error.type === 'StripeCardError') {
+            return sendError(res, 400, ERROR_CODES.PAYMENT_ERROR, 'Your card was declined. Please try a different payment method.');
+        } else if (error.type === 'StripeRateLimitError') {
+            return sendError(res, 429, ERROR_CODES.RATE_LIMIT_ERROR, 'Too many requests. Please try again in a moment.');
+        } else if (error.type === 'StripeInvalidRequestError') {
+            return sendError(res, 400, ERROR_CODES.PAYMENT_ERROR, 'Invalid payment request. Please check your booking details.');
+        } else if (error.type === 'StripeAPIError') {
+            return sendError(res, 502, ERROR_CODES.PAYMENT_ERROR, 'Payment service temporarily unavailable. Please try again.');
+        } else if (error.type === 'StripeConnectionError') {
+            return sendError(res, 503, ERROR_CODES.PAYMENT_ERROR, 'Unable to connect to payment service. Please check your connection.');
+        } else if (error.type === 'StripeAuthenticationError') {
+            console.error('❌ Stripe authentication error - check API keys');
+            return sendError(res, 500, ERROR_CODES.PAYMENT_ERROR, 'Payment system configuration error. Please contact support.');
+        } else {
+            return sendError(res, 500, ERROR_CODES.PAYMENT_ERROR, 'Unable to process payment. Please try again or contact support.');
+        }
+    }
+});
 
-app.get('/api/booking/:id', async (req, res) => {
+// Stripe webhook handler function (called from route defined before express.json middleware)
+async function handleStripeWebhook(event, res) {
+    if (event.type === 'checkout.session.completed') {
+        const session = event.data.object;
+        
+        // Handle payment with security deposit
+        if (session.metadata.hasSecurityDeposit === 'true') {
+            const paymentIntent = await stripe.paymentIntents.retrieve(session.payment_intent);
+            const totalAmount = paymentIntent.amount;
+            const bookingAmount = parseInt(paymentIntent.metadata.booking_amount);
+            const depositAmount = parseInt(paymentIntent.metadata.security_deposit_amount);
+            
+            // Capture only the booking amount, keep deposit as authorization hold
+            const capturedPayment = await stripe.paymentIntents.capture(session.payment_intent, {
+                amount_to_capture: bookingAmount
+            });
+            
+            // Create separate payment intent for security deposit authorization hold
+            const depositIntent = await stripe.paymentIntents.create({
+                amount: depositAmount,
+                currency: 'nzd',
+                payment_method: paymentIntent.payment_method,
+                customer: session.customer,
+                capture_method: 'manual',
+                confirm: true,
+                metadata: {
+                    bookingId: session.metadata.bookingId,
+                    type: 'security_deposit'
+                }
+            });
+            
+            // Update booking with both payment IDs and security deposit status
+            const sql = `
+                UPDATE bookings 
+                SET payment_status = 'completed', 
+                    status = 'confirmed', 
+                    stripe_payment_id = ?,
+                    security_deposit_intent_id = ?,
+                    security_deposit_status = 'authorized'
+                WHERE stripe_session_id = ?
+            `;
+            
+            db.run(sql, [capturedPayment.id, depositIntent.id, session.id], function(err) {
+                if (err) {
+                    console.error('Failed to update booking status:', err.message);
+                } else {
+                    console.log('Booking confirmed with security deposit for session:', session.id);
+                    
+                    // Schedule automatic release of security deposit
+                    scheduleDepositRelease(session.metadata.bookingId, depositIntent.id);
+                    
+                    // Get booking data for sync to Uplisting
+                    db.get('SELECT * FROM bookings WHERE stripe_session_id = ?', [session.id], async (err, booking) => {
+                        if (!err && booking) {
+                            // Sync to Uplisting
+                            await syncBookingToUplisting(booking);
+                            
+                            // Send payment confirmation email
+                            await sendPaymentConfirmation({
+                                guest_name: session.metadata.guest_name,
+                                guest_email: session.metadata.guest_email,
+                                accommodation: session.metadata.accommodation,
+                                check_in: session.metadata.check_in,
+                                check_out: session.metadata.check_out,
+                                guests: session.metadata.guests,
+                                total_price: (bookingAmount / 100).toFixed(2),
+                                security_deposit: (depositAmount / 100).toFixed(2),
+                                booking_id: booking.id
+                            });
+                        }
+                    });
+                }
+            });
+        } else {
+            // Original logic for bookings without security deposit
+            const sql = `
+                UPDATE bookings 
+                SET payment_status = 'completed', status = 'confirmed', stripe_payment_id = ?
+                WHERE stripe_session_id = ?
+            `;
+            
+            db.run(sql, [session.payment_intent, session.id], function(err) {
+                if (err) {
+                    console.error('Failed to update booking status:', err.message);
+                } else {
+                    console.log('Booking confirmed for session:', session.id);
+                    
+                    // Get booking data for sync to Uplisting
+                    db.get('SELECT * FROM bookings WHERE stripe_session_id = ?', [session.id], async (err, booking) => {
+                        if (!err && booking) {
+                            // Sync to Uplisting
+                            await syncBookingToUplisting(booking);
+                            
+                            // Send payment confirmation email
+                            await sendPaymentConfirmation({
+                                guest_name: session.metadata.guest_name,
+                                guest_email: session.metadata.guest_email,
+                                accommodation: session.metadata.accommodation,
+                                check_in: session.metadata.check_in,
+                                check_out: session.metadata.check_out,
+                                guests: session.metadata.guests,
+                                total_price: (session.amount_total / 100).toFixed(2),
+                                booking_id: booking.id
+                            });
+                        }
+                    });
+                }
+            });
+        }
+    }
+
+    res.json({received: true});
+}
+
+// Security Deposit Management Functions
+function scheduleDepositRelease(bookingId, depositIntentId) {
+    // Get booking checkout date to calculate release time
+    db.get('SELECT check_out FROM bookings WHERE id = ?', [bookingId], (err, booking) => {
+        if (err || !booking) {
+            console.error('❌ Failed to get booking for deposit release:', err);
+            return;
+        }
+        
+        const checkoutDate = new Date(booking.check_out);
+        const releaseDate = new Date(checkoutDate.getTime() + (48 * 60 * 60 * 1000)); // 48 hours after checkout
+        const now = new Date();
+        const timeUntilRelease = releaseDate.getTime() - now.getTime();
+        
+        if (timeUntilRelease > 0) {
+            setTimeout(async () => {
+                await autoReleaseSecurityDeposit(bookingId, depositIntentId);
+            }, timeUntilRelease);
+            
+            console.log(`⏰ Security deposit scheduled for release on: ${releaseDate.toLocaleString('en-NZ')} for booking ${bookingId}`);
+        } else {
+            // Release immediately if checkout + 48 hours has already passed
+            autoReleaseSecurityDeposit(bookingId, depositIntentId);
+        }
+    });
+}
+
+async function autoReleaseSecurityDeposit(bookingId, depositIntentId) {
+    try {
+        // Cancel the authorization hold (releases the funds)
+        await stripe.paymentIntents.cancel(depositIntentId);
+        
+        // Update database
+        const sql = `
+            UPDATE bookings 
+            SET security_deposit_status = 'released', 
+                security_deposit_released_at = CURRENT_TIMESTAMP 
+            WHERE id = ?
+        `;
+        
+        db.run(sql, [bookingId], (err) => {
+            if (err) {
+                console.error('❌ Failed to update security deposit release status:', err);
+            } else {
+                console.log(`✅ Security deposit automatically released for booking ${bookingId}`);
+                
+                // Send notification email to admin
+                db.get('SELECT * FROM bookings WHERE id = ?', [bookingId], async (err, booking) => {
+                    if (!err && booking) {
+                        const EmailNotifications = require('./email-notifications');
+                        const emailService = new EmailNotifications();
+                        await emailService.sendSystemAlert('info', 
+                            `Security deposit automatically released for ${booking.guest_name}`, 
+                            {
+                                'Booking ID': booking.id,
+                                'Guest': booking.guest_name,
+                                'Accommodation': booking.accommodation,
+                                'Deposit Amount': `$${booking.security_deposit_amount}`,
+                                'Release Date': new Date().toLocaleString('en-NZ')
+                            }
+                        );
+                    }
+                });
+            }
+        });
+        
+    } catch (error) {
+        console.error('❌ Failed to auto-release security deposit:', error);
+        
+        // Send alert to admin about failed release
+        const EmailNotifications = require('./email-notifications');
+        const emailService = new EmailNotifications();
+        await emailService.sendSystemAlert('error', 
+            `Failed to auto-release security deposit for booking ${bookingId}`, 
+            {
+                'Booking ID': bookingId,
+                'Deposit Intent ID': depositIntentId,
+                'Error': error.message,
+                'Action Required': 'Manual release required via admin dashboard'
+            }
+        );
+    }
+}
+
+
+// Get booking status
+app.get('/api/booking/:id', (req, res) => {
     const bookingId = req.params.id;
     
-    try {
-        const row = await db.getOne(
-            `SELECT id, guest_name, accommodation, check_in, check_out, 
-                    guests, total_price, status, payment_status, created_at
-             FROM bookings 
-             WHERE id = $1`,
-            [bookingId]
-        );
+    const sql = `
+        SELECT id, guest_name, accommodation, check_in, check_out, 
+               guests, total_price, status, payment_status, created_at
+        FROM bookings 
+        WHERE id = ?
+    `;
+    
+    db.get(sql, [bookingId], (err, row) => {
+        if (err) {
+            return sendError(res, 500, ERROR_CODES.DATABASE_ERROR, 'Database error');
+        }
         
         if (!row) {
-            return res.status(404).json({ error: 'Booking not found' });
+            return sendError(res, 404, ERROR_CODES.BOOKING_NOT_FOUND, 'Booking not found');
         }
         
         res.json({ success: true, booking: row });
-    } catch (err) {
-        console.error('Database error:', err);
-        return res.status(500).json({ error: 'Database error' });
-    }
+    });
 });
 
 // Admin login endpoint
@@ -1302,26 +1625,40 @@ app.post('/api/admin/login', adminLimiter, async (req, res) => {
         const { username, password } = req.body;
         
         if (!username || !password) {
-            return res.status(400).json({ error: 'Username and password required' });
+            return sendError(res, 400, ERROR_CODES.VALIDATION_ERROR, 'Username and password required');
         }
         
         // Check username
         if (username !== process.env.ADMIN_USERNAME) {
-            return res.status(401).json({ error: 'Invalid credentials' });
+            return sendError(res, 401, ERROR_CODES.INVALID_CREDENTIALS, 'Invalid credentials');
         }
         
         // Check password against hash
         const isValid = await bcrypt.compare(password, process.env.ADMIN_PASSWORD_HASH);
         if (!isValid) {
-            return res.status(401).json({ error: 'Invalid credentials' });
+            return sendError(res, 401, ERROR_CODES.INVALID_CREDENTIALS, 'Invalid credentials');
         }
         
-        // Generate JWT token
+        // Generate JWT token with secure configuration
         const token = jwt.sign(
             { username: username, role: 'admin' },
             process.env.JWT_SECRET,
-            { expiresIn: '1h' }
+            { 
+                expiresIn: '1h',
+                issuer: 'lakeside-retreat',
+                audience: 'admin-panel'
+            }
         );
+        
+        // Set secure cookie for token (httpOnly prevents XSS access)
+        const isProduction = process.env.NODE_ENV === 'production';
+        res.cookie('auth-token', token, {
+            httpOnly: true,
+            secure: isProduction, // HTTPS only in production
+            sameSite: 'strict',
+            maxAge: 60 * 60 * 1000, // 1 hour
+            path: '/admin'
+        });
         
         res.json({ 
             success: true, 
@@ -1331,7 +1668,7 @@ app.post('/api/admin/login', adminLimiter, async (req, res) => {
         
     } catch (error) {
         console.error('Admin login error:', error);
-        res.status(500).json({ error: 'Login failed' });
+        return sendError(res, 500, ERROR_CODES.INTERNAL_SERVER_ERROR, 'Login failed');
     }
 });
 
@@ -1341,7 +1678,7 @@ app.get('/api/admin/verify', (req, res) => {
         const token = req.headers.authorization?.split(' ')[1];
         
         if (!token) {
-            return res.status(401).json({ error: 'No token provided' });
+            return sendError(res, 401, ERROR_CODES.AUTHENTICATION_REQUIRED, 'No token provided');
         }
         
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -1358,12 +1695,12 @@ const verifyAdmin = (req, res, next) => {
         const token = req.headers.authorization?.split(' ')[1];
         
         if (!token) {
-            return res.status(401).json({ error: 'No token provided' });
+            return sendError(res, 401, ERROR_CODES.AUTHENTICATION_REQUIRED, 'No token provided');
         }
         
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         if (decoded.role !== 'admin') {
-            return res.status(403).json({ error: 'Admin access required' });
+            return sendError(res, 403, ERROR_CODES.ADMIN_ACCESS_REQUIRED, 'Admin access required');
         }
         
         req.admin = decoded;
@@ -1374,352 +1711,530 @@ const verifyAdmin = (req, res, next) => {
     }
 };
 
-// Admin endpoint to sync existing bookings from Uplisting
-// Verify Uplisting API key by calling /users/me endpoint
-// This is the recommended way to verify API key per Uplisting docs
-app.get('/api/admin/uplisting/verify', verifyAdmin, async (req, res) => {
-    try {
-        if (!process.env.UPLISTING_API_KEY) {
-            return res.status(400).json({
-                success: false,
-                error: 'Uplisting API key not configured',
-                configured: false
-            });
+// TWO-FACTOR AUTHENTICATION ENDPOINTS
+
+// Get 2FA status
+app.get('/api/admin/2fa/status', verifyAdmin, (req, res) => {
+    // Check if 2FA is enabled for the admin user
+    db.get('SELECT two_fa_enabled, two_fa_secret FROM admin_users WHERE id = 1', (err, row) => {
+        if (err || !row) {
+            return res.json({ success: true, enabled: false });
         }
-        
-        const baseUrl = getUplistingBaseUrl();
-        const verifyUrl = `${baseUrl}/users/me`;
-        const authHeaders = getUplistingAuthHeaders();
-        
-        // Log configuration (without exposing secrets)
-        console.log('🔑 Verifying Uplisting API key...');
-        console.log(`📍 Base URL: ${baseUrl}`);
-        console.log(`🔐 Auth mode: ${process.env.UPLISTING_AUTH_MODE || 'basic'}`);
-        
-        const response = await fetch(verifyUrl, {
-            method: 'GET',
-            headers: {
-                ...authHeaders,
-                'Content-Type': 'application/json'
+        res.json({ success: true, enabled: !!row.two_fa_enabled });
+    });
+});
+
+// Setup 2FA - generate secret and QR code
+app.post('/api/admin/2fa/setup', verifyAdmin, (req, res) => {
+    // Generate a random secret (in production, use speakeasy or similar)
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+    let secret = '';
+    for (let i = 0; i < 16; i++) {
+        secret += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    
+    // Generate otpauth URL for QR code
+    const otpauthUrl = `otpauth://totp/LakesideRetreat:admin?secret=${secret}&issuer=LakesideRetreat`;
+    
+    // In production, generate actual QR code using qrcode library
+    // For now, return the URL that can be used with a QR code generator
+    res.json({
+        success: true,
+        secret: secret,
+        otpauthUrl: otpauthUrl,
+        qrCode: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(otpauthUrl)}`
+    });
+});
+
+// Verify 2FA code and enable
+app.post('/api/admin/2fa/verify', verifyAdmin, (req, res) => {
+    const { code, secret } = req.body;
+    
+    if (!code || !secret) {
+        return res.status(400).json({ success: false, error: 'Code and secret required' });
+    }
+    
+    // In production, verify TOTP code using speakeasy or similar
+    // For now, accept any 6-digit code for demo purposes
+    if (code.length !== 6 || !/^\d+$/.test(code)) {
+        return res.status(400).json({ success: false, error: 'Invalid code format' });
+    }
+    
+    // Generate recovery codes
+    const recoveryCodes = [];
+    for (let i = 0; i < 8; i++) {
+        let recoveryCode = '';
+        for (let j = 0; j < 8; j++) {
+            recoveryCode += Math.floor(Math.random() * 10);
+            if (j === 3) recoveryCode += '-';
+        }
+        recoveryCodes.push(recoveryCode);
+    }
+    
+    // Store 2FA secret and recovery codes (in production, hash recovery codes)
+    db.run(
+        `UPDATE admin_users SET two_fa_enabled = 1, two_fa_secret = ?, recovery_codes = ? WHERE id = 1`,
+        [secret, JSON.stringify(recoveryCodes)],
+        (err) => {
+            if (err) {
+                return res.status(500).json({ success: false, error: 'Failed to enable 2FA' });
             }
-        });
-        
-        console.log(`📡 Uplisting verify response: ${response.status}`);
-        
-        if (response.ok) {
-            const data = await response.json();
-            console.log('✅ Uplisting API key verified successfully');
-            return res.json({
-                success: true,
-                message: 'Uplisting API key is valid',
-                configured: true,
-                baseUrl: baseUrl,
-                authMode: process.env.UPLISTING_AUTH_MODE || 'basic',
-                clientId: process.env.UPLISTING_CLIENT_ID ? 'configured' : 'not configured',
-                user: data
-            });
-        } else {
-            const errorText = await response.text();
-            console.error(`❌ Uplisting API key verification failed: ${response.status}`, errorText);
-            return res.status(response.status).json({
-                success: false,
-                error: `Uplisting API returned ${response.status}`,
-                details: errorText,
-                configured: true,
-                clientId: process.env.UPLISTING_CLIENT_ID ? 'configured' : 'not configured',
-                baseUrl: baseUrl,
-                authMode: process.env.UPLISTING_AUTH_MODE || 'basic',
-                suggestion: response.status === 401 
-                    ? 'Check that UPLISTING_API_KEY is from Connect > API Key (not Webhook). Try setting UPLISTING_AUTH_MODE=basic_username if using standard HTTP Basic auth.'
-                    : null
-            });
+            res.json({ success: true, recoveryCodes });
         }
-    } catch (error) {
-        console.error('❌ Uplisting verification error:', error);
-        return res.status(500).json({
-            success: false,
-            error: error.message,
-            configured: !!process.env.UPLISTING_API_KEY
+    );
+});
+
+// Disable 2FA
+app.post('/api/admin/2fa/disable', verifyAdmin, (req, res) => {
+    const { code } = req.body;
+    
+    if (!code) {
+        return res.status(400).json({ success: false, error: 'Verification code required' });
+    }
+    
+    // In production, verify the TOTP code before disabling
+    db.run(
+        `UPDATE admin_users SET two_fa_enabled = 0, two_fa_secret = NULL, recovery_codes = NULL WHERE id = 1`,
+        (err) => {
+            if (err) {
+                return res.status(500).json({ success: false, error: 'Failed to disable 2FA' });
+            }
+            res.json({ success: true, message: '2FA disabled' });
+        }
+    );
+});
+
+// Change password endpoint
+app.post('/api/admin/change-password', verifyAdmin, async (req, res) => {
+    const { currentPassword, newPassword } = req.body;
+    
+    if (!currentPassword || !newPassword) {
+        return res.status(400).json({ success: false, error: 'Current and new password required' });
+    }
+    
+    if (newPassword.length < 8) {
+        return res.status(400).json({ success: false, error: 'Password must be at least 8 characters' });
+    }
+    
+    try {
+        // Get current password hash
+        db.get('SELECT password_hash FROM admin_users WHERE id = 1', async (err, row) => {
+            if (err || !row) {
+                return res.status(500).json({ success: false, error: 'Database error' });
+            }
+            
+            // Verify current password
+            const bcrypt = require('bcrypt');
+            const validPassword = await bcrypt.compare(currentPassword, row.password_hash);
+            
+            if (!validPassword) {
+                return res.status(401).json({ success: false, error: 'Current password is incorrect' });
+            }
+            
+            // Hash new password
+            const newHash = await bcrypt.hash(newPassword, 10);
+            
+            // Update password
+            db.run('UPDATE admin_users SET password_hash = ? WHERE id = 1', [newHash], (err) => {
+                if (err) {
+                    return res.status(500).json({ success: false, error: 'Failed to update password' });
+                }
+                res.json({ success: true, message: 'Password changed successfully' });
+            });
         });
+    } catch (error) {
+        res.status(500).json({ success: false, error: 'Server error' });
     }
 });
 
-// This fetches bookings from Uplisting API and imports them into the local database
-app.post('/api/admin/sync-uplisting-bookings', verifyAdmin, async (req, res) => {
-    try {
-        if (!process.env.UPLISTING_API_KEY) {
-            return res.status(400).json({
-                success: false,
-                error: 'Uplisting API key not configured'
-            });
-        }
-        
-        const results = {
-            total: 0,
-            imported: 0,
-            updated: 0,
-            errors: [],
-            bookings: []
-        };
-        
-        // Get all property IDs
-        const propertyMapping = getUplistingPropertyMapping();
-        const properties = Object.entries(propertyMapping).filter(([_, id]) => id);
-        
-        if (properties.length === 0) {
-            return res.status(400).json({
-                success: false,
-                error: 'No Uplisting property IDs configured'
-            });
-        }
-        
-        console.log('📥 Starting Uplisting bookings sync for properties:', properties.map(p => p[0]));
-        
-        // Try to fetch bookings from Uplisting API
-        // First, try the /bookings endpoint with property filter
-        for (const [accommodation, propertyId] of properties) {
-            try {
-                // Calculate date range: today to 12 months from now
-                const today = new Date();
-                const endDate = new Date(today);
-                endDate.setMonth(endDate.getMonth() + 12);
-                
-                const startDateStr = today.toISOString().split('T')[0];
-                const endDateStr = endDate.toISOString().split('T')[0];
-                
-                // Try fetching bookings for this property
-                // Use the /bookings/:listing_id endpoint (per Uplisting Postman documentation)
-                // URL format: https://connect.uplisting.io/bookings/:listing_id?from=YYYY-MM-DD&to=YYYY-MM-DD
-                // Requires X-Uplisting-Client-ID header for V2 Partner API (added by getUplistingAuthHeaders)
-                const baseUrl = getUplistingBaseUrl();
-                const bookingsUrl = `${baseUrl}/bookings/${propertyId}?from=${startDateStr}&to=${endDateStr}`;
-                
-                console.log(`🔍 Fetching bookings for ${accommodation} from: ${bookingsUrl}`);
-                
-                const response = await fetch(bookingsUrl, {
-                    method: 'GET',
-                    headers: {
-                        ...getUplistingAuthHeaders(),
-                        'Content-Type': 'application/json'
-                    }
-                });
-                
-                console.log(`📡 Uplisting API response for ${accommodation}: ${response.status}`);
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    console.log(`📝 Uplisting bookings data for ${accommodation}:`, JSON.stringify(data).substring(0, 500));
-                    
-                    // Handle different response formats
-                    let bookings = [];
-                    if (Array.isArray(data)) {
-                        bookings = data;
-                    } else if (data.data && Array.isArray(data.data)) {
-                        bookings = data.data;
-                    } else if (data.bookings && Array.isArray(data.bookings)) {
-                        bookings = data.bookings;
-                    }
-                    
-                    results.total += bookings.length;
-                    
-                    for (const booking of bookings) {
-                        try {
-                            // Extract booking data (handle different API response formats)
-                            const bookingData = {
-                                id: `uplisting-${booking.id || booking.attributes?.id}`,
-                                guest_name: sanitizeInput(
-                                    booking.guest?.first_name && booking.guest?.last_name
-                                        ? `${booking.guest.first_name} ${booking.guest.last_name}`.trim()
-                                        : booking.attributes?.guest_name || 'Guest'
-                                ),
-                                guest_email: sanitizeInput(booking.guest?.email || booking.attributes?.guest_email || ''),
-                                guest_phone: sanitizeInput(booking.guest?.phone || booking.attributes?.guest_phone || ''),
-                                accommodation: accommodation,
-                                check_in: booking.check_in || booking.attributes?.check_in,
-                                check_out: booking.check_out || booking.attributes?.check_out,
-                                guests: booking.guests || booking.attributes?.guests || 2,
-                                total_price: booking.total_amount || booking.attributes?.total_amount || 0,
-                                status: (booking.status || booking.attributes?.status) === 'confirmed' ? 'confirmed' : 'pending',
-                                payment_status: booking.payment_status || booking.attributes?.payment_status || 'completed',
-                                notes: sanitizeInput(booking.notes || booking.attributes?.notes || 'Synced from Uplisting'),
-                                uplisting_id: booking.id || booking.attributes?.id
-                            };
-                            
-                            // Skip if missing required dates
-                            if (!bookingData.check_in || !bookingData.check_out) {
-                                console.log(`⚠️ Skipping booking ${bookingData.id} - missing dates`);
-                                continue;
-                            }
-                            
-                            // Check if booking already exists
-                            const existing = await db.getOne(
-                                'SELECT id FROM bookings WHERE id = $1 OR uplisting_id = $2',
-                                [bookingData.id, bookingData.uplisting_id]
-                            );
-                            
-                            await db.run(
-                                `INSERT INTO bookings (
-                                    id, guest_name, guest_email, guest_phone, accommodation,
-                                    check_in, check_out, guests, total_price, status,
-                                    payment_status, notes, uplisting_id, created_at
-                                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW())
-                                ON CONFLICT (id) DO UPDATE SET
-                                    guest_name = EXCLUDED.guest_name,
-                                    guest_email = EXCLUDED.guest_email,
-                                    guest_phone = EXCLUDED.guest_phone,
-                                    accommodation = EXCLUDED.accommodation,
-                                    check_in = EXCLUDED.check_in,
-                                    check_out = EXCLUDED.check_out,
-                                    guests = EXCLUDED.guests,
-                                    total_price = EXCLUDED.total_price,
-                                    status = EXCLUDED.status,
-                                    payment_status = EXCLUDED.payment_status,
-                                    notes = EXCLUDED.notes,
-                                    uplisting_id = EXCLUDED.uplisting_id,
-                                    updated_at = NOW()`,
-                                [
-                                    bookingData.id,
-                                    bookingData.guest_name,
-                                    bookingData.guest_email,
-                                    bookingData.guest_phone,
-                                    bookingData.accommodation,
-                                    bookingData.check_in,
-                                    bookingData.check_out,
-                                    bookingData.guests,
-                                    bookingData.total_price,
-                                    bookingData.status,
-                                    bookingData.payment_status,
-                                    bookingData.notes,
-                                    bookingData.uplisting_id
-                                ]
-                            );
-                            
-                            if (existing) {
-                                results.updated++;
-                            } else {
-                                results.imported++;
-                            }
-                            
-                            results.bookings.push({
-                                id: bookingData.id,
-                                accommodation: bookingData.accommodation,
-                                check_in: bookingData.check_in,
-                                check_out: bookingData.check_out,
-                                status: existing ? 'updated' : 'imported'
-                            });
-                            
-                        } catch (bookingErr) {
-                            console.error(`❌ Error importing booking:`, bookingErr);
-                            results.errors.push(`Booking import error: ${bookingErr.message}`);
-                        }
-                    }
-                } else {
-                    const errorText = await response.text();
-                    console.error(`❌ Uplisting API error for ${accommodation}:`, response.status, errorText);
-                    results.errors.push(`${accommodation}: API returned ${response.status} - ${errorText.substring(0, 200)}`);
-                }
-                
-            } catch (propErr) {
-                console.error(`❌ Error fetching bookings for ${accommodation}:`, propErr);
-                results.errors.push(`${accommodation}: ${propErr.message}`);
+// Get contact messages for admin inbox
+app.get('/api/admin/contact-messages', verifyAdmin, (req, res) => {
+    db.all(
+        `SELECT id, name, email, message, created_at FROM contact_messages ORDER BY created_at DESC LIMIT 100`,
+        (err, rows) => {
+            if (err) {
+                return res.status(500).json({ success: false, error: 'Database error' });
             }
+            res.json({ success: true, messages: rows || [] });
         }
-        
-        // Clear the blocked dates cache so new bookings show immediately
-        blockedDatesCache.clear();
-        
-        console.log(`✅ Uplisting sync complete: ${results.imported} imported, ${results.updated} updated, ${results.errors.length} errors`);
+    );
+});
+
+// Send email endpoint (placeholder - requires email configuration)
+app.post('/api/admin/send-email', verifyAdmin, (req, res) => {
+    const { to, subject, body } = req.body;
+    
+    if (!to || !subject || !body) {
+        return res.status(400).json({ success: false, error: 'To, subject, and body required' });
+    }
+    
+    // Check if email is configured
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+        return res.status(503).json({ 
+            success: false, 
+            error: 'Email not configured. Please set EMAIL_USER and EMAIL_PASS environment variables.' 
+        });
+    }
+    
+    // Send email using existing transporter
+    const mailOptions = {
+        from: process.env.EMAIL_USER,
+        to: to,
+        subject: subject,
+        text: body
+    };
+    
+    emailTransporter.sendMail(mailOptions, (err, info) => {
+        if (err) {
+            return res.status(500).json({ success: false, error: 'Failed to send email' });
+        }
+        res.json({ success: true, message: 'Email sent successfully' });
+    });
+});
+
+// MONITORING ENDPOINTS (Admin only)
+
+// Get system metrics (admin only)
+app.get('/api/admin/metrics', verifyAdmin, (req, res) => {
+    try {
+        const metrics = getMetrics();
+        res.json({
+            success: true,
+            metrics: metrics
+        });
+    } catch (error) {
+        log('ERROR', 'Failed to retrieve metrics', { error: error.message });
+        return sendError(res, 500, ERROR_CODES.INTERNAL_SERVER_ERROR, 'Failed to retrieve metrics');
+    }
+});
+
+// Generate monitoring report (admin only)
+app.get('/api/admin/monitoring-report', verifyAdmin, (req, res) => {
+    try {
+        const report = generateReport();
+        res.json({
+            success: true,
+            report: report
+        });
+    } catch (error) {
+        log('ERROR', 'Failed to generate monitoring report', { error: error.message });
+        return sendError(res, 500, ERROR_CODES.INTERNAL_SERVER_ERROR, 'Failed to generate report');
+    }
+});
+
+// Cache statistics (admin only)
+app.get('/api/admin/cache-stats', verifyAdmin, (req, res) => {
+    try {
+        const cacheStats = CacheManager.getAllStats();
+        const queueStats = {
+            booking: bookingQueue.getStats(),
+            general: generalQueue.getStats(),
+            payment: paymentQueue.getStats()
+        };
         
         res.json({
             success: true,
-            message: `Sync complete: ${results.imported} new bookings imported, ${results.updated} updated`,
-            results
+            cache: cacheStats,
+            queues: queueStats,
+            timestamp: new Date().toISOString()
         });
-        
     } catch (error) {
-        console.error('❌ Uplisting sync error:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Failed to sync bookings from Uplisting',
-            details: error.message
-        });
+        log('ERROR', 'Failed to retrieve cache stats', { error: error.message });
+        return sendError(res, 500, ERROR_CODES.INTERNAL_SERVER_ERROR, 'Failed to retrieve cache statistics');
     }
 });
 
-app.get('/api/admin/bookings', verifyAdmin, async (req, res) => {
+// Clear cache (admin only)
+app.post('/api/admin/cache/clear', verifyAdmin, (req, res) => {
+    try {
+        const cleared = CacheManager.clearAll();
+        
+        log('INFO', 'Cache cleared by admin', { cleared });
+        
+        res.json({
+            success: true,
+            message: 'Cache cleared successfully',
+            cleared: cleared
+        });
+    } catch (error) {
+        log('ERROR', 'Failed to clear cache', { error: error.message });
+        return sendError(res, 500, ERROR_CODES.INTERNAL_SERVER_ERROR, 'Failed to clear cache');
+    }
+});
+
+// Health check with detailed metrics (admin only)
+app.get('/api/admin/health-detailed', verifyAdmin, (req, res) => {
+    try {
+        const metrics = getMetrics();
+        const memUsage = process.memoryUsage();
+        const uptime = process.uptime();
+        
+        const health = {
+            status: 'healthy',
+            timestamp: new Date().toISOString(),
+            uptime: {
+                seconds: uptime,
+                human: `${Math.floor(uptime / 3600)}h ${Math.floor((uptime % 3600) / 60)}m`
+            },
+            memory: {
+                used: `${(memUsage.heapUsed / 1024 / 1024).toFixed(2)}MB`,
+                total: `${(memUsage.heapTotal / 1024 / 1024).toFixed(2)}MB`,
+                external: `${(memUsage.external / 1024 / 1024).toFixed(2)}MB`
+            },
+            performance: {
+                totalBookings: metrics.bookings.total,
+                conversionRate: `${metrics.bookings.conversionRate}%`,
+                averageResponseTime: `${metrics.performance.responseTime.average.toFixed(2)}ms`,
+                apiSuccessRate: `${((metrics.performance.apiCalls.successful / metrics.performance.apiCalls.total) * 100).toFixed(2)}%`
+            },
+            errors: {
+                total: metrics.errors.total,
+                recent: metrics.errors.byCode
+            }
+        };
+        
+        res.json({
+            success: true,
+            health: health
+        });
+    } catch (error) {
+        log('ERROR', 'Failed to generate detailed health check', { error: error.message });
+        return sendError(res, 500, ERROR_CODES.INTERNAL_SERVER_ERROR, 'Health check failed');
+    }
+});
+
+// ADMIN BOOKING MANAGEMENT ENDPOINTS
+
+// Get all bookings (admin only) - Enhanced with search, filters, and Stripe/Uplisting status
+app.get('/api/admin/bookings', verifyAdmin, (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const offset = (page - 1) * limit;
     const status = req.query.status;
+    const search = req.query.search;
+    const accommodation = req.query.accommodation;
+    const dateFrom = req.query.dateFrom;
+    const dateTo = req.query.dateTo;
     
-    try {
-        let sql = `
-            SELECT id, guest_name, guest_email, guest_phone, accommodation,
-                   check_in, check_out, guests, total_price, status,
-                   payment_status, created_at, stripe_payment_id, stripe_session_id,
-                   uplisting_id, updated_at
-            FROM bookings
-        `;
-        let params = [];
-        let paramIndex = 1;
-        
-        if (status) {
-            sql += ` WHERE status = $${paramIndex++}`;
-            params.push(status);
+    let sql = `
+        SELECT id, guest_name, guest_email, guest_phone, accommodation,
+               check_in, check_out, guests, total_price, status,
+               payment_status, created_at, stripe_payment_id, stripe_session_id,
+               uplisting_id, updated_at
+        FROM bookings
+    `;
+    
+    let params = [];
+    let conditions = [];
+    
+    if (status) {
+        conditions.push('status = ?');
+        params.push(status);
+    }
+    
+    if (search) {
+        conditions.push('(guest_name LIKE ? OR guest_email LIKE ?)');
+        params.push(`%${search}%`, `%${search}%`);
+    }
+    
+    if (accommodation) {
+        conditions.push('accommodation LIKE ?');
+        params.push(`%${accommodation}%`);
+    }
+    
+    if (dateFrom) {
+        conditions.push('check_in >= ?');
+        params.push(dateFrom);
+    }
+    
+    if (dateTo) {
+        conditions.push('check_out <= ?');
+        params.push(dateTo);
+    }
+    
+    if (conditions.length > 0) {
+        sql += ' WHERE ' + conditions.join(' AND ');
+    }
+    
+    sql += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
+    params.push(limit, offset);
+    
+    db.all(sql, params, (err, rows) => {
+        if (err) {
+            return sendError(res, 500, ERROR_CODES.DATABASE_ERROR, 'Database error');
         }
         
-        sql += ` ORDER BY created_at DESC LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;
-        params.push(limit, offset);
-        
-        const rows = await db.getAll(sql, params);
-        
+        // Get total count with same filters
         let countSql = 'SELECT COUNT(*) as total FROM bookings';
         let countParams = [];
+        let countConditions = [];
         
         if (status) {
-            countSql += ' WHERE status = $1';
+            countConditions.push('status = ?');
             countParams.push(status);
         }
         
-        const countRow = await db.getOne(countSql, countParams);
+        if (search) {
+            countConditions.push('(guest_name LIKE ? OR guest_email LIKE ?)');
+            countParams.push(`%${search}%`, `%${search}%`);
+        }
         
-        res.json({
-            success: true,
-            bookings: rows,
-            pagination: {
-                total: parseInt(countRow.total),
-                page: page,
-                limit: limit,
-                totalPages: Math.ceil(parseInt(countRow.total) / limit)
+        if (accommodation) {
+            countConditions.push('accommodation LIKE ?');
+            countParams.push(`%${accommodation}%`);
+        }
+        
+        if (dateFrom) {
+            countConditions.push('check_in >= ?');
+            countParams.push(dateFrom);
+        }
+        
+        if (dateTo) {
+            countConditions.push('check_out <= ?');
+            countParams.push(dateTo);
+        }
+        
+        if (countConditions.length > 0) {
+            countSql += ' WHERE ' + countConditions.join(' AND ');
+        }
+        
+        db.get(countSql, countParams, (err, countRow) => {
+            if (err) {
+                return sendError(res, 500, ERROR_CODES.DATABASE_ERROR, 'Database error');
             }
+            
+            res.json({
+                success: true,
+                bookings: rows,
+                pagination: {
+                    total: countRow.total,
+                    page: page,
+                    limit: limit,
+                    totalPages: Math.ceil(countRow.total / limit)
+                }
+            });
         });
-    } catch (err) {
-        console.error('Database error:', err);
-        return res.status(500).json({ error: 'Database error' });
-    }
+    });
 });
 
-app.get('/api/admin/booking/:id', verifyAdmin, async (req, res) => {
+// Export bookings to CSV (admin only)
+app.get('/api/admin/bookings/export', verifyAdmin, (req, res) => {
+    const status = req.query.status;
+    const search = req.query.search;
+    const accommodation = req.query.accommodation;
+    const dateFrom = req.query.dateFrom;
+    const dateTo = req.query.dateTo;
+    
+    let sql = `
+        SELECT id, guest_name, guest_email, guest_phone, accommodation,
+               check_in, check_out, guests, total_price, status,
+               payment_status, created_at, stripe_payment_id, uplisting_id
+        FROM bookings
+    `;
+    
+    let params = [];
+    let conditions = [];
+    
+    if (status) {
+        conditions.push('status = ?');
+        params.push(status);
+    }
+    
+    if (search) {
+        conditions.push('(guest_name LIKE ? OR guest_email LIKE ?)');
+        params.push(`%${search}%`, `%${search}%`);
+    }
+    
+    if (accommodation) {
+        conditions.push('accommodation LIKE ?');
+        params.push(`%${accommodation}%`);
+    }
+    
+    if (dateFrom) {
+        conditions.push('check_in >= ?');
+        params.push(dateFrom);
+    }
+    
+    if (dateTo) {
+        conditions.push('check_out <= ?');
+        params.push(dateTo);
+    }
+    
+    if (conditions.length > 0) {
+        sql += ' WHERE ' + conditions.join(' AND ');
+    }
+    
+    sql += ' ORDER BY created_at DESC';
+    
+    db.all(sql, params, (err, rows) => {
+        if (err) {
+            return sendError(res, 500, ERROR_CODES.DATABASE_ERROR, 'Database error');
+        }
+        
+        // Generate CSV
+        const headers = [
+            'ID', 'Guest Name', 'Email', 'Phone', 'Accommodation',
+            'Check-in', 'Check-out', 'Guests', 'Total Price', 'Status',
+            'Payment Status', 'Created At', 'Stripe ID', 'Uplisting ID'
+        ];
+        
+        const csvRows = [headers.join(',')];
+        
+        rows.forEach(row => {
+            const values = [
+                row.id,
+                `"${(row.guest_name || '').replace(/"/g, '""')}"`,
+                `"${(row.guest_email || '').replace(/"/g, '""')}"`,
+                `"${(row.guest_phone || '').replace(/"/g, '""')}"`,
+                `"${(row.accommodation || '').replace(/"/g, '""')}"`,
+                row.check_in,
+                row.check_out,
+                row.guests,
+                row.total_price,
+                row.status,
+                row.payment_status,
+                row.created_at,
+                row.stripe_payment_id || '',
+                row.uplisting_id || ''
+            ];
+            csvRows.push(values.join(','));
+        });
+        
+        const csv = csvRows.join('\n');
+        const filename = `bookings-export-${new Date().toISOString().split('T')[0]}.csv`;
+        
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.send(csv);
+    });
+});
+
+// Get booking details (admin only)
+app.get('/api/admin/booking/:id', verifyAdmin, (req, res) => {
     const bookingId = req.params.id;
     
-    try {
-        const row = await db.getOne('SELECT * FROM bookings WHERE id = $1', [bookingId]);
+    const sql = `
+        SELECT * FROM bookings WHERE id = ?
+    `;
+    
+    db.get(sql, [bookingId], (err, row) => {
+        if (err) {
+            return sendError(res, 500, ERROR_CODES.DATABASE_ERROR, 'Database error');
+        }
         
         if (!row) {
-            return res.status(404).json({ error: 'Booking not found' });
+            return sendError(res, 404, ERROR_CODES.BOOKING_NOT_FOUND, 'Booking not found');
         }
         
         res.json({ success: true, booking: row });
-    } catch (err) {
-        console.error('Database error:', err);
-        return res.status(500).json({ error: 'Database error' });
-    }
+    });
 });
 
+// Update booking status (admin only)
 app.put('/api/admin/booking/:id/status', verifyAdmin, [
     body('status').isIn(['pending', 'confirmed', 'cancelled', 'completed']),
     body('notes').optional().isLength({ max: 500 }).escape()
-], async (req, res) => {
+], (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         return res.status(400).json({
@@ -1732,95 +2247,123 @@ app.put('/api/admin/booking/:id/status', verifyAdmin, [
     const bookingId = req.params.id;
     const { status, notes } = req.body;
     
-    try {
-        let sql = 'UPDATE bookings SET status = $1, updated_at = NOW()';
-        let params = [status];
-        let paramIndex = 2;
-        
-        if (notes) {
-            sql += `, notes = $${paramIndex++}`;
-            params.push(sanitizeInput(notes));
+    let sql = 'UPDATE bookings SET status = ?, updated_at = datetime("now")';
+    let params = [status];
+    
+    if (notes) {
+        sql += ', notes = ?';
+        params.push(sanitizeInput(notes));
+    }
+    
+    sql += ' WHERE id = ?';
+    params.push(bookingId);
+    
+    db.run(sql, params, function(err) {
+        if (err) {
+            return sendError(res, 500, ERROR_CODES.DATABASE_ERROR, 'Database error');
         }
         
-        sql += ` WHERE id = $${paramIndex}`;
-        params.push(bookingId);
-        
-        const result = await db.run(sql, params);
-        
-        if (result.rowCount === 0) {
-            return res.status(404).json({ error: 'Booking not found' });
+        if (this.changes === 0) {
+            return sendError(res, 404, ERROR_CODES.BOOKING_NOT_FOUND, 'Booking not found');
         }
         
         res.json({
             success: true,
             message: 'Booking status updated'
         });
-    } catch (err) {
-        console.error('Database error:', err);
-        return res.status(500).json({ error: 'Database error' });
-    }
+    });
 });
 
-app.delete('/api/admin/booking/:id', verifyAdmin, async (req, res) => {
+// Delete booking (admin only)
+app.delete('/api/admin/booking/:id', verifyAdmin, (req, res) => {
     const bookingId = req.params.id;
     
-    try {
-        const result = await db.run('DELETE FROM bookings WHERE id = $1', [bookingId]);
+    db.run('DELETE FROM bookings WHERE id = ?', [bookingId], function(err) {
+        if (err) {
+            return sendError(res, 500, ERROR_CODES.DATABASE_ERROR, 'Database error');
+        }
         
-        if (result.rowCount === 0) {
-            return res.status(404).json({ error: 'Booking not found' });
+        if (this.changes === 0) {
+            return sendError(res, 404, ERROR_CODES.BOOKING_NOT_FOUND, 'Booking not found');
         }
         
         res.json({
             success: true,
             message: 'Booking deleted'
         });
-    } catch (err) {
-        console.error('Database error:', err);
-        return res.status(500).json({ error: 'Database error' });
-    }
+    });
 });
 
-app.get('/api/admin/stats', verifyAdmin, async (req, res) => {
-    try {
-        const row = await db.getOne(`
-            SELECT 
-                COUNT(*) as total_bookings,
-                COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_bookings,
-                COUNT(CASE WHEN status = 'confirmed' THEN 1 END) as confirmed_bookings,
-                COALESCE(SUM(CASE WHEN payment_status = 'completed' THEN total_price ELSE 0 END), 0) as total_revenue,
-                COUNT(CASE WHEN DATE(created_at) = CURRENT_DATE THEN 1 END) as today_bookings
-            FROM bookings
-        `);
-        
-        res.json({
-            success: true,
-            stats: {
-                total_bookings: parseInt(row.total_bookings) || 0,
-                pending_bookings: parseInt(row.pending_bookings) || 0,
-                confirmed_bookings: parseInt(row.confirmed_bookings) || 0,
-                total_revenue: parseFloat(row.total_revenue) || 0,
-                today_bookings: parseInt(row.today_bookings) || 0
+// Get booking statistics (admin only)
+app.get('/api/admin/stats', verifyAdmin, (req, res) => {
+    const queries = [
+        'SELECT COUNT(*) as total_bookings FROM bookings',
+        'SELECT COUNT(*) as pending_bookings FROM bookings WHERE status = "pending"',
+        'SELECT COUNT(*) as confirmed_bookings FROM bookings WHERE status = "confirmed"',
+        'SELECT SUM(total_price) as total_revenue FROM bookings WHERE payment_status = "completed"',
+        'SELECT COUNT(*) as today_bookings FROM bookings WHERE DATE(created_at) = DATE("now")'
+    ];
+    
+    const stats = {};
+    let completed = 0;
+    
+    queries.forEach((query, index) => {
+        db.get(query, (err, row) => {
+            if (err) {
+                console.error('Stats query error:', err);
+            } else {
+                Object.assign(stats, row);
+            }
+            
+            completed++;
+            if (completed === queries.length) {
+                res.json({
+                    success: true,
+                    stats: {
+                        total_bookings: stats.total_bookings || 0,
+                        pending_bookings: stats.pending_bookings || 0,
+                        confirmed_bookings: stats.confirmed_bookings || 0,
+                        total_revenue: stats.total_revenue || 0,
+                        today_bookings: stats.today_bookings || 0
+                    }
+                });
             }
         });
-    } catch (err) {
-        console.error('Stats query error:', err);
-        return res.status(500).json({ success: false, error: 'Database error' });
-    }
+    });
 });
 
 // Serve static files with proper MIME types
 app.get('/sw.js', (req, res) => {
-    const swPath = path.join(__dirname, 'public', 'sw.js');
+    const swPath = path.join(__dirname, 'sw.js');
+    console.log('🔧 SW request - Path:', swPath);
     res.setHeader('Content-Type', 'application/javascript');
     res.sendFile(swPath, (err) => {
         if (err) {
+            console.error('❌ Error serving sw.js:', err);
             res.status(404).send('Service worker not found');
+        } else {
+            console.log('✅ SW served successfully');
         }
     });
 });
 
 // Enhanced Admin API Endpoints for Stripe/Uplisting Integration
+
+// Add Uplisting dashboard endpoint
+const { getUplistingDashboardData } = require('./uplisting-dashboard-api.js');
+
+app.get('/api/admin/uplisting-dashboard', verifyAdmin, async (req, res) => {
+    try {
+        const uplistingData = await getUplistingDashboardData();
+        res.json(uplistingData);
+    } catch (error) {
+        console.error('❌ Error fetching Uplisting dashboard data:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch Uplisting data'
+        });
+    }
+});
 // IMPORTANT: These must be defined BEFORE the catch-all route
 
 // Get Stripe payment details for a booking
@@ -1900,10 +2443,9 @@ app.get('/api/admin/uplisting-booking/:bookingId', verifyAdmin, async (req, res)
             });
         }
         
-        const baseUrl = getUplistingBaseUrl();
-        const response = await fetch(`${baseUrl}/bookings/${bookingId}`, {
+        const response = await fetch(`https://connect.uplisting.io/bookings/${bookingId}`, {
             headers: {
-                ...getUplistingAuthHeaders(),
+                'Authorization': `Basic ${Buffer.from(process.env.UPLISTING_API_KEY).toString('base64')}`,
                 'Content-Type': 'application/json'
             }
         });
@@ -1945,55 +2487,73 @@ app.post('/api/admin/refund/:bookingId', verifyAdmin, async (req, res) => {
         const { bookingId } = req.params;
         const { amount, reason } = req.body;
         
-        const booking = await db.getOne('SELECT * FROM bookings WHERE id = $1', [bookingId]);
-        
-        if (!booking) {
-            return res.status(404).json({
-                success: false,
-                error: 'Booking not found'
-            });
-        }
-        
-        if (!booking.stripe_payment_id) {
-            return res.status(400).json({
-                success: false,
-                error: 'No Stripe payment to refund'
-            });
-        }
-        
-        const refund = await stripe.refunds.create({
-            payment_intent: booking.stripe_payment_id,
-            amount: amount ? Math.round(amount * 100) : undefined,
-            reason: reason || 'requested_by_customer'
-        });
-        
-        const newStatus = refund.amount === booking.total_price * 100 ? 'cancelled' : 'partially_refunded';
-        
-        try {
-            await db.run(
-                'UPDATE bookings SET status = $1, payment_status = $2, updated_at = NOW() WHERE id = $3',
-                [newStatus, 'refunded', bookingId]
-            );
-        } catch (updateErr) {
-            console.error('Failed to update booking after refund:', updateErr);
-        }
-        
-        if (booking.uplisting_id && refund.amount === booking.total_price * 100) {
-            await cancelUplistingBooking(booking.uplisting_id);
-        }
-        
-        res.json({
-            success: true,
-            refund: {
-                id: refund.id,
-                amount: refund.amount / 100,
-                status: refund.status,
-                reason: refund.reason
+        // Get booking from database
+        db.get(
+            'SELECT * FROM bookings WHERE id = ?',
+            [bookingId],
+            async (err, booking) => {
+                if (err || !booking) {
+                    return res.status(404).json({
+                        success: false,
+                        error: 'Booking not found'
+                    });
+                }
+                
+                if (!booking.stripe_payment_id) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'No Stripe payment to refund'
+                    });
+                }
+                
+                try {
+                    // Create refund in Stripe
+                    const refund = await stripe.refunds.create({
+                        payment_intent: booking.stripe_payment_id,
+                        amount: amount ? Math.round(amount * 100) : undefined, // Partial refund if amount specified
+                        reason: reason || 'requested_by_customer'
+                    });
+                    
+                    // Update booking status
+                    const newStatus = refund.amount === booking.total_price * 100 ? 'cancelled' : 'partially_refunded';
+                    
+                    db.run(
+                        'UPDATE bookings SET status = ?, payment_status = ?, updated_at = datetime("now") WHERE id = ?',
+                        [newStatus, 'refunded', bookingId],
+                        (updateErr) => {
+                            if (updateErr) {
+                                console.error('❌ Failed to update booking after refund:', updateErr);
+                            }
+                        }
+                    );
+                    
+                    // Cancel in Uplisting if full refund
+                    if (booking.uplisting_id && refund.amount === booking.total_price * 100) {
+                        await cancelUplistingBooking(booking.uplisting_id);
+                    }
+                    
+                    res.json({
+                        success: true,
+                        refund: {
+                            id: refund.id,
+                            amount: refund.amount / 100,
+                            status: refund.status,
+                            reason: refund.reason
+                        }
+                    });
+                    
+                } catch (refundError) {
+                    console.error('❌ Refund failed:', refundError);
+                    res.status(500).json({
+                        success: false,
+                        error: refundError.message
+                    });
+                }
             }
-        });
+        );
         
     } catch (error) {
-        console.error('Refund error:', error);
+        console.error('❌ Refund error:', error);
         res.status(500).json({
             success: false,
             error: error.message
@@ -2006,11 +2566,10 @@ async function cancelUplistingBooking(uplistingId) {
     if (!process.env.UPLISTING_API_KEY || !uplistingId) return;
     
     try {
-        const baseUrl = getUplistingBaseUrl();
-        const response = await fetch(`${baseUrl}/bookings/${uplistingId}/cancel`, {
+        const response = await fetch(`https://connect.uplisting.io/bookings/${uplistingId}/cancel`, {
             method: 'POST',
             headers: {
-                ...getUplistingAuthHeaders(),
+                'Authorization': `Basic ${Buffer.from(process.env.UPLISTING_API_KEY).toString('base64')}`,
                 'Content-Type': 'application/json'
             }
         });
@@ -2025,47 +2584,58 @@ async function cancelUplistingBooking(uplistingId) {
     }
 }
 
+// Retry failed booking sync
 app.post('/api/admin/retry-sync/:bookingId', verifyAdmin, async (req, res) => {
     try {
         const { bookingId } = req.params;
         
-        const booking = await db.getOne('SELECT * FROM bookings WHERE id = $1', [bookingId]);
-        
-        if (!booking) {
-            return res.status(404).json({
-                success: false,
-                error: 'Booking not found'
-            });
-        }
-        
-        if (!booking.uplisting_id && booking.payment_status === 'completed') {
-            await syncBookingToUplisting(booking);
-            
-            const updated = await db.getOne('SELECT uplisting_id FROM bookings WHERE id = $1', [bookingId]);
-            
-            if (updated?.uplisting_id) {
-                res.json({
-                    success: true,
-                    message: 'Booking synced successfully',
-                    uplisting_id: updated.uplisting_id
-                });
-            } else {
-                res.json({
-                    success: false,
-                    error: 'Sync failed - check Uplisting configuration'
-                });
+        db.get(
+            'SELECT * FROM bookings WHERE id = ?',
+            [bookingId],
+            async (err, booking) => {
+                if (err || !booking) {
+                    return res.status(404).json({
+                        success: false,
+                        error: 'Booking not found'
+                    });
+                }
+                
+                // Retry Uplisting sync if not already synced
+                if (!booking.uplisting_id && booking.payment_status === 'completed') {
+                    await syncBookingToUplisting(booking);
+                    
+                    // Check if sync succeeded
+                    db.get(
+                        'SELECT uplisting_id FROM bookings WHERE id = ?',
+                        [bookingId],
+                        (err, updated) => {
+                            if (!err && updated?.uplisting_id) {
+                                res.json({
+                                    success: true,
+                                    message: 'Booking synced successfully',
+                                    uplisting_id: updated.uplisting_id
+                                });
+                            } else {
+                                res.json({
+                                    success: false,
+                                    error: 'Sync failed - check Uplisting configuration'
+                                });
+                            }
+                        }
+                    );
+                } else {
+                    res.json({
+                        success: false,
+                        error: booking.uplisting_id 
+                            ? 'Booking already synced' 
+                            : 'Payment not completed'
+                    });
+                }
             }
-        } else {
-            res.json({
-                success: false,
-                error: booking.uplisting_id 
-                    ? 'Booking already synced' 
-                    : 'Payment not completed'
-            });
-        }
+        );
         
     } catch (error) {
-        console.error('Retry sync error:', error);
+        console.error('❌ Retry sync error:', error);
         res.status(500).json({
             success: false,
             error: error.message
@@ -2073,66 +2643,788 @@ app.post('/api/admin/retry-sync/:bookingId', verifyAdmin, async (req, res) => {
     }
 });
 
-app.get('/api/admin/booking-stats', verifyAdmin, async (req, res) => {
+// Get booking statistics with payment status
+app.get('/api/admin/booking-stats', verifyAdmin, (req, res) => {
+    const stats = {};
+    
+    // Get overall stats
+    db.get(
+        `SELECT 
+            COUNT(*) as total_bookings,
+            COUNT(CASE WHEN payment_status = 'completed' THEN 1 END) as paid_bookings,
+            COUNT(CASE WHEN payment_status = 'pending' THEN 1 END) as pending_payments,
+            COUNT(CASE WHEN status = 'cancelled' THEN 1 END) as cancelled_bookings,
+            COUNT(CASE WHEN uplisting_id IS NOT NULL THEN 1 END) as synced_bookings,
+            SUM(CASE WHEN payment_status = 'completed' THEN total_price ELSE 0 END) as total_revenue
+        FROM bookings`,
+        (err, row) => {
+            if (err) {
+                return res.status(500).json({ success: false, error: err.message });
+            }
+            
+            stats.overview = row;
+            
+            // Get recent bookings with sync status
+            db.all(
+                `SELECT 
+                    id, guest_name, accommodation, check_in, total_price,
+                    payment_status, status,
+                    CASE WHEN stripe_session_id IS NOT NULL THEN 'Yes' ELSE 'No' END as stripe_connected,
+                    CASE WHEN uplisting_id IS NOT NULL THEN 'Yes' ELSE 'No' END as uplisting_synced,
+                    created_at
+                FROM bookings 
+                ORDER BY created_at DESC 
+                LIMIT 10`,
+                (err, rows) => {
+                    if (err) {
+                        return res.status(500).json({ success: false, error: err.message });
+                    }
+                    
+                    stats.recent_bookings = rows;
+                    
+                    res.json({
+                        success: true,
+                        stats
+                    });
+                }
+            );
+        }
+    );
+});
+
+// Notifications summary endpoint for admin dashboard
+app.get('/api/admin/notifications', verifyAdmin, (req, res) => {
+    const today = new Date().toISOString().split('T')[0];
+    
+    const queries = {
+        // Critical: Failed payments
+        failedPayments: `SELECT COUNT(*) as count FROM bookings WHERE payment_status = 'failed'`,
+        // Critical: Sync failures (paid but not synced to Uplisting)
+        syncFailures: `SELECT COUNT(*) as count FROM bookings WHERE payment_status = 'completed' AND uplisting_id IS NULL`,
+        // Warning: Abandoned checkouts (from marketing automation table)
+        abandonedCheckouts: `SELECT COUNT(*) as count FROM abandoned_checkout_reminders WHERE reminder_count < 2`,
+        // Pending: Pending bookings awaiting payment
+        pendingBookings: `SELECT COUNT(*) as count FROM bookings WHERE status = 'pending' AND payment_status = 'pending'`,
+        // Pending: Today's check-ins
+        todayCheckins: `SELECT COUNT(*) as count FROM bookings WHERE check_in = ? AND status = 'confirmed'`,
+        // Pending: Today's check-outs
+        todayCheckouts: `SELECT COUNT(*) as count FROM bookings WHERE check_out = ? AND status = 'confirmed'`,
+        // Resolved: Recent confirmed bookings (last 24 hours)
+        recentConfirmed: `SELECT COUNT(*) as count FROM bookings WHERE status = 'confirmed' AND payment_status = 'completed' AND created_at >= datetime('now', '-1 day')`
+    };
+    
+    const results = {};
+    let completed = 0;
+    const totalQueries = Object.keys(queries).length;
+    
+    const runQuery = (key, sql, params = []) => {
+        db.get(sql, params, (err, row) => {
+            if (err) {
+                results[key] = 0;
+            } else {
+                results[key] = row ? row.count : 0;
+            }
+            completed++;
+            
+            if (completed === totalQueries) {
+                // Calculate totals
+                const critical = results.failedPayments + results.syncFailures;
+                const warnings = results.abandonedCheckouts;
+                const pending = results.pendingBookings + results.todayCheckins + results.todayCheckouts;
+                const resolved = results.recentConfirmed;
+                
+                res.json({
+                    success: true,
+                    summary: {
+                        critical,
+                        warnings,
+                        pending,
+                        resolved
+                    },
+                    details: results
+                });
+            }
+        });
+    };
+    
+    runQuery('failedPayments', queries.failedPayments);
+    runQuery('syncFailures', queries.syncFailures);
+    runQuery('abandonedCheckouts', queries.abandonedCheckouts);
+    runQuery('pendingBookings', queries.pendingBookings);
+    runQuery('todayCheckins', queries.todayCheckins, [today]);
+    runQuery('todayCheckouts', queries.todayCheckouts, [today]);
+    runQuery('recentConfirmed', queries.recentConfirmed);
+});
+
+// Analytics endpoint for admin dashboard
+app.get('/api/admin/analytics', verifyAdmin, (req, res) => {
+    const dateRange = req.query.dateRange || 'month';
+    let dateCondition = '';
+    
+    // Calculate date range
+    const now = new Date();
+    let startDate;
+    
+    switch (dateRange) {
+        case 'week':
+            startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            break;
+        case 'month':
+            startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+            break;
+        case 'quarter':
+            startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+            break;
+        case 'year':
+            startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+            break;
+        default:
+            startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    }
+    
+    dateCondition = `WHERE created_at >= datetime('${startDate.toISOString()}')`;
+    
+    const analytics = {};
+    
+    // Get booking analytics
+    db.get(
+        `SELECT 
+            COUNT(*) as total_bookings,
+            COUNT(CASE WHEN payment_status = 'completed' THEN 1 END) as paid_bookings,
+            SUM(CASE WHEN payment_status = 'completed' THEN total_price ELSE 0 END) as revenue,
+            AVG(CASE WHEN payment_status = 'completed' THEN total_price END) as avg_booking_value,
+            COUNT(DISTINCT accommodation) as accommodations_booked
+        FROM bookings ${dateCondition}`,
+        (err, row) => {
+            if (err) {
+                return res.status(500).json({ success: false, error: err.message });
+            }
+            
+            analytics.summary = row;
+            
+            // Get booking trends by month
+            db.all(
+                `SELECT 
+                    strftime('%Y-%m', created_at) as month,
+                    COUNT(*) as bookings,
+                    SUM(CASE WHEN payment_status = 'completed' THEN total_price ELSE 0 END) as revenue
+                FROM bookings ${dateCondition}
+                GROUP BY strftime('%Y-%m', created_at)
+                ORDER BY month DESC`,
+                (err, trends) => {
+                    if (err) {
+                        return res.status(500).json({ success: false, error: err.message });
+                    }
+                    
+                    analytics.trends = trends;
+                    
+                    // Get accommodation performance
+                    db.all(
+                        `SELECT 
+                            accommodation,
+                            COUNT(*) as bookings,
+                            SUM(CASE WHEN payment_status = 'completed' THEN total_price ELSE 0 END) as revenue,
+                            AVG(CASE WHEN payment_status = 'completed' THEN total_price END) as avg_price
+                        FROM bookings ${dateCondition}
+                        GROUP BY accommodation
+                        ORDER BY revenue DESC`,
+                        (err, accommodations) => {
+                            if (err) {
+                                return res.status(500).json({ success: false, error: err.message });
+                            }
+                            
+                            analytics.accommodations = accommodations;
+                            
+                            res.json({
+                                success: true,
+                                dateRange: dateRange,
+                                analytics: analytics
+                            });
+                        }
+                    );
+                }
+            );
+        }
+    );
+});
+
+// Initialize backup system and email notifications
+const BackupSystem = require('./backup-system');
+const EmailNotifications = require('./email-notifications');
+const backupSystem = new BackupSystem();
+const emailNotifications = new EmailNotifications();
+
+// SECURITY DEPOSIT ADMIN ENDPOINTS (Must be after verifyAdmin definition)
+// Admin endpoint to manually claim security deposit
+app.post('/api/admin/claim-deposit/:bookingId', verifyAdmin, async (req, res) => {
     try {
-        const overview = await db.getOne(`
-            SELECT 
-                COUNT(*) as total_bookings,
-                COUNT(CASE WHEN payment_status = 'completed' THEN 1 END) as paid_bookings,
-                COUNT(CASE WHEN payment_status = 'pending' THEN 1 END) as pending_payments,
-                COUNT(CASE WHEN status = 'cancelled' THEN 1 END) as cancelled_bookings,
-                COUNT(CASE WHEN uplisting_id IS NOT NULL THEN 1 END) as synced_bookings,
-                COALESCE(SUM(CASE WHEN payment_status = 'completed' THEN total_price ELSE 0 END), 0) as total_revenue
-            FROM bookings
-        `);
+        const { bookingId } = req.params;
+        const { amount, reason } = req.body;
         
-        const recent_bookings = await db.getAll(`
-            SELECT 
-                id, guest_name, accommodation, check_in, total_price,
-                payment_status, status,
-                CASE WHEN stripe_session_id IS NOT NULL THEN 'Yes' ELSE 'No' END as stripe_connected,
-                CASE WHEN uplisting_id IS NOT NULL THEN 'Yes' ELSE 'No' END as uplisting_synced,
-                created_at
-            FROM bookings 
-            ORDER BY created_at DESC 
-            LIMIT 10
-        `);
+        if (!amount || !reason) {
+            return sendError(res, 400, ERROR_CODES.VALIDATION_ERROR, 'Amount and reason are required');
+        }
         
-        // Normalize numeric values (PostgreSQL returns strings for COUNT/SUM)
-        const normalizedOverview = {
-            total_bookings: Number(overview.total_bookings) || 0,
-            paid_bookings: Number(overview.paid_bookings) || 0,
-            pending_payments: Number(overview.pending_payments) || 0,
-            cancelled_bookings: Number(overview.cancelled_bookings) || 0,
-            synced_bookings: Number(overview.synced_bookings) || 0,
-            total_revenue: Number(overview.total_revenue) || 0
-        };
+        // Get booking details
+        const booking = await new Promise((resolve, reject) => {
+            db.get('SELECT * FROM bookings WHERE id = ?', [bookingId], (err, row) => {
+                if (err) reject(err);
+                else resolve(row);
+            });
+        });
+        
+        if (!booking) {
+            return sendError(res, 404, ERROR_CODES.BOOKING_NOT_FOUND, 'Booking not found');
+        }
+        
+        if (!booking.security_deposit_intent_id) {
+            return sendError(res, 400, ERROR_CODES.VALIDATION_ERROR, 'No security deposit found for this booking');
+        }
+        
+        if (booking.security_deposit_status === 'released') {
+            return sendError(res, 400, ERROR_CODES.VALIDATION_ERROR, 'Security deposit has already been released');
+        }
+        
+        const claimAmountCents = Math.round(parseFloat(amount) * 100);
+        const maxClaimCents = Math.round(booking.security_deposit_amount * 100);
+        
+        if (claimAmountCents > maxClaimCents) {
+            return sendError(res, 400, ERROR_CODES.VALIDATION_ERROR, 'Claim amount cannot exceed security deposit amount');
+        }
+        
+        // Capture the claimed amount from the authorization hold
+        await stripe.paymentIntents.capture(booking.security_deposit_intent_id, {
+            amount_to_capture: claimAmountCents
+        });
+        
+        // Update database with claim details
+        const sql = `
+            UPDATE bookings 
+            SET security_deposit_status = 'claimed', 
+                security_deposit_claimed_amount = ?,
+                security_deposit_released_at = CURRENT_TIMESTAMP 
+            WHERE id = ?
+        `;
+        
+        await new Promise((resolve, reject) => {
+            db.run(sql, [parseFloat(amount), bookingId], (err) => {
+                if (err) reject(err);
+                else resolve();
+            });
+        });
+        
+        console.log(`✅ Security deposit claimed: $${amount} from booking ${bookingId}`);
+        
+        // Send notification email to admin
+        await emailNotifications.sendSystemAlert('info', 
+            `Security deposit claimed for ${booking.guest_name}`, 
+            {
+                'Booking ID': booking.id,
+                'Guest': booking.guest_name,
+                'Accommodation': booking.accommodation,
+                'Claimed Amount': `$${amount}`,
+                'Total Deposit': `$${booking.security_deposit_amount}`,
+                'Reason': reason,
+                'Claim Date': new Date().toLocaleString('en-NZ')
+            }
+        );
         
         res.json({
             success: true,
-            stats: {
-                overview: normalizedOverview,
-                recent_bookings
-            }
+            message: 'Security deposit claimed successfully',
+            claimedAmount: parseFloat(amount),
+            totalDeposit: booking.security_deposit_amount,
+            reason: reason
         });
-    } catch (err) {
-        console.error('Booking stats error:', err);
-        return res.status(500).json({ success: false, error: err.message });
+        
+    } catch (error) {
+        console.error('❌ Security deposit claim error:', error);
+        return sendError(res, 500, ERROR_CODES.PAYMENT_ERROR, 'Failed to claim security deposit');
     }
 });
 
-// Accommodation landing pages (SEO-optimized separate pages)
-// These routes serve dedicated HTML pages with unique meta tags for each accommodation
-app.get('/dome-pinot', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'dome-pinot.html'));
+// Admin endpoint to manually release security deposit
+app.post('/api/admin/release-deposit/:bookingId', verifyAdmin, async (req, res) => {
+    try {
+        const { bookingId } = req.params;
+        
+        // Get booking details
+        const booking = await new Promise((resolve, reject) => {
+            db.get('SELECT * FROM bookings WHERE id = ?', [bookingId], (err, row) => {
+                if (err) reject(err);
+                else resolve(row);
+            });
+        });
+        
+        if (!booking) {
+            return sendError(res, 404, ERROR_CODES.BOOKING_NOT_FOUND, 'Booking not found');
+        }
+        
+        if (!booking.security_deposit_intent_id) {
+            return sendError(res, 400, ERROR_CODES.VALIDATION_ERROR, 'No security deposit found for this booking');
+        }
+        
+        if (booking.security_deposit_status === 'released') {
+            return sendError(res, 400, ERROR_CODES.VALIDATION_ERROR, 'Security deposit has already been released');
+        }
+        
+        // Cancel the authorization hold (releases the funds)
+        await stripe.paymentIntents.cancel(booking.security_deposit_intent_id);
+        
+        // Update database
+        const sql = `
+            UPDATE bookings 
+            SET security_deposit_status = 'released', 
+                security_deposit_released_at = CURRENT_TIMESTAMP 
+            WHERE id = ?
+        `;
+        
+        await new Promise((resolve, reject) => {
+            db.run(sql, [bookingId], (err) => {
+                if (err) reject(err);
+                else resolve();
+            });
+        });
+        
+        console.log(`✅ Security deposit manually released for booking ${bookingId}`);
+        
+        // Send notification email
+        await emailNotifications.sendSystemAlert('info', 
+            `Security deposit manually released for ${booking.guest_name}`, 
+            {
+                'Booking ID': booking.id,
+                'Guest': booking.guest_name,
+                'Accommodation': booking.accommodation,
+                'Deposit Amount': `$${booking.security_deposit_amount}`,
+                'Release Date': new Date().toLocaleString('en-NZ'),
+                'Released By': 'Admin (Manual)'
+            }
+        );
+        
+        res.json({
+            success: true,
+            message: 'Security deposit released successfully',
+            amount: booking.security_deposit_amount
+        });
+        
+    } catch (error) {
+        console.error('❌ Security deposit release error:', error);
+        return sendError(res, 500, ERROR_CODES.PAYMENT_ERROR, 'Failed to release security deposit');
+    }
 });
 
-app.get('/dome-rose', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'dome-rose.html'));
+// Schedule automated backups
+if (process.env.NODE_ENV === 'production') {
+    backupSystem.scheduleBackups();
+}
+
+// ============================================
+// CHATBOT API ENDPOINTS
+// ============================================
+
+// Rate limiter for chatbot (prevent abuse)
+const chatbotLimiter = rateLimit({
+    windowMs: 1 * 60 * 1000, // 1 minute
+    max: 20, // 20 messages per minute per IP
+    message: { error: 'Too many messages, please slow down' },
+    standardHeaders: true,
+    legacyHeaders: false,
 });
 
-app.get('/lakeside-cottage', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'lakeside-cottage.html'));
+// Public chatbot endpoint - answers questions about the website
+app.post('/api/chatbot/message', chatbotLimiter, async (req, res) => {
+    try {
+        const { message, sessionId } = req.body;
+        
+        if (!message || typeof message !== 'string') {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Message is required' 
+            });
+        }
+        
+        // Sanitize input
+        const sanitizedMessage = sanitizeInput(message.substring(0, 1000));
+        const session = sessionId || `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        
+        const result = await chatbot.processMessage(session, sanitizedMessage);
+        
+        res.json({
+            success: result.success,
+            response: result.response,
+            sessionId: session,
+            source: result.source,
+            aiEnabled: result.aiEnabled
+        });
+        
+    } catch (error) {
+        console.error('Chatbot error:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: 'Failed to process message',
+            response: 'Sorry, I\'m having trouble right now. Please contact us directly at info@lakesideretreat.co.nz or +64-21-368-682.'
+        });
+    }
+});
+
+// Admin endpoint - generate email reply drafts
+app.post('/api/admin/chatbot/email-reply', verifyAdmin, async (req, res) => {
+    try {
+        const { emailContent, guestName, bookingId } = req.body;
+        
+        if (!emailContent || typeof emailContent !== 'string') {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Email content is required' 
+            });
+        }
+        
+        const result = await chatbot.generateEmailReply(emailContent, {
+            guestName: guestName,
+            bookingId: bookingId
+        });
+        
+        res.json({
+            success: result.success,
+            suggestedReply: result.suggestedReply,
+            source: result.source
+        });
+        
+    } catch (error) {
+        console.error('Email reply generation error:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: 'Failed to generate email reply' 
+        });
+    }
+});
+
+// Admin endpoint - get chatbot status
+app.get('/api/admin/chatbot/status', verifyAdmin, (req, res) => {
+    res.json({
+        success: true,
+        aiEnabled: chatbot.aiEnabled,
+        knowledgeBaseLoaded: !!chatbot.knowledgeBase,
+        activeSessions: chatbot.conversationHistory.size
+    });
+});
+
+// Clear chatbot session (optional cleanup)
+app.post('/api/chatbot/clear-session', (req, res) => {
+    const { sessionId } = req.body;
+    if (sessionId) {
+        chatbot.clearSession(sessionId);
+    }
+    res.json({ success: true });
+});
+
+// ==========================================
+// MARKETING AUTOMATION ENDPOINTS
+// ==========================================
+
+// Public endpoint - Get availability calendar for an accommodation
+app.get('/api/availability-calendar', async (req, res) => {
+    try {
+        const { accommodation, month } = req.query;
+        
+        if (!accommodation || !month) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'accommodation and month parameters are required' 
+            });
+        }
+        
+        // Validate month format (YYYY-MM)
+        if (!/^\d{4}-\d{2}$/.test(month)) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'month must be in YYYY-MM format' 
+            });
+        }
+        
+        if (!marketingAutomation) {
+            return res.status(503).json({ 
+                success: false, 
+                error: 'Marketing automation not initialized' 
+            });
+        }
+        
+        const calendar = await marketingAutomation.getAvailabilityCalendar(accommodation, month);
+        res.json({ success: true, ...calendar });
+    } catch (error) {
+        console.error('Error getting availability calendar:', error);
+        res.status(500).json({ success: false, error: 'Failed to get availability calendar' });
+    }
+});
+
+// Public endpoint - Get next available weekends
+app.get('/api/availability-weekends', async (req, res) => {
+    try {
+        const { accommodation, count } = req.query;
+        
+        if (!accommodation) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'accommodation parameter is required' 
+            });
+        }
+        
+        if (!marketingAutomation) {
+            return res.status(503).json({ 
+                success: false, 
+                error: 'Marketing automation not initialized' 
+            });
+        }
+        
+        const weekends = await marketingAutomation.getNextAvailableWeekends(
+            accommodation, 
+            parseInt(count) || 4
+        );
+        res.json({ success: true, weekends });
+    } catch (error) {
+        console.error('Error getting available weekends:', error);
+        res.status(500).json({ success: false, error: 'Failed to get available weekends' });
+    }
+});
+
+// Admin endpoint - Get marketing stats
+app.get('/api/admin/marketing/stats', verifyAdmin, async (req, res) => {
+    try {
+        if (!marketingAutomation) {
+            return res.status(503).json({ 
+                success: false, 
+                error: 'Marketing automation not initialized' 
+            });
+        }
+        
+        const stats = await marketingAutomation.getMarketingStats();
+        res.json({ success: true, stats });
+    } catch (error) {
+        console.error('Error getting marketing stats:', error);
+        res.status(500).json({ success: false, error: 'Failed to get marketing stats' });
+    }
+});
+
+// Admin endpoint - Get abandoned checkouts
+app.get('/api/admin/marketing/abandoned-checkouts', verifyAdmin, async (req, res) => {
+    try {
+        if (!marketingAutomation) {
+            return res.status(503).json({ 
+                success: false, 
+                error: 'Marketing automation not initialized' 
+            });
+        }
+        
+        const abandonedCheckouts = await marketingAutomation.getAbandonedCheckouts();
+        res.json({ success: true, abandonedCheckouts });
+    } catch (error) {
+        console.error('Error getting abandoned checkouts:', error);
+        res.status(500).json({ success: false, error: 'Failed to get abandoned checkouts' });
+    }
+});
+
+// Admin endpoint - Send abandoned checkout reminder
+app.post('/api/admin/marketing/send-reminder/:bookingId', verifyAdmin, async (req, res) => {
+    try {
+        const { bookingId } = req.params;
+        
+        if (!marketingAutomation) {
+            return res.status(503).json({ 
+                success: false, 
+                error: 'Marketing automation not initialized' 
+            });
+        }
+        
+        const result = await marketingAutomation.sendManualReminder(bookingId);
+        res.json({ success: true, ...result });
+    } catch (error) {
+        console.error('Error sending reminder:', error);
+        res.status(500).json({ success: false, error: error.message || 'Failed to send reminder' });
+    }
+});
+
+// Admin endpoint - Run abandoned checkout check manually
+app.post('/api/admin/marketing/run-abandoned-check', verifyAdmin, async (req, res) => {
+    try {
+        if (!marketingAutomation) {
+            return res.status(503).json({ 
+                success: false, 
+                error: 'Marketing automation not initialized' 
+            });
+        }
+        
+        await marketingAutomation.processAbandonedCheckouts();
+        res.json({ success: true, message: 'Abandoned checkout check completed' });
+    } catch (error) {
+        console.error('Error running abandoned check:', error);
+        res.status(500).json({ success: false, error: 'Failed to run abandoned check' });
+    }
+});
+
+// Admin endpoint - Get review requests
+app.get('/api/admin/marketing/review-requests', verifyAdmin, async (req, res) => {
+    try {
+        const { status } = req.query;
+        
+        if (!marketingAutomation) {
+            return res.status(503).json({ 
+                success: false, 
+                error: 'Marketing automation not initialized' 
+            });
+        }
+        
+        const reviewRequests = await marketingAutomation.getReviewRequests(status);
+        res.json({ success: true, reviewRequests });
+    } catch (error) {
+        console.error('Error getting review requests:', error);
+        res.status(500).json({ success: false, error: 'Failed to get review requests' });
+    }
+});
+
+// Admin endpoint - Send review request manually
+app.post('/api/admin/marketing/send-review-request/:bookingId', verifyAdmin, async (req, res) => {
+    try {
+        const { bookingId } = req.params;
+        
+        if (!marketingAutomation) {
+            return res.status(503).json({ 
+                success: false, 
+                error: 'Marketing automation not initialized' 
+            });
+        }
+        
+        const result = await marketingAutomation.sendManualReviewRequest(bookingId);
+        res.json({ success: true, ...result });
+    } catch (error) {
+        console.error('Error sending review request:', error);
+        res.status(500).json({ success: false, error: error.message || 'Failed to send review request' });
+    }
+});
+
+// Admin endpoint - Run review request check manually
+app.post('/api/admin/marketing/run-review-check', verifyAdmin, async (req, res) => {
+    try {
+        if (!marketingAutomation) {
+            return res.status(503).json({ 
+                success: false, 
+                error: 'Marketing automation not initialized' 
+            });
+        }
+        
+        await marketingAutomation.processReviewRequests();
+        res.json({ success: true, message: 'Review request check completed' });
+    } catch (error) {
+        console.error('Error running review check:', error);
+        res.status(500).json({ success: false, error: 'Failed to run review check' });
+    }
+});
+
+// Admin endpoint - Generate social content
+app.post('/api/admin/marketing/generate-social', verifyAdmin, async (req, res) => {
+    try {
+        const { platform, tone, sourceText, accommodation, saveDraft } = req.body;
+        
+        if (!platform || !tone) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'platform and tone are required' 
+            });
+        }
+        
+        if (!marketingAutomation) {
+            return res.status(503).json({ 
+                success: false, 
+                error: 'Marketing automation not initialized' 
+            });
+        }
+        
+        const content = await marketingAutomation.generateSocialContent({
+            platform,
+            tone,
+            sourceText,
+            accommodation,
+            saveDraft: saveDraft || false
+        });
+        res.json({ success: true, content });
+    } catch (error) {
+        console.error('Error generating social content:', error);
+        res.status(500).json({ success: false, error: 'Failed to generate social content' });
+    }
+});
+
+// Admin endpoint - Get social content drafts
+app.get('/api/admin/marketing/social-drafts', verifyAdmin, async (req, res) => {
+    try {
+        const { status } = req.query;
+        
+        if (!marketingAutomation) {
+            return res.status(503).json({ 
+                success: false, 
+                error: 'Marketing automation not initialized' 
+            });
+        }
+        
+        const drafts = await marketingAutomation.getSocialDrafts(status || 'draft');
+        res.json({ success: true, drafts });
+    } catch (error) {
+        console.error('Error getting social drafts:', error);
+        res.status(500).json({ success: false, error: 'Failed to get social drafts' });
+    }
+});
+
+// Admin endpoint - Update social draft status
+app.put('/api/admin/marketing/social-drafts/:draftId', verifyAdmin, async (req, res) => {
+    try {
+        const { draftId } = req.params;
+        const { status } = req.body;
+        
+        if (!status) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'status is required' 
+            });
+        }
+        
+        if (!marketingAutomation) {
+            return res.status(503).json({ 
+                success: false, 
+                error: 'Marketing automation not initialized' 
+            });
+        }
+        
+        await marketingAutomation.updateDraftStatus(draftId, status);
+        res.json({ success: true, message: 'Draft status updated' });
+    } catch (error) {
+        console.error('Error updating draft status:', error);
+        res.status(500).json({ success: false, error: 'Failed to update draft status' });
+    }
+});
+
+// ==========================================
+// SEO-FRIENDLY ROUTES (MUST BE LAST)
+// ==========================================
+
+// SEO-friendly page routes - serve index.html with page context
+// These routes allow Google to crawl individual pages
+const seoPages = {
+    '/': { page: 'home', title: 'Central Otago Luxury Glamping Dome Accommodation', description: 'Book luxury Central Otago accommodation on Lake Dunstan. Energy-positive geodesic domes & lakeside cottage, 55min from Queenstown.' },
+    '/stay': { page: 'stay', title: 'Accommodation - Luxury Glamping Domes & Cottage', description: 'Choose from Dome Pinot ($580/night), Dome Rose ($550/night), or Lakeside Cottage ($300/night). Solar-powered luxury accommodation in Central Otago.' },
+    '/gallery': { page: 'gallery', title: 'Photo Gallery - Lake Dunstan Views & Interiors', description: 'Browse photos of our luxury glamping domes, lakeside cottage, and stunning Central Otago scenery. Lake Dunstan views, private spas, and wine country.' },
+    '/guides': { page: 'blog', title: 'Local Guides - Wine Tours, Cycling & Activities', description: 'Discover Central Otago wine trails, Otago Rail Trail cycling routes, and local attractions near Lakeside Retreat.' },
+    '/blog': { page: 'blog', title: 'Local Guides - Wine Tours, Cycling & Activities', description: 'Discover Central Otago wine trails, Otago Rail Trail cycling routes, and local attractions near Lakeside Retreat.' },
+    '/reviews': { page: 'reviews', title: 'Guest Reviews - 4.9 Star Rating', description: 'Read 127+ guest reviews of Lakeside Retreat. Rated 4.9/5 stars for luxury glamping accommodation in Central Otago.' },
+    '/story': { page: 'story', title: 'Our Story - Meet Stephen & Sandy', description: 'Learn about Stephen & Sandy, the hosts of Lakeside Retreat, and their journey creating sustainable luxury accommodation in Central Otago.' },
+    '/explore': { page: 'explore', title: 'Explore Central Otago - Wineries, Cycling & Activities', description: 'Discover nearby wineries, Otago Rail Trail access, Lake Dunstan activities, and local attractions from Lakeside Retreat.' },
+    '/contact': { page: 'contact', title: 'Contact Us - Bookings & Enquiries', description: 'Contact Lakeside Retreat for bookings and enquiries. Phone: +64-21-368-682, Email: info@lakesideretreat.co.nz' }
+};
+
+// Handle SEO-friendly URLs
+Object.keys(seoPages).forEach(route => {
+    if (route !== '/') {
+        app.get(route, (req, res) => {
+            res.sendFile(path.join(__dirname, 'index.html'));
+        });
+    }
 });
 
 // SPA routing - serve index.html for HTML routes only
@@ -2152,7 +3444,7 @@ app.get('*', (req, res) => {
         return res.status(404).send('Not Found');
     }
     
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 app.listen(PORT, () => {
@@ -2161,4 +3453,5 @@ app.listen(PORT, () => {
     console.log(`🔑 Stripe configured:`, process.env.STRIPE_SECRET_KEY ? 'YES' : 'NO');
     console.log(`📧 Email configured:`, process.env.EMAIL_USER ? 'YES' : 'NO');
     console.log(`🏨 Uplisting configured:`, process.env.UPLISTING_API_KEY ? 'YES' : 'NO');
+    console.log(`💾 Backup system:`, process.env.NODE_ENV === 'production' ? 'SCHEDULED' : 'MANUAL');
 });

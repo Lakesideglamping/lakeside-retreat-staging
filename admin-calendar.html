@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendar - Lakeside Retreat Admin</title>
+    <link rel="stylesheet" href="/admin-shell.css?v=2">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        
+        .month-navigation {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .month-navigation h2 {
+            font-size: 1.5rem;
+            color: #2d5a5a;
+            min-width: 200px;
+            text-align: center;
+        }
+        
+        .nav-btn {
+            background: #2d5a5a;
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s;
+        }
+        
+        .nav-btn:hover {
+            background: #1e4040;
+        }
+        
+        .view-controls {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .view-btn {
+            background: white;
+            border: 1px solid #ddd;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        
+        .view-btn.active {
+            background: #2d5a5a;
+            color: white;
+            border-color: #2d5a5a;
+        }
+        
+        .view-btn:hover:not(.active) {
+            background: #f0f0f0;
+        }
+        
+        .legend {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+        
+        .legend-color.dome-pinot { background: #8B4513; }
+        .legend-color.dome-rose { background: #DB7093; }
+        .legend-color.lakeside-cottage { background: #4682B4; }
+        .legend-color.available { background: #e8f5e8; border: 1px solid #c3e6c3; }
+        .legend-color.blocked { background: #f5f5f5; border: 1px solid #ddd; }
+        
+        .calendar-grid {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .calendar-row {
+            display: grid;
+            grid-template-columns: 150px repeat(7, 1fr);
+            border-bottom: 1px solid #eee;
+        }
+        
+        .calendar-row:last-child {
+            border-bottom: none;
+        }
+        
+        .calendar-row.header {
+            background: linear-gradient(135deg, #2d5a5a 0%, #1e4040 100%);
+            color: white;
+            font-weight: 600;
+        }
+        
+        .calendar-cell {
+            padding: 0.75rem;
+            text-align: center;
+            border-right: 1px solid #eee;
+            min-height: 60px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .calendar-cell:last-child {
+            border-right: none;
+        }
+        
+        .calendar-row.header .calendar-cell {
+            border-right-color: rgba(255,255,255,0.2);
+        }
+        
+        .property-cell {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+            text-align: left;
+            justify-content: flex-start;
+            padding-left: 1rem;
+        }
+        
+        .day-number {
+            font-size: 0.75rem;
+            color: #999;
+            margin-bottom: 0.25rem;
+        }
+        
+        .booking-indicator {
+            width: 100%;
+            padding: 0.25rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            color: white;
+            cursor: pointer;
+            transition: transform 0.2s;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .booking-indicator:hover {
+            transform: scale(1.05);
+        }
+        
+        .booking-indicator.dome-pinot { background: #8B4513; }
+        .booking-indicator.dome-rose { background: #DB7093; }
+        .booking-indicator.lakeside-cottage { background: #4682B4; }
+        .booking-indicator.checkin { border-left: 3px solid #28a745; }
+        .booking-indicator.checkout { border-right: 3px solid #dc3545; }
+        
+        .available-cell {
+            background: #e8f5e8;
+        }
+        
+        .blocked-cell {
+            background: #f5f5f5;
+        }
+        
+        .today-cell {
+            background: #fff3cd;
+        }
+        
+        .past-cell {
+            opacity: 0.5;
+        }
+        
+        /* Monthly view specific */
+        .monthly-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1px;
+            background: #eee;
+        }
+        
+        .monthly-cell {
+            background: white;
+            min-height: 120px;
+            padding: 0.5rem;
+        }
+        
+        .monthly-cell.header {
+            min-height: auto;
+            padding: 0.75rem;
+            background: linear-gradient(135deg, #2d5a5a 0%, #1e4040 100%);
+            color: white;
+            font-weight: 600;
+            text-align: center;
+        }
+        
+        .monthly-cell .date {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+        
+        .monthly-cell.other-month {
+            background: #f8f9fa;
+        }
+        
+        .monthly-cell.other-month .date {
+            color: #999;
+        }
+        
+        .monthly-cell.today {
+            background: #fff3cd;
+        }
+        
+        .monthly-cell .bookings {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        
+        .monthly-booking {
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-size: 0.7rem;
+            color: white;
+            cursor: pointer;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .monthly-booking.dome-pinot { background: #8B4513; }
+        .monthly-booking.dome-rose { background: #DB7093; }
+        .monthly-booking.lakeside-cottage { background: #4682B4; }
+        
+        /* Booking details modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            background: linear-gradient(135deg, #2d5a5a 0%, #1e4040 100%);
+            color: white;
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-header h3 {
+            font-size: 1.25rem;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+        
+        .modal-body {
+            padding: 1.5rem;
+        }
+        
+        .booking-detail {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .booking-detail:last-child {
+            border-bottom: none;
+        }
+        
+        .booking-detail-label {
+            color: #666;
+            font-weight: 500;
+        }
+        
+        .booking-detail-value {
+            color: #333;
+            font-weight: 600;
+        }
+        
+        .modal-actions {
+            padding: 1rem 1.5rem;
+            background: #f8f9fa;
+            display: flex;
+            gap: 0.5rem;
+            justify-content: flex-end;
+        }
+        
+        .btn {
+            background: #2d5a5a;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-block;
+            transition: background 0.3s;
+        }
+        
+        .btn:hover {
+            background: #1e4040;
+        }
+        
+        .btn-outline {
+            background: transparent;
+            border: 1px solid #2d5a5a;
+            color: #2d5a5a;
+        }
+        
+        .btn-outline:hover {
+            background: #2d5a5a;
+            color: white;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: #666;
+        }
+        
+        @media (max-width: 1024px) {
+            .calendar-row {
+                grid-template-columns: 100px repeat(7, 1fr);
+            }
+            
+            .calendar-cell {
+                padding: 0.5rem;
+                font-size: 0.875rem;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .calendar-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .monthly-cell {
+                min-height: 80px;
+                padding: 0.25rem;
+            }
+            
+            .monthly-cell .date {
+                font-size: 0.875rem;
+            }
+            
+            .monthly-booking {
+                font-size: 0.6rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Calendar Header -->
+        <div class="calendar-header">
+            <div class="month-navigation">
+                <button class="nav-btn" onclick="previousMonth()">&larr;</button>
+                <h2 id="currentMonth">January 2026</h2>
+                <button class="nav-btn" onclick="nextMonth()">&rarr;</button>
+            </div>
+            <div class="view-controls">
+                <button class="view-btn active" onclick="setView('monthly')" id="monthlyBtn">Monthly</button>
+                <button class="view-btn" onclick="setView('weekly')" id="weeklyBtn">Weekly</button>
+                <button class="view-btn" onclick="goToToday()">Today</button>
+            </div>
+        </div>
+        
+        <!-- Legend -->
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color dome-pinot"></div>
+                <span>Dome Pinot</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color dome-rose"></div>
+                <span>Dome Rose</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color lakeside-cottage"></div>
+                <span>Lakeside Cottage</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color available"></div>
+                <span>Available</span>
+            </div>
+        </div>
+        
+        <!-- Calendar Grid -->
+        <div id="calendarContainer" class="calendar-grid">
+            <div class="loading">Loading calendar...</div>
+        </div>
+    </div>
+    
+    <!-- Booking Details Modal -->
+    <div class="modal" id="bookingModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Booking Details</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Booking details will be inserted here -->
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-outline" onclick="closeModal()">Close</button>
+                <a href="#" class="btn" id="viewBookingBtn">View Full Details</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check authentication
+        const token = localStorage.getItem('adminToken');
+        if (!token) {
+            window.location.href = '/admin.html';
+        }
+
+        // State
+        let currentDate = new Date();
+        let currentView = 'monthly';
+        let bookings = [];
+        const properties = ['Dome Pinot', 'Dome Rose', 'Lakeside Cottage'];
+        const propertyClasses = {
+            'Dome Pinot': 'dome-pinot',
+            'dome-pinot': 'dome-pinot',
+            'Dome Rose': 'dome-rose',
+            'dome-rose': 'dome-rose',
+            'Lakeside Cottage': 'lakeside-cottage',
+            'lakeside-cottage': 'lakeside-cottage'
+        };
+
+        // Load bookings from API
+        async function loadBookings() {
+            try {
+                const year = currentDate.getFullYear();
+                const month = currentDate.getMonth();
+                
+                // Get bookings for current month +/- 1 month
+                const startDate = new Date(year, month - 1, 1).toISOString().split('T')[0];
+                const endDate = new Date(year, month + 2, 0).toISOString().split('T')[0];
+                
+                const response = await fetch(`/api/admin/bookings?limit=200&dateFrom=${startDate}&dateTo=${endDate}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    bookings = data.bookings || [];
+                } else {
+                    bookings = [];
+                }
+            } catch (error) {
+                console.error('Error loading bookings:', error);
+                bookings = [];
+            }
+            
+            renderCalendar();
+        }
+
+        // Render calendar based on current view
+        function renderCalendar() {
+            const container = document.getElementById('calendarContainer');
+            
+            if (currentView === 'monthly') {
+                renderMonthlyView(container);
+            } else {
+                renderWeeklyView(container);
+            }
+            
+            updateMonthDisplay();
+        }
+
+        // Render monthly view
+        function renderMonthlyView(container) {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const startDayOfWeek = firstDay.getDay();
+            const daysInMonth = lastDay.getDate();
+            const today = new Date();
+            
+            const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            
+            let html = '<div class="monthly-grid">';
+            
+            // Header row
+            dayNames.forEach(day => {
+                html += `<div class="monthly-cell header">${day}</div>`;
+            });
+            
+            // Previous month days
+            const prevMonth = new Date(year, month, 0);
+            const prevMonthDays = prevMonth.getDate();
+            for (let i = startDayOfWeek - 1; i >= 0; i--) {
+                const day = prevMonthDays - i;
+                const date = new Date(year, month - 1, day);
+                html += renderMonthlyCell(date, true);
+            }
+            
+            // Current month days
+            for (let day = 1; day <= daysInMonth; day++) {
+                const date = new Date(year, month, day);
+                const isToday = date.toDateString() === today.toDateString();
+                html += renderMonthlyCell(date, false, isToday);
+            }
+            
+            // Next month days
+            const totalCells = startDayOfWeek + daysInMonth;
+            const remainingCells = 7 - (totalCells % 7);
+            if (remainingCells < 7) {
+                for (let day = 1; day <= remainingCells; day++) {
+                    const date = new Date(year, month + 1, day);
+                    html += renderMonthlyCell(date, true);
+                }
+            }
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        // Render a single monthly cell
+        function renderMonthlyCell(date, isOtherMonth, isToday = false) {
+            const dateStr = date.toISOString().split('T')[0];
+            const dayBookings = getBookingsForDate(dateStr);
+            
+            let classes = 'monthly-cell';
+            if (isOtherMonth) classes += ' other-month';
+            if (isToday) classes += ' today';
+            
+            let html = `<div class="${classes}">`;
+            html += `<div class="date">${date.getDate()}</div>`;
+            html += '<div class="bookings">';
+            
+            dayBookings.forEach(booking => {
+                const propClass = propertyClasses[booking.accommodation] || 'dome-pinot';
+                const guestName = booking.guest_name ? booking.guest_name.split(' ')[0] : 'Guest';
+                html += `<div class="monthly-booking ${propClass}" onclick="showBookingDetails('${booking.id}')" title="${booking.guest_name} - ${booking.accommodation}">${guestName}</div>`;
+            });
+            
+            html += '</div></div>';
+            return html;
+        }
+
+        // Render weekly view (property rows)
+        function renderWeeklyView(container) {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            const startOfWeek = getStartOfWeek(currentDate);
+            const today = new Date();
+            
+            const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            
+            let html = '';
+            
+            // Header row with dates
+            html += '<div class="calendar-row header">';
+            html += '<div class="calendar-cell">Property</div>';
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(startOfWeek);
+                date.setDate(date.getDate() + i);
+                html += `<div class="calendar-cell">${dayNames[date.getDay()]}<br>${date.getDate()}/${date.getMonth() + 1}</div>`;
+            }
+            html += '</div>';
+            
+            // Property rows
+            properties.forEach(property => {
+                html += '<div class="calendar-row">';
+                html += `<div class="calendar-cell property-cell">${property}</div>`;
+                
+                for (let i = 0; i < 7; i++) {
+                    const date = new Date(startOfWeek);
+                    date.setDate(date.getDate() + i);
+                    const dateStr = date.toISOString().split('T')[0];
+                    const isToday = date.toDateString() === today.toDateString();
+                    const isPast = date < today && !isToday;
+                    
+                    const booking = getBookingForPropertyAndDate(property, dateStr);
+                    
+                    let cellClass = 'calendar-cell';
+                    if (isToday) cellClass += ' today-cell';
+                    if (isPast) cellClass += ' past-cell';
+                    if (!booking) cellClass += ' available-cell';
+                    
+                    html += `<div class="${cellClass}">`;
+                    
+                    if (booking) {
+                        const propClass = propertyClasses[booking.accommodation] || 'dome-pinot';
+                        const isCheckin = booking.check_in === dateStr;
+                        const isCheckout = booking.check_out === dateStr;
+                        let indicatorClass = `booking-indicator ${propClass}`;
+                        if (isCheckin) indicatorClass += ' checkin';
+                        if (isCheckout) indicatorClass += ' checkout';
+                        
+                        const guestName = booking.guest_name ? booking.guest_name.split(' ')[0] : 'Guest';
+                        html += `<div class="${indicatorClass}" onclick="showBookingDetails('${booking.id}')" title="${booking.guest_name}">${guestName}</div>`;
+                    }
+                    
+                    html += '</div>';
+                }
+                
+                html += '</div>';
+            });
+            
+            container.innerHTML = html;
+        }
+
+        // Get bookings for a specific date
+        function getBookingsForDate(dateStr) {
+            return bookings.filter(b => {
+                return b.check_in <= dateStr && b.check_out > dateStr && 
+                       (b.status === 'confirmed' || b.payment_status === 'completed');
+            });
+        }
+
+        // Get booking for a specific property and date
+        function getBookingForPropertyAndDate(property, dateStr) {
+            const propertyLower = property.toLowerCase().replace(' ', '-');
+            return bookings.find(b => {
+                const bookingProp = (b.accommodation || '').toLowerCase().replace(' ', '-');
+                return (bookingProp === propertyLower || b.accommodation === property) &&
+                       b.check_in <= dateStr && b.check_out > dateStr &&
+                       (b.status === 'confirmed' || b.payment_status === 'completed');
+            });
+        }
+
+        // Get start of week (Sunday)
+        function getStartOfWeek(date) {
+            const d = new Date(date);
+            const day = d.getDay();
+            d.setDate(d.getDate() - day);
+            return d;
+        }
+
+        // Update month display
+        function updateMonthDisplay() {
+            const months = ['January', 'February', 'March', 'April', 'May', 'June',
+                           'July', 'August', 'September', 'October', 'November', 'December'];
+            document.getElementById('currentMonth').textContent = 
+                `${months[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
+        }
+
+        // Navigation functions
+        function previousMonth() {
+            if (currentView === 'monthly') {
+                currentDate.setMonth(currentDate.getMonth() - 1);
+            } else {
+                currentDate.setDate(currentDate.getDate() - 7);
+            }
+            loadBookings();
+        }
+
+        function nextMonth() {
+            if (currentView === 'monthly') {
+                currentDate.setMonth(currentDate.getMonth() + 1);
+            } else {
+                currentDate.setDate(currentDate.getDate() + 7);
+            }
+            loadBookings();
+        }
+
+        function goToToday() {
+            currentDate = new Date();
+            loadBookings();
+        }
+
+        function setView(view) {
+            currentView = view;
+            document.getElementById('monthlyBtn').classList.toggle('active', view === 'monthly');
+            document.getElementById('weeklyBtn').classList.toggle('active', view === 'weekly');
+            renderCalendar();
+        }
+
+        // Show booking details modal
+        function showBookingDetails(bookingId) {
+            const booking = bookings.find(b => b.id === bookingId);
+            if (!booking) return;
+            
+            const modalBody = document.getElementById('modalBody');
+            modalBody.innerHTML = `
+                <div class="booking-detail">
+                    <span class="booking-detail-label">Guest</span>
+                    <span class="booking-detail-value">${escapeHtml(booking.guest_name || 'N/A')}</span>
+                </div>
+                <div class="booking-detail">
+                    <span class="booking-detail-label">Email</span>
+                    <span class="booking-detail-value">${escapeHtml(booking.guest_email || 'N/A')}</span>
+                </div>
+                <div class="booking-detail">
+                    <span class="booking-detail-label">Phone</span>
+                    <span class="booking-detail-value">${escapeHtml(booking.guest_phone || 'N/A')}</span>
+                </div>
+                <div class="booking-detail">
+                    <span class="booking-detail-label">Accommodation</span>
+                    <span class="booking-detail-value">${escapeHtml(booking.accommodation || 'N/A')}</span>
+                </div>
+                <div class="booking-detail">
+                    <span class="booking-detail-label">Check-in</span>
+                    <span class="booking-detail-value">${formatDate(booking.check_in)}</span>
+                </div>
+                <div class="booking-detail">
+                    <span class="booking-detail-label">Check-out</span>
+                    <span class="booking-detail-value">${formatDate(booking.check_out)}</span>
+                </div>
+                <div class="booking-detail">
+                    <span class="booking-detail-label">Guests</span>
+                    <span class="booking-detail-value">${booking.guests || 'N/A'}</span>
+                </div>
+                <div class="booking-detail">
+                    <span class="booking-detail-label">Total Price</span>
+                    <span class="booking-detail-value">$${booking.total_price || 'N/A'}</span>
+                </div>
+                <div class="booking-detail">
+                    <span class="booking-detail-label">Status</span>
+                    <span class="booking-detail-value">${booking.status || 'N/A'}</span>
+                </div>
+                <div class="booking-detail">
+                    <span class="booking-detail-label">Payment</span>
+                    <span class="booking-detail-value">${booking.payment_status || 'N/A'}</span>
+                </div>
+            `;
+            
+            document.getElementById('viewBookingBtn').href = `/admin-bookings.html?view=${bookingId}`;
+            document.getElementById('bookingModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('bookingModal').classList.remove('active');
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return 'N/A';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('en-NZ', { 
+                weekday: 'short', 
+                day: 'numeric', 
+                month: 'short', 
+                year: 'numeric' 
+            });
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Close modal on outside click
+        document.getElementById('bookingModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        // Close modal on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeModal();
+            }
+        });
+
+        function logout() {
+            localStorage.removeItem('adminToken');
+            window.location.href = '/admin.html';
+        }
+
+        // Load bookings on page load
+        loadBookings();
+    </script>
+    <script src="/admin-shell.js?v=2"></script>
+</body>
+</html>
