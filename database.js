@@ -117,6 +117,71 @@ function createTablesPostgres() {
             `);
             console.log('✅ Contact messages table ready (PostgreSQL)');
             
+            // Create seasonal_rates table
+            await db.query(`
+                CREATE TABLE IF NOT EXISTS seasonal_rates (
+                    id SERIAL PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    start_date DATE NOT NULL,
+                    end_date DATE NOT NULL,
+                    multiplier DECIMAL(3,2) DEFAULT 1.00,
+                    is_active BOOLEAN DEFAULT true,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            `);
+            console.log('✅ Seasonal rates table ready (PostgreSQL)');
+            
+            // Create gallery_images table
+            await db.query(`
+                CREATE TABLE IF NOT EXISTS gallery_images (
+                    id SERIAL PRIMARY KEY,
+                    filename TEXT NOT NULL,
+                    title TEXT,
+                    description TEXT,
+                    property TEXT,
+                    is_hero BOOLEAN DEFAULT false,
+                    is_featured BOOLEAN DEFAULT false,
+                    display_order INTEGER DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            `);
+            console.log('✅ Gallery images table ready (PostgreSQL)');
+            
+            // Create reviews table
+            await db.query(`
+                CREATE TABLE IF NOT EXISTS reviews (
+                    id SERIAL PRIMARY KEY,
+                    guest_name TEXT NOT NULL,
+                    platform TEXT DEFAULT 'direct',
+                    rating INTEGER DEFAULT 5,
+                    review_text TEXT,
+                    stay_date DATE,
+                    property TEXT,
+                    status TEXT DEFAULT 'pending',
+                    is_featured BOOLEAN DEFAULT false,
+                    admin_notes TEXT,
+                    admin_response TEXT,
+                    response_date TIMESTAMP,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            `);
+            console.log('✅ Reviews table ready (PostgreSQL)');
+            
+            // Create system_settings table
+            await db.query(`
+                CREATE TABLE IF NOT EXISTS system_settings (
+                    id SERIAL PRIMARY KEY,
+                    setting_key TEXT UNIQUE NOT NULL,
+                    setting_value TEXT,
+                    setting_type TEXT DEFAULT 'string',
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            `);
+            console.log('✅ System settings table ready (PostgreSQL)');
+            
             resolve();
         } catch (err) {
             console.error('❌ Error creating PostgreSQL tables:', err.message);
@@ -164,22 +229,118 @@ function createTablesSqlite() {
             )
         `;
         
-        db.run(createBookingsTable, (err) => {
-            if (err) {
-                console.error('❌ Error creating bookings table:', err.message);
-                reject(err);
-            } else {
+        const createSeasonalRatesTable = `
+            CREATE TABLE IF NOT EXISTS seasonal_rates (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                start_date DATE NOT NULL,
+                end_date DATE NOT NULL,
+                multiplier DECIMAL(3,2) DEFAULT 1.00,
+                is_active INTEGER DEFAULT 1,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `;
+        
+        const createGalleryImagesTable = `
+            CREATE TABLE IF NOT EXISTS gallery_images (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                filename TEXT NOT NULL,
+                title TEXT,
+                description TEXT,
+                property TEXT,
+                is_hero INTEGER DEFAULT 0,
+                is_featured INTEGER DEFAULT 0,
+                display_order INTEGER DEFAULT 0,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `;
+        
+        const createReviewsTable = `
+            CREATE TABLE IF NOT EXISTS reviews (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                guest_name TEXT NOT NULL,
+                platform TEXT DEFAULT 'direct',
+                rating INTEGER DEFAULT 5,
+                review_text TEXT,
+                stay_date DATE,
+                property TEXT,
+                status TEXT DEFAULT 'pending',
+                is_featured INTEGER DEFAULT 0,
+                admin_notes TEXT,
+                admin_response TEXT,
+                response_date DATETIME,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `;
+        
+        const createSystemSettingsTable = `
+            CREATE TABLE IF NOT EXISTS system_settings (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                setting_key TEXT UNIQUE NOT NULL,
+                setting_value TEXT,
+                setting_type TEXT DEFAULT 'string',
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `;
+        
+        db.serialize(() => {
+            db.run(createBookingsTable, (err) => {
+                if (err) {
+                    console.error('❌ Error creating bookings table:', err.message);
+                    reject(err);
+                    return;
+                }
                 console.log('✅ Bookings table ready (SQLite)');
-                db.run(createContactTable, (err) => {
-                    if (err) {
-                        console.error('❌ Error creating contact table:', err.message);
-                        reject(err);
-                    } else {
-                        console.log('✅ Contact messages table ready (SQLite)');
-                        resolve();
-                    }
-                });
-            }
+            });
+            
+            db.run(createContactTable, (err) => {
+                if (err) {
+                    console.error('❌ Error creating contact table:', err.message);
+                    reject(err);
+                    return;
+                }
+                console.log('✅ Contact messages table ready (SQLite)');
+            });
+            
+            db.run(createSeasonalRatesTable, (err) => {
+                if (err) {
+                    console.error('❌ Error creating seasonal_rates table:', err.message);
+                    reject(err);
+                    return;
+                }
+                console.log('✅ Seasonal rates table ready (SQLite)');
+            });
+            
+            db.run(createGalleryImagesTable, (err) => {
+                if (err) {
+                    console.error('❌ Error creating gallery_images table:', err.message);
+                    reject(err);
+                    return;
+                }
+                console.log('✅ Gallery images table ready (SQLite)');
+            });
+            
+            db.run(createReviewsTable, (err) => {
+                if (err) {
+                    console.error('❌ Error creating reviews table:', err.message);
+                    reject(err);
+                    return;
+                }
+                console.log('✅ Reviews table ready (SQLite)');
+            });
+            
+            db.run(createSystemSettingsTable, (err) => {
+                if (err) {
+                    console.error('❌ Error creating system_settings table:', err.message);
+                    reject(err);
+                    return;
+                }
+                console.log('✅ System settings table ready (SQLite)');
+                resolve();
+            });
         });
     });
 }

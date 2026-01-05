@@ -549,7 +549,6 @@
 
     <script src="/admin-shell.js?v=2"></script>
     <script>
-        // Check authentication
         const token = localStorage.getItem('adminToken');
         if (!token) {
             window.location.href = '/admin.html';
@@ -558,30 +557,87 @@
         function showAlert(message, type = 'success') {
             const alertBox = document.getElementById('alertBox');
             alertBox.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
-            setTimeout(() => {
-                alertBox.innerHTML = '';
-            }, 3000);
+            setTimeout(() => { alertBox.innerHTML = ''; }, 3000);
         }
 
-        function createBackup() {
-            showAlert('Creating backup... This may take a few minutes.', 'info');
-            setTimeout(() => {
-                showAlert('Backup created successfully!');
-            }, 2000);
-        }
-
-        function downloadBackup(id) {
-            showAlert(`Preparing backup #${id} for download...`, 'info');
-        }
-
-        function restoreBackup(id) {
-            if (confirm('Are you sure you want to restore this backup? Current data will be replaced.')) {
-                showAlert(`Restoring backup #${id}...`, 'info');
-                setTimeout(() => {
-                    showAlert('Backup restored successfully!');
-                }, 2000);
+        async function loadBackups() {
+            try {
+                const response = await fetch('/api/admin/backups', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                if (data.success) {
+                    renderBackups(data.backups);
+                    if (data.stats) {
+                        document.querySelectorAll('.status-item .number')[0].textContent = data.stats.total;
+                        document.querySelectorAll('.status-item .number')[1].textContent = data.stats.storage_used_mb + ' MB';
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading backups:', error);
             }
         }
+
+        function renderBackups(backups) {
+            const tbody = document.querySelector('.backup-table tbody');
+            if (!backups || backups.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5">No backups found</td></tr>';
+                return;
+            }
+            tbody.innerHTML = backups.slice(0, 10).map(backup => `
+                <tr>
+                    <td><strong>${new Date(backup.created_at).toLocaleString()}</strong><br><small>Automatic</small></td>
+                    <td><span class="backup-type type-${backup.type}">${backup.type}</span></td>
+                    <td>${backup.size} KB</td>
+                    <td><div class="backup-status"><span class="status-dot success"></span>Completed</div></td>
+                    <td><div class="action-buttons">
+                        <button class="btn btn-secondary btn-sm" onclick="downloadBackup('${backup.filename}')">Download</button>
+                    </div></td>
+                </tr>
+            `).join('');
+        }
+
+        async function createBackup() {
+            showAlert('Creating backup... This may take a few minutes.', 'info');
+            try {
+                const response = await fetch('/api/admin/backups', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                if (data.success) {
+                    showAlert('Backup created successfully!');
+                    loadBackups();
+                } else {
+                    showAlert(data.error || 'Failed to create backup', 'error');
+                }
+            } catch (error) {
+                showAlert('Error creating backup', 'error');
+            }
+        }
+
+        async function downloadBackup(filename) {
+            showAlert(`Preparing ${filename} for download...`, 'info');
+            try {
+                const response = await fetch(`/api/admin/backups/${encodeURIComponent(filename)}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    showAlert('Download started!');
+                }
+            } catch (error) {
+                showAlert('Error downloading backup', 'error');
+            }
+        }
+
+        loadBackups();
     </script>
 </body>
 </html>

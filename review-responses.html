@@ -403,7 +403,6 @@
 
     <script src="/admin-shell.js?v=2"></script>
     <script>
-        // Check authentication
         const token = localStorage.getItem('adminToken');
         if (!token) {
             window.location.href = '/admin.html';
@@ -416,12 +415,34 @@
             feedback: "Thank you for your feedback. We're always looking to improve and will take your comments on board. "
         };
 
-        function showAlert(message) {
+        function showAlert(message, type = 'success') {
             const alertBox = document.getElementById('alertBox');
-            alertBox.innerHTML = `<div class="alert alert-success">${message}</div>`;
-            setTimeout(() => {
-                alertBox.innerHTML = '';
-            }, 3000);
+            alertBox.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+            setTimeout(() => { alertBox.innerHTML = ''; }, 3000);
+        }
+
+        async function loadReviews() {
+            try {
+                const status = document.getElementById('filterStatus').value;
+                const platform = document.getElementById('filterPlatform').value;
+                let url = '/api/admin/reviews?';
+                if (status) url += `status=${status}&`;
+                if (platform) url += `platform=${platform}`;
+                
+                const response = await fetch(url, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                if (data.success) {
+                    console.log('Loaded reviews:', data.reviews.length);
+                    if (data.stats) {
+                        document.querySelectorAll('.stat-value')[0].textContent = data.stats.total;
+                        document.querySelectorAll('.stat-value')[1].textContent = data.stats.average_rating;
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading reviews:', error);
+            }
         }
 
         function useTemplate(type) {
@@ -432,30 +453,43 @@
             }
         }
 
-        function submitResponse(id) {
-            const response = document.getElementById(`response-${id}`).value;
-            if (response.trim()) {
-                showAlert('Response posted successfully!');
-            } else {
+        async function submitResponse(id) {
+            const textarea = document.getElementById(`response-${id}`);
+            const response = textarea ? textarea.value : '';
+            if (!response.trim()) {
                 alert('Please write a response before posting.');
+                return;
+            }
+            
+            try {
+                const res = await fetch(`/api/admin/reviews/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ admin_response: response, status: 'approved' })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showAlert('Response posted successfully!');
+                } else {
+                    showAlert(data.error || 'Failed to post response', 'error');
+                }
+            } catch (error) {
+                showAlert('Error posting response', 'error');
             }
         }
 
         function saveAsDraft(id) {
-            showAlert('Draft saved!');
+            showAlert('Draft saved locally!');
         }
 
         function editResponse(id) {
             showAlert('Opening response editor...');
         }
 
-        document.getElementById('filterStatus').addEventListener('change', function() {
-            showAlert(`Filtering by: ${this.value}`);
-        });
+        document.getElementById('filterStatus').addEventListener('change', loadReviews);
+        document.getElementById('filterPlatform').addEventListener('change', loadReviews);
 
-        document.getElementById('filterPlatform').addEventListener('change', function() {
-            showAlert(`Filtering by platform: ${this.value || 'All'}`);
-        });
+        loadReviews();
     </script>
 </body>
 </html>
