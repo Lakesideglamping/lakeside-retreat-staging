@@ -477,6 +477,7 @@
                 </div>
                 <div class="quick-actions">
                     <button class="btn btn-success" onclick="syncUplistingBookings()" id="syncUplistingBtn">📥 Sync Uplisting Bookings</button>
+                    <button class="btn" onclick="verifyUplistingApi()" id="verifyUplistingBtn">🔑 Verify Uplisting API</button>
                     <a href="/system-settings.html" class="btn">Settings</a>
                     <a href="/backup-system.html" class="btn btn-secondary">Backup</a>
                 </div>
@@ -976,6 +977,58 @@
             } finally {
                 syncBtn.innerHTML = originalText;
                 syncBtn.disabled = false;
+            }
+        }
+
+        // Verify Uplisting API key function
+        async function verifyUplistingApi() {
+            const verifyBtn = document.getElementById('verifyUplistingBtn');
+            const originalText = verifyBtn.innerHTML;
+            
+            try {
+                verifyBtn.innerHTML = '⏳ Verifying...';
+                verifyBtn.disabled = true;
+                
+                const response = await fetch('/api/admin/uplisting/verify', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                let message = '🔑 Uplisting API Verification Results\n\n';
+                message += `Base URL: ${data.baseUrl || 'Not configured'}\n`;
+                message += `Auth Mode: ${data.authMode || 'Not configured'}\n`;
+                message += `Configured: ${data.configured ? 'Yes' : 'No'}\n\n`;
+                
+                if (data.success) {
+                    message += '✅ API Key is VALID!\n\n';
+                    if (data.user) {
+                        message += `User ID: ${data.user.id || 'N/A'}\n`;
+                        message += `Email: ${data.user.email || 'N/A'}\n`;
+                    }
+                } else {
+                    message += `❌ API Key verification FAILED\n\n`;
+                    message += `Error: ${data.error || 'Unknown error'}\n`;
+                    if (data.details) {
+                        message += `Details: ${data.details}\n`;
+                    }
+                    if (data.suggestion) {
+                        message += `\n💡 Suggestion: ${data.suggestion}`;
+                    }
+                }
+                
+                alert(message);
+                
+            } catch (error) {
+                console.error('Error verifying Uplisting API:', error);
+                alert('Failed to verify Uplisting API. Check console for details.');
+            } finally {
+                verifyBtn.innerHTML = originalText;
+                verifyBtn.disabled = false;
             }
         }
 
