@@ -61,13 +61,48 @@ function getUplistingBaseUrl() {
 }
 
 // Returns the Authorization header for Uplisting API calls
-// Uplisting API uses Bearer token authentication with the API key
+// Configurable auth mode via UPLISTING_AUTH_MODE env var:
+// - 'bearer' (default): Authorization: Bearer {api_key}
+// - 'basic_username': Authorization: Basic base64({api_key}:)
+// - 'basic_password': Authorization: Basic base64(:{api_key})
+// - 'token': Authorization: Token token="{api_key}"
+// - 'api_key': X-API-Key header (returns object with custom header)
 function getUplistingAuthHeader() {
-    const apiKey = (process.env.UPLISTING_API_KEY || '').trim();
+    const rawApiKey = process.env.UPLISTING_API_KEY || '';
+    // Trim whitespace and remove any accidental scheme prefixes
+    let apiKey = rawApiKey.trim();
+    
+    // Check if the key already has a scheme prefix and strip it
+    if (apiKey.toLowerCase().startsWith('bearer ')) {
+        apiKey = apiKey.substring(7).trim();
+    } else if (apiKey.toLowerCase().startsWith('basic ')) {
+        apiKey = apiKey.substring(6).trim();
+    } else if (apiKey.toLowerCase().startsWith('token ')) {
+        apiKey = apiKey.substring(6).trim();
+    }
+    
     if (!apiKey) {
         console.warn('Warning: UPLISTING_API_KEY is not set or empty');
+        return 'Bearer ';
     }
-    return `Bearer ${apiKey}`;
+    
+    const authMode = (process.env.UPLISTING_AUTH_MODE || 'bearer').toLowerCase().trim();
+    console.log(`Uplisting auth mode: ${authMode}, API key length: ${apiKey.length}`);
+    
+    switch (authMode) {
+        case 'basic_username':
+            // API key as username with empty password
+            return `Basic ${Buffer.from(`${apiKey}:`).toString('base64')}`;
+        case 'basic_password':
+            // Empty username with API key as password
+            return `Basic ${Buffer.from(`:${apiKey}`).toString('base64')}`;
+        case 'token':
+            // Rails-style token auth
+            return `Token token="${apiKey}"`;
+        case 'bearer':
+        default:
+            return `Bearer ${apiKey}`;
+    }
 }
 
 // Centralized Uplisting property mapping configuration
@@ -199,7 +234,8 @@ app.use(helmet({
                 "https://www.googletagmanager.com",
                 "https://www.google-analytics.com",
                 "https://www.clarity.ms",
-                "https://scripts.clarity.ms"
+                "https://scripts.clarity.ms",
+                "https://cdn.jsdelivr.net"
             ],
             // Allow inline event handlers (onclick, onchange, etc.) - required for site navigation
             scriptSrcAttr: ["'unsafe-inline'"],
