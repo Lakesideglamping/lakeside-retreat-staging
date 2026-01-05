@@ -520,13 +520,71 @@
             window.location.href = '/admin.html';
         }
 
-        function showAlert(message) {
+        function showAlert(message, type = 'success') {
             const alertBox = document.getElementById('alertBox');
-            alertBox.innerHTML = `<div class="alert alert-success">✅ ${message}</div>`;
+            if (type === 'error') {
+                alertBox.innerHTML = `<div class="alert" style="background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb;">❌ ${message}</div>`;
+            } else {
+                alertBox.innerHTML = `<div class="alert alert-success">✅ ${message}</div>`;
+            }
             setTimeout(() => {
                 alertBox.innerHTML = '';
             }, 3000);
         }
+
+        // Load saved pricing on page load
+        async function loadPricing() {
+            try {
+                const response = await fetch('/api/admin/pricing', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    console.error('Failed to load pricing');
+                    return;
+                }
+                
+                const data = await response.json();
+                if (data.success && data.pricing) {
+                    // Load Dome Pinot pricing
+                    if (data.pricing.pricing_dome_pinot) {
+                        const pinot = data.pricing.pricing_dome_pinot;
+                        document.getElementById('pinot-base').value = pinot.base || 295;
+                        document.getElementById('pinot-weekend').value = pinot.weekend || 325;
+                        document.getElementById('pinot-peak').value = pinot.peak || 350;
+                        document.getElementById('pinot-cleaning').value = pinot.cleaning || 50;
+                        document.getElementById('pinot-min-nights').value = pinot.minNights || 2;
+                    }
+                    
+                    // Load Dome Rosé pricing
+                    if (data.pricing.pricing_dome_rosé) {
+                        const rose = data.pricing.pricing_dome_rosé;
+                        document.getElementById('rose-base').value = rose.base || 295;
+                        document.getElementById('rose-weekend').value = rose.weekend || 325;
+                        document.getElementById('rose-peak').value = rose.peak || 350;
+                        document.getElementById('rose-cleaning').value = rose.cleaning || 50;
+                        document.getElementById('rose-min-nights').value = rose.minNights || 2;
+                    }
+                    
+                    // Load Lakeside Cottage pricing
+                    if (data.pricing.pricing_lakeside_cottage) {
+                        const cottage = data.pricing.pricing_lakeside_cottage;
+                        document.getElementById('cottage-base').value = cottage.base || 245;
+                        document.getElementById('cottage-weekend').value = cottage.weekend || 275;
+                        document.getElementById('cottage-peak').value = cottage.peak || 300;
+                        document.getElementById('cottage-cleaning').value = cottage.cleaning || 50;
+                        document.getElementById('cottage-min-nights').value = cottage.minNights || 2;
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading pricing:', error);
+            }
+        }
+
+        // Load pricing when page loads
+        document.addEventListener('DOMContentLoaded', loadPricing);
 
         async function savePricing(accommodation) {
             let accommodationName = '';
@@ -579,14 +637,14 @@
                 });
                 
                 if (!response.ok) {
-                    throw new Error('Failed to update pricing');
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error || 'Failed to update pricing');
                 }
                 
                 showAlert(`${accommodationName} pricing updated successfully!`);
             } catch (error) {
                 console.error('Error updating pricing:', error);
-                // Show success anyway for demo
-                showAlert(`${accommodationName} pricing updated successfully!`);
+                showAlert(`Failed to save ${accommodationName} pricing: ${error.message}`, 'error');
             }
         }
     </script>
