@@ -769,7 +769,8 @@ async function checkUplistingAvailability(accommodation, checkIn, checkOut) {
             return true;
         }
         
-        const url = `https://connect.uplisting.io/properties/${propertyId}/availability?start_date=${checkIn}&end_date=${checkOut}`;
+        const baseUrl = getUplistingBaseUrl();
+        const url = `${baseUrl}/properties/${propertyId}/availability?start_date=${checkIn}&end_date=${checkOut}`;
         console.log('🔍 Checking Uplisting availability:', url);
         
         const response = await fetch(url, {
@@ -861,7 +862,8 @@ async function syncBookingToUplisting(bookingData) {
             notes: bookingData.notes || ''
         };
         
-        const response = await fetch('https://connect.uplisting.io/bookings', {
+        const baseUrl = getUplistingBaseUrl();
+        const response = await fetch(`${baseUrl}/bookings`, {
             method: 'POST',
             headers: {
                 ...getUplistingAuthHeaders(),
@@ -1771,7 +1773,8 @@ app.get('/api/admin/uplisting-booking/:bookingId', verifyAdmin, async (req, res)
             });
         }
         
-        const response = await fetch(`https://connect.uplisting.io/bookings/${bookingId}`, {
+        const baseUrl = getUplistingBaseUrl();
+        const response = await fetch(`${baseUrl}/bookings/${bookingId}`, {
             headers: {
                 ...getUplistingAuthHeaders(),
                 'Content-Type': 'application/json'
@@ -1876,7 +1879,8 @@ async function cancelUplistingBooking(uplistingId) {
     if (!process.env.UPLISTING_API_KEY || !uplistingId) return;
     
     try {
-        const response = await fetch(`https://connect.uplisting.io/bookings/${uplistingId}/cancel`, {
+        const baseUrl = getUplistingBaseUrl();
+        const response = await fetch(`${baseUrl}/bookings/${uplistingId}/cancel`, {
             method: 'POST',
             headers: {
                 ...getUplistingAuthHeaders(),
