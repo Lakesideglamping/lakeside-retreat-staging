@@ -345,7 +345,7 @@ app.use((req, res, next) => {
 });
 
 // Enhanced static file serving with proper caching
-app.use(express.static(__dirname, {
+app.use(express.static(path.join(__dirname, 'public'), {
     maxAge: '1h', // Default cache for most files
     setHeaders: (res, filePath) => {
         // Set specific cache headers for different file types
@@ -3422,7 +3422,7 @@ const seoPages = {
 Object.keys(seoPages).forEach(route => {
     if (route !== '/') {
         app.get(route, (req, res) => {
-            res.sendFile(path.join(__dirname, 'index.html'));
+            res.sendFile(path.join(__dirname, 'public', 'index.html'));
         });
     }
 });
@@ -3444,7 +3444,7 @@ app.get('*', (req, res) => {
         return res.status(404).send('Not Found');
     }
     
-    res.sendFile(path.join(__dirname, 'index.html'));
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 app.listen(PORT, () => {
