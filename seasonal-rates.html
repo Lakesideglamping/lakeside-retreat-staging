@@ -363,7 +363,6 @@
 
     <script src="/admin-shell.js?v=2"></script>
     <script>
-        // Check authentication
         const token = localStorage.getItem('adminToken');
         if (!token) {
             window.location.href = '/admin.html';
@@ -372,27 +371,65 @@
         function showAlert(message, type = 'success') {
             const alertBox = document.getElementById('alertBox');
             alertBox.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
-            setTimeout(() => {
-                alertBox.innerHTML = '';
-            }, 3000);
+            setTimeout(() => { alertBox.innerHTML = ''; }, 3000);
         }
 
-        function editSeason(season) {
+        async function loadSeasonalRates() {
+            try {
+                const response = await fetch('/api/admin/seasonal-rates', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                if (data.success && data.rates.length > 0) {
+                    console.log('Loaded seasonal rates:', data.rates);
+                }
+            } catch (error) {
+                console.error('Error loading seasonal rates:', error);
+            }
+        }
+
+        async function editSeason(season) {
             showAlert(`Editing ${season} season rates...`);
         }
 
-        function toggleSeason(season) {
+        async function toggleSeason(season) {
             showAlert(`Toggled ${season} season status`);
         }
 
-        document.getElementById('addSeasonForm').addEventListener('submit', function(e) {
+        document.getElementById('addSeasonForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const name = document.getElementById('seasonName').value;
-            if (name) {
-                showAlert(`Season "${name}" added successfully!`);
-                this.reset();
+            const multiplier = parseFloat(document.getElementById('multiplier').value);
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            
+            if (!name || !startDate || !endDate) {
+                showAlert('Please fill in all fields', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/admin/seasonal-rates', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ name, start_date: startDate, end_date: endDate, multiplier, is_active: true })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    showAlert(`Season "${name}" added successfully!`);
+                    this.reset();
+                } else {
+                    showAlert(data.error || 'Failed to add season', 'error');
+                }
+            } catch (error) {
+                showAlert('Error adding season', 'error');
             }
         });
+
+        loadSeasonalRates();
     </script>
 </body>
 </html>

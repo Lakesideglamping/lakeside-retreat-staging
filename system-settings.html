@@ -409,7 +409,6 @@
 
     <script src="/admin-shell.js?v=2"></script>
     <script>
-        // Check authentication
         const token = localStorage.getItem('adminToken');
         if (!token) {
             window.location.href = '/admin.html';
@@ -418,17 +417,61 @@
         function showAlert(message, type = 'success') {
             const alertBox = document.getElementById('alertBox');
             alertBox.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
-            setTimeout(() => {
-                alertBox.innerHTML = '';
-            }, 3000);
+            setTimeout(() => { alertBox.innerHTML = ''; }, 3000);
         }
 
-        function saveGeneralSettings() {
-            showAlert('General settings saved successfully!');
+        async function loadSettings() {
+            try {
+                const response = await fetch('/api/admin/settings', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                if (data.success && data.settings) {
+                    Object.entries(data.settings).forEach(([key, value]) => {
+                        const el = document.getElementById(key);
+                        if (el) {
+                            if (el.type === 'checkbox') el.checked = value === 'true' || value === true;
+                            else el.value = value;
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading settings:', error);
+            }
         }
 
-        function saveEmailSettings() {
-            showAlert('Email settings saved successfully!');
+        async function saveGeneralSettings() {
+            const settings = {
+                site_name: document.getElementById('siteName')?.value || 'Lakeside Retreat',
+                timezone: document.getElementById('timezone')?.value || 'Pacific/Auckland',
+                currency: document.getElementById('currency')?.value || 'NZD'
+            };
+            await saveSettings(settings);
+        }
+
+        async function saveEmailSettings() {
+            const settings = {
+                email_notifications: document.querySelector('input[type="checkbox"]')?.checked || false
+            };
+            await saveSettings(settings);
+        }
+
+        async function saveSettings(settings) {
+            try {
+                const response = await fetch('/api/admin/settings', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ settings })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    showAlert('Settings saved successfully!');
+                } else {
+                    showAlert(data.error || 'Failed to save settings', 'error');
+                }
+            } catch (error) {
+                showAlert('Error saving settings', 'error');
+            }
         }
 
         function configureIntegration(integration) {
@@ -446,6 +489,8 @@
                 showAlert('Analytics data has been reset.', 'warning');
             }
         }
+
+        loadSettings();
     </script>
 </body>
 </html>
