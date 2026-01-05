@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Booking - Lakeside Retreat Admin</title>
+    <link rel="stylesheet" href="/admin-shell.css?v=2">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+        
+        .form-card {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .form-card h2 {
+            color: #2d5a5a;
+            margin-bottom: 1.5rem;
+            font-size: 1.5rem;
+        }
+        
+        .form-section {
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .form-section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+        
+        .form-section h3 {
+            color: #666;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #2d5a5a;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1rem;
+        }
+        
+        .btn-primary {
+            background: #2d5a5a;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #1e4040;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        
+        .price-display {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+        
+        .price-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+        
+        .price-row.total {
+            font-weight: bold;
+            border-top: 1px solid #ddd;
+            padding-top: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        
+        .alert {
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+        }
+        
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="alertBox"></div>
+        
+        <div class="form-card">
+            <h2>Add New Booking</h2>
+            
+            <form id="bookingForm">
+                <div class="form-section">
+                    <h3>Guest Information</h3>
+                    <div class="form-group">
+                        <label for="guestName">Guest Name *</label>
+                        <input type="text" id="guestName" required placeholder="Full name">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="guestEmail">Email *</label>
+                            <input type="email" id="guestEmail" required placeholder="email@example.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="guestPhone">Phone</label>
+                            <input type="tel" id="guestPhone" placeholder="+64 XXX XXX XXXX">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-section">
+                    <h3>Booking Details</h3>
+                    <div class="form-group">
+                        <label for="accommodation">Accommodation *</label>
+                        <select id="accommodation" required>
+                            <option value="">Select accommodation...</option>
+                            <option value="dome-pinot">Dome Pinot - $295/night</option>
+                            <option value="dome-rose">Dome Rose - $295/night</option>
+                            <option value="lakeside-cottage">Lakeside Cottage - $245/night</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="checkIn">Check-in Date *</label>
+                            <input type="date" id="checkIn" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="checkOut">Check-out Date *</label>
+                            <input type="date" id="checkOut" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="guests">Number of Guests *</label>
+                            <select id="guests" required>
+                                <option value="1">1 Guest</option>
+                                <option value="2" selected>2 Guests</option>
+                                <option value="3">3 Guests</option>
+                                <option value="4">4 Guests</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="status">Booking Status</label>
+                            <select id="status">
+                                <option value="confirmed">Confirmed</option>
+                                <option value="pending">Pending</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-section">
+                    <h3>Payment</h3>
+                    <div class="form-group">
+                        <label for="paymentStatus">Payment Status</label>
+                        <select id="paymentStatus">
+                            <option value="completed">Paid</option>
+                            <option value="pending">Pending</option>
+                        </select>
+                    </div>
+                    
+                    <div class="price-display" id="priceDisplay">
+                        <div class="price-row">
+                            <span>Accommodation (0 nights)</span>
+                            <span id="accommodationPrice">$0</span>
+                        </div>
+                        <div class="price-row">
+                            <span>Cleaning Fee</span>
+                            <span>$50</span>
+                        </div>
+                        <div class="price-row total">
+                            <span>Total</span>
+                            <span id="totalPrice">$50</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-section">
+                    <h3>Notes</h3>
+                    <div class="form-group">
+                        <label for="notes">Internal Notes</label>
+                        <textarea id="notes" rows="3" placeholder="Any special requests or notes..."></textarea>
+                    </div>
+                </div>
+                
+                <div class="button-group">
+                    <button type="submit" class="btn btn-primary">Create Booking</button>
+                    <a href="/admin-bookings.html" class="btn btn-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/admin-shell.js?v=2"></script>
+    <script>
+        // Check authentication
+        const token = localStorage.getItem('adminToken');
+        if (!token) {
+            window.location.href = '/admin.html';
+        }
+
+        // Set minimum date to today
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('checkIn').min = today;
+        document.getElementById('checkOut').min = today;
+
+        // Price calculation
+        const prices = {
+            'dome-pinot': 295,
+            'dome-rose': 295,
+            'lakeside-cottage': 245
+        };
+
+        function calculatePrice() {
+            const accommodation = document.getElementById('accommodation').value;
+            const checkIn = document.getElementById('checkIn').value;
+            const checkOut = document.getElementById('checkOut').value;
+            
+            if (accommodation && checkIn && checkOut) {
+                const nights = Math.ceil((new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24));
+                if (nights > 0) {
+                    const nightlyRate = prices[accommodation] || 0;
+                    const accommodationTotal = nights * nightlyRate;
+                    const cleaningFee = 50;
+                    const total = accommodationTotal + cleaningFee;
+                    
+                    document.getElementById('accommodationPrice').textContent = `$${accommodationTotal}`;
+                    document.querySelector('.price-row span').textContent = `Accommodation (${nights} night${nights > 1 ? 's' : ''})`;
+                    document.getElementById('totalPrice').textContent = `$${total}`;
+                }
+            }
+        }
+
+        document.getElementById('accommodation').addEventListener('change', calculatePrice);
+        document.getElementById('checkIn').addEventListener('change', function() {
+            document.getElementById('checkOut').min = this.value;
+            calculatePrice();
+        });
+        document.getElementById('checkOut').addEventListener('change', calculatePrice);
+
+        // Form submission
+        document.getElementById('bookingForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const bookingData = {
+                guest_name: document.getElementById('guestName').value,
+                guest_email: document.getElementById('guestEmail').value,
+                guest_phone: document.getElementById('guestPhone').value,
+                accommodation: document.getElementById('accommodation').value,
+                check_in: document.getElementById('checkIn').value,
+                check_out: document.getElementById('checkOut').value,
+                guests: parseInt(document.getElementById('guests').value),
+                status: document.getElementById('status').value,
+                payment_status: document.getElementById('paymentStatus').value,
+                notes: document.getElementById('notes').value
+            };
+
+            try {
+                const response = await fetch('/api/admin/bookings', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(bookingData)
+                });
+
+                if (response.ok) {
+                    document.getElementById('alertBox').innerHTML = '<div class="alert alert-success">Booking created successfully! Redirecting...</div>';
+                    setTimeout(() => {
+                        window.location.href = '/admin-bookings.html';
+                    }, 1500);
+                } else {
+                    throw new Error('Failed to create booking');
+                }
+            } catch (error) {
+                document.getElementById('alertBox').innerHTML = '<div class="alert alert-error">Error creating booking. Please try again.</div>';
+            }
+        });
+    </script>
+</body>
+</html>
