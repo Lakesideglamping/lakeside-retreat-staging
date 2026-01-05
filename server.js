@@ -61,10 +61,13 @@ function getUplistingBaseUrl() {
 }
 
 // Returns the Authorization header for Uplisting API calls
-// Basic auth format requires base64(username:password) - API key is the username with empty password
+// Uplisting API uses Bearer token authentication with the API key
 function getUplistingAuthHeader() {
-    const apiKey = process.env.UPLISTING_API_KEY || '';
-    return `Basic ${Buffer.from(`${apiKey}:`).toString('base64')}`;
+    const apiKey = (process.env.UPLISTING_API_KEY || '').trim();
+    if (!apiKey) {
+        console.warn('Warning: UPLISTING_API_KEY is not set or empty');
+    }
+    return `Bearer ${apiKey}`;
 }
 
 // Centralized Uplisting property mapping configuration
