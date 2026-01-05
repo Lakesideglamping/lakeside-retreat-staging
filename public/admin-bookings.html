@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Bookings - Lakeside Retreat Admin</title>
+    <link rel="stylesheet" href="/admin-shell.css?v=2">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2d5a5a 0%, #1e4040 100%);
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-size: 1.5rem;
+        }
+        
+        .nav-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .btn-back, .logout-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .logout-btn {
+            background: #dc3545;
+            border: none;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .filters {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .filter-row {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .filter-group {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .filter-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .filter-group input, .filter-group select {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .btn-primary {
+            background: #2d5a5a;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-left: 0.5rem;
+        }
+        
+        .bookings-table {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th {
+            background: #2d5a5a;
+            color: white;
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+        }
+        
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid #eee;
+        }
+        
+        tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .status {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+        
+        .status.confirmed {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status.pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .status.cancelled {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .btn-action {
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.875rem;
+        }
+        
+        .btn-edit {
+            background: #ffc107;
+            color: #000;
+        }
+        
+        .btn-cancel {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .btn-view {
+            background: #17a2b8;
+            color: white;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #666;
+        }
+        
+        .add-booking-btn {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: #28a745;
+            color: white;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: none;
+            font-size: 2rem;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-box {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #2d5a5a;
+        }
+        
+        .stat-label {
+            color: #666;
+            margin-top: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Old header removed - now using admin-shell.js for unified navigation -->
+    
+    <div class="container">
+        <!-- Statistics -->
+        <div class="stats-row">
+            <div class="stat-box">
+                <div class="stat-value" id="totalBookings">0</div>
+                <div class="stat-label">Total Bookings</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="upcomingBookings">0</div>
+                <div class="stat-label">Upcoming</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="todayCheckIns">0</div>
+                <div class="stat-label">Today's Check-ins</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="monthRevenue">$0</div>
+                <div class="stat-label">This Month</div>
+            </div>
+        </div>
+        
+        <!-- Filters -->
+        <div class="filters">
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label>Search Guest</label>
+                    <input type="text" id="searchGuest" placeholder="Name or email...">
+                </div>
+                <div class="filter-group">
+                    <label>Accommodation</label>
+                    <select id="filterAccommodation">
+                        <option value="">All Properties</option>
+                        <!-- Will be populated from Uplisting API -->
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Status</label>
+                    <select id="filterStatus">
+                        <option value="">All</option>
+                        <option value="confirmed">Confirmed</option>
+                        <option value="pending">Pending</option>
+                        <option value="cancelled">Cancelled</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Date Range</label>
+                    <input type="date" id="dateFrom">
+                </div>
+                <div class="filter-group">
+                    <label>&nbsp;</label>
+                    <input type="date" id="dateTo">
+                </div>
+            </div>
+            <div style="margin-top: 1rem;">
+                <button class="btn-primary" onclick="filterBookings()">Apply Filters</button>
+                <button class="btn-secondary" onclick="resetFilters()">Reset</button>
+                <button class="btn-secondary" onclick="exportBookings()">Export CSV</button>
+            </div>
+        </div>
+        
+        <!-- Bookings Table -->
+        <div class="bookings-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Guest</th>
+                        <th>Accommodation</th>
+                        <th>Check-in</th>
+                        <th>Check-out</th>
+                        <th>Guests</th>
+                        <th>Total</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="bookingsTableBody">
+                    <tr>
+                        <td colspan="9" class="empty-state">Loading bookings...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Add Booking Button -->
+    <button class="add-booking-btn" onclick="window.location.href='/add-booking.html'" title="Add New Booking">+</button>
+
+    <script>
+        // Check authentication
+        const token = localStorage.getItem('adminToken');
+        if (!token) {
+            window.location.href = '/admin.html';
+        }
+
+        // Load bookings data
+        async function loadBookings() {
+            try {
+                // Load Uplisting properties first
+                await loadUplistingProperties();
+                
+                const response = await fetch('/api/admin/bookings', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to load bookings');
+                }
+                
+                const bookings = await response.json();
+                displayBookings(bookings);
+                updateStats(bookings);
+            } catch (error) {
+                console.error('Error loading bookings:', error);
+                // Load Uplisting properties and display mock data
+                await loadUplistingProperties();
+                displayMockBookings();
+            }
+        }
+
+        // Load Uplisting properties into filter dropdown
+        async function loadUplistingProperties() {
+            try {
+                const response = await fetch('/api/admin/uplisting-dashboard', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const uplistingData = await response.json();
+                    if (uplistingData.success && uplistingData.properties) {
+                        const select = document.getElementById('filterAccommodation');
+                        
+                        // Add Uplisting properties to dropdown
+                        uplistingData.properties.forEach(property => {
+                            const option = document.createElement('option');
+                            option.value = property.name;
+                            option.textContent = property.name;
+                            select.appendChild(option);
+                        });
+                        
+                        console.log(`✅ Loaded ${uplistingData.properties.length} Uplisting properties into filter`);
+                    }
+                }
+            } catch (error) {
+                console.log('Could not load Uplisting properties:', error);
+            }
+        }
+
+        function displayMockBookings() {
+            const mockBookings = [
+                {
+                    id: 1,
+                    guest_name: 'John Smith',
+                    guest_email: 'john@example.com',
+                    accommodation: 'Lakeside Glamping - Dome Pinot',
+                    check_in: '2025-09-10',
+                    check_out: '2025-09-12',
+                    guests: 2,
+                    total_price: 590,
+                    status: 'confirmed'
+                },
+                {
+                    id: 2,
+                    guest_name: 'Sarah Johnson',
+                    guest_email: 'sarah@example.com',
+                    accommodation: 'Lakeside Retreat in a Vineyard By Lake Dunstan',
+                    check_in: '2025-09-15',
+                    check_out: '2025-09-18',
+                    guests: 4,
+                    total_price: 735,
+                    status: 'pending'
+                },
+                {
+                    id: 3,
+                    guest_name: 'Mike Wilson',
+                    guest_email: 'mike@example.com',
+                    accommodation: 'Lakeside Glamping - Dome Rosé',
+                    check_in: '2025-09-20',
+                    check_out: '2025-09-22',
+                    guests: 2,
+                    total_price: 590,
+                    status: 'confirmed'
+                }
+            ];
+            
+            displayBookings(mockBookings);
+            updateStats(mockBookings);
+        }
+
+        function displayBookings(bookings) {
+            const tbody = document.getElementById('bookingsTableBody');
+            
+            if (bookings.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" class="empty-state">No bookings found</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = bookings.map(booking => `
+                <tr>
+                    <td>#${booking.id}</td>
+                    <td>
+                        <strong>${booking.guest_name}</strong><br>
+                        <small>${booking.guest_email}</small>
+                    </td>
+                    <td>${booking.accommodation}</td>
+                    <td>${formatDate(booking.check_in)}</td>
+                    <td>${formatDate(booking.check_out)}</td>
+                    <td>${booking.guests}</td>
+                    <td>$${booking.total_price}</td>
+                    <td><span class="status ${booking.status}">${booking.status}</span></td>
+                    <td>
+                        <div class="actions">
+                            <button class="btn-action btn-view" onclick="viewBooking(${booking.id})">View</button>
+                            <button class="btn-action btn-edit" onclick="editBooking(${booking.id})">Edit</button>
+                            <button class="btn-action btn-cancel" onclick="cancelBooking(${booking.id})">Cancel</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function updateStats(bookings) {
+            const today = new Date().toISOString().split('T')[0];
+            const upcoming = bookings.filter(b => b.check_in > today && b.status === 'confirmed').length;
+            const todayCheckIns = bookings.filter(b => b.check_in === today).length;
+            const monthRevenue = bookings
+                .filter(b => b.status === 'confirmed')
+                .reduce((sum, b) => sum + b.total_price, 0);
+            
+            document.getElementById('totalBookings').textContent = bookings.length;
+            document.getElementById('upcomingBookings').textContent = upcoming;
+            document.getElementById('todayCheckIns').textContent = todayCheckIns;
+            document.getElementById('monthRevenue').textContent = `$${monthRevenue.toLocaleString()}`;
+        }
+
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+
+        function viewBooking(id) {
+            alert(`View booking ${id} - Feature coming soon!`);
+        }
+
+        function editBooking(id) {
+            window.location.href = `/edit-booking.html?id=${id}`;
+        }
+
+        function cancelBooking(id) {
+            if (confirm('Are you sure you want to cancel this booking?')) {
+                alert(`Booking ${id} cancelled - Feature coming soon!`);
+            }
+        }
+
+        function filterBookings() {
+            const search = document.getElementById('searchGuest').value.trim();
+            const accommodation = document.getElementById('filterAccommodation').value;
+            const status = document.getElementById('filterStatus').value;
+            const dateFrom = document.getElementById('dateFrom').value;
+            const dateTo = document.getElementById('dateTo').value;
+            
+            loadBookingsWithFilters({ search, accommodation, status, dateFrom, dateTo });
+        }
+
+        async function loadBookingsWithFilters(filters = {}) {
+            try {
+                const params = new URLSearchParams();
+                if (filters.search) params.append('search', filters.search);
+                if (filters.accommodation) params.append('accommodation', filters.accommodation);
+                if (filters.status) params.append('status', filters.status);
+                if (filters.dateFrom) params.append('dateFrom', filters.dateFrom);
+                if (filters.dateTo) params.append('dateTo', filters.dateTo);
+                params.append('limit', '100'); // Get more results for filtering
+                
+                const response = await fetch(`/api/admin/bookings?${params.toString()}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to load bookings');
+                }
+                
+                const data = await response.json();
+                if (data.success && data.bookings) {
+                    displayBookings(data.bookings);
+                    updateStats(data.bookings);
+                } else {
+                    displayMockBookings();
+                }
+            } catch (error) {
+                console.error('Error loading filtered bookings:', error);
+                displayMockBookings();
+            }
+        }
+
+        function resetFilters() {
+            document.getElementById('searchGuest').value = '';
+            document.getElementById('filterAccommodation').value = '';
+            document.getElementById('filterStatus').value = '';
+            document.getElementById('dateFrom').value = '';
+            document.getElementById('dateTo').value = '';
+            loadBookings();
+        }
+
+        function exportBookings() {
+            const search = document.getElementById('searchGuest').value.trim();
+            const accommodation = document.getElementById('filterAccommodation').value;
+            const status = document.getElementById('filterStatus').value;
+            const dateFrom = document.getElementById('dateFrom').value;
+            const dateTo = document.getElementById('dateTo').value;
+            
+            const params = new URLSearchParams();
+            if (search) params.append('search', search);
+            if (accommodation) params.append('accommodation', accommodation);
+            if (status) params.append('status', status);
+            if (dateFrom) params.append('dateFrom', dateFrom);
+            if (dateTo) params.append('dateTo', dateTo);
+            
+            // Create download link with auth token
+            const exportUrl = `/api/admin/bookings/export?${params.toString()}`;
+            
+            // Use fetch to get the CSV with auth header
+            fetch(exportUrl, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+            .then(response => {
+                if (!response.ok) throw new Error('Export failed');
+                return response.blob();
+            })
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `bookings-export-${new Date().toISOString().split('T')[0]}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                a.remove();
+            })
+            .catch(error => {
+                console.error('Export error:', error);
+                alert('Failed to export bookings. Please try again.');
+            });
+        }
+
+        function logout() {
+            localStorage.removeItem('adminToken');
+            window.location.href = '/admin.html';
+        }
+
+        // Load bookings on page load
+        loadBookings();
+    </script>
+    <script src="/admin-shell.js?v=2"></script>
+</body>
+</html>

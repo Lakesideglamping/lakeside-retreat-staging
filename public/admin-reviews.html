@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Review Management - Lakeside Retreat Admin</title>
-    <!-- Force cache refresh -->
+    <link rel="stylesheet" href="/admin-shell.css?v=2">
     
     <style>
         :root {
@@ -18,9 +18,6 @@
             --success: #10b981;
             --warning: #f59e0b;
             --error: #ef4444;
-            --airbnb: #ff5a5f;
-            --booking: #003580;
-            --direct: #8fbc8f;
         }
 
         * {
@@ -52,382 +49,335 @@
 
         .header-right {
             display: flex;
-            gap: 1rem;
             align-items: center;
+            gap: 1rem;
         }
 
-        .btn-back {
+        .import-btn {
+            background: var(--brand-sage);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            text-decoration: none;
+            display: inline-block;
+            transition: background-color 0.3s;
+        }
+
+        .import-btn:hover {
+            background: #6a9d6a;
+        }
+
+        .admin-info {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .logout-btn {
             background: rgba(255,255,255,0.2);
             color: white;
             border: 1px solid rgba(255,255,255,0.3);
             padding: 0.5rem 1rem;
             border-radius: 4px;
-            text-decoration: none;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background-color 0.3s;
         }
 
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 2rem;
+        .logout-btn:hover {
+            background: rgba(255,255,255,0.3);
         }
 
-        .review-stats {
+        .stats-bar {
+            background: white;
+            padding: 1rem 2rem;
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
 
         .stat-card {
-            background: var(--white);
-            border-radius: 8px;
-            padding: 1.5rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             text-align: center;
+            padding: 1rem;
+            border-radius: 8px;
+            background: linear-gradient(135deg, var(--brand-teal) 0%, var(--brand-sage) 100%);
+            color: white;
         }
 
-        .stat-value {
+        .stat-number {
             font-size: 2rem;
             font-weight: bold;
-            color: var(--brand-teal);
             margin-bottom: 0.5rem;
         }
 
         .stat-label {
-            color: var(--text-light);
             font-size: 0.9rem;
+            opacity: 0.9;
         }
 
-        .sync-status {
-            background: var(--white);
-            border-radius: 8px;
-            padding: 1.5rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 2rem;
-        }
-
-        .sync-status h3 {
-            color: var(--brand-teal);
-            margin-bottom: 1rem;
-        }
-
-        .platform-sync {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 1rem;
-        }
-
-        .platform-card {
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            padding: 1rem;
+        .controls {
+            padding: 1rem 2rem;
+            background: white;
             display: flex;
-            align-items: center;
             gap: 1rem;
-        }
-
-        .platform-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
             align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: bold;
-            font-size: 0.9rem;
-        }
-
-        .airbnb-icon {
-            background: var(--airbnb);
-        }
-
-        .booking-icon {
-            background: var(--booking);
-        }
-
-        .direct-icon {
-            background: var(--direct);
-        }
-
-        .platform-info {
-            flex: 1;
-        }
-
-        .platform-name {
-            font-weight: 600;
-            margin-bottom: 0.25rem;
-        }
-
-        .platform-status {
-            font-size: 0.85rem;
-            color: var(--text-light);
-        }
-
-        .sync-btn {
-            background: var(--success);
-            color: white;
-            border: none;
-            padding: 0.5rem 1rem;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.85rem;
-            font-weight: 500;
-        }
-
-        .sync-btn:disabled {
-            background: #9ca3af;
-            cursor: not-allowed;
-        }
-
-        .filters {
-            background: var(--white);
-            border-radius: 8px;
-            padding: 1.5rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 2rem;
-        }
-
-        .filters h3 {
-            color: var(--brand-teal);
-            margin-bottom: 1rem;
-        }
-
-        .filter-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            align-items: end;
+            flex-wrap: wrap;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
 
         .filter-group {
             display: flex;
-            flex-direction: column;
+            gap: 0.5rem;
+            align-items: center;
         }
 
         .filter-group label {
-            margin-bottom: 0.5rem;
-            font-weight: 500;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .filter-select, .search-input {
+            padding: 0.5rem 1rem;
+            border: 2px solid var(--border);
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .filter-select:focus, .search-input:focus {
+            outline: none;
+            border-color: var(--brand-teal);
+        }
+
+        .main-content {
+            padding: 1rem 2rem;
+        }
+
+        .review-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            margin-bottom: 1rem;
+            overflow: hidden;
+            border-left: 4px solid var(--border);
+        }
+
+        .review-card.pending {
+            border-left-color: var(--warning);
+        }
+
+        .review-card.approved {
+            border-left-color: var(--success);
+        }
+
+        .review-card.rejected {
+            border-left-color: var(--error);
+        }
+
+        .review-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .guest-info h3 {
+            color: var(--brand-teal);
+            margin-bottom: 0.25rem;
+        }
+
+        .guest-details {
+            font-size: 0.9rem;
             color: var(--text-light);
         }
 
-        .filter-group input,
-        .filter-group select {
-            padding: 0.5rem;
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            font-size: 1rem;
+        .review-meta {
+            text-align: right;
+            font-size: 0.9rem;
+            color: var(--text-light);
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+        }
+
+        .status-badge.pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-badge.approved {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-badge.rejected {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .stars {
+            color: #fbbf24;
+            margin-bottom: 0.5rem;
+        }
+
+        .review-content {
+            padding: 1.5rem;
+        }
+
+        .review-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--brand-teal);
+            margin-bottom: 0.75rem;
+        }
+
+        .review-text {
+            margin-bottom: 1rem;
+            line-height: 1.6;
+        }
+
+        .review-highlights {
+            background: #f0f9ff;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            border-left: 3px solid var(--brand-sage);
+        }
+
+        .highlight-label {
+            font-weight: 600;
+            color: var(--brand-teal);
+            margin-bottom: 0.25rem;
+        }
+
+        .review-photos {
+            display: flex;
+            gap: 0.5rem;
+            margin: 1rem 0;
+            flex-wrap: wrap;
+        }
+
+        .review-photos img {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .review-photos img:hover {
+            transform: scale(1.05);
+        }
+
+        .admin-section {
+            background: #f8fafc;
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .admin-notes {
+            margin-bottom: 1rem;
+        }
+
+        .admin-notes textarea {
+            width: 100%;
+            min-height: 80px;
+            padding: 0.75rem;
+            border: 2px solid var(--border);
+            border-radius: 6px;
+            resize: vertical;
+        }
+
+        .admin-notes textarea:focus {
+            outline: none;
+            border-color: var(--brand-teal);
+        }
+
+        .admin-reply {
+            margin-bottom: 1rem;
+        }
+
+        .admin-reply textarea {
+            width: 100%;
+            min-height: 100px;
+            padding: 0.75rem;
+            border: 2px solid var(--border);
+            border-radius: 6px;
+            resize: vertical;
+        }
+
+        .admin-actions {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
         }
 
         .btn {
             padding: 0.5rem 1rem;
             border: none;
-            border-radius: 4px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 600;
             cursor: pointer;
-            font-size: 0.9rem;
-            font-weight: 500;
-            text-decoration: none;
-            display: inline-block;
-            text-align: center;
-        }
-
-        .btn-primary {
-            background: var(--brand-teal);
-            color: white;
-        }
-
-        .btn-secondary {
-            background: #6c757d;
-            color: white;
-        }
-
-        .reviews-container {
-            background: var(--white);
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        .reviews-header {
-            padding: 1.5rem;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .reviews-header h3 {
-            color: var(--brand-teal);
-        }
-
-        .review-count {
-            color: var(--text-light);
-            font-size: 0.9rem;
-        }
-
-        .review-card {
-            border-bottom: 1px solid var(--border);
-            padding: 1.5rem;
-        }
-
-        .review-card:last-child {
-            border-bottom: none;
-        }
-
-        .review-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 1rem;
-        }
-
-        .guest-info {
-            flex: 1;
-        }
-
-        .guest-name {
-            font-weight: 600;
-            font-size: 1.1rem;
-            margin-bottom: 0.25rem;
-        }
-
-        .review-meta {
-            color: var(--text-light);
-            font-size: 0.85rem;
-            display: flex;
-            gap: 1rem;
-            flex-wrap: wrap;
-        }
-
-        .platform-badge {
-            padding: 0.25rem 0.5rem;
-            border-radius: 12px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            color: white;
-        }
-
-        .badge-airbnb {
-            background: var(--airbnb);
-        }
-
-        .badge-booking {
-            background: var(--booking);
-        }
-
-        .badge-direct {
-            background: var(--direct);
-        }
-
-        .rating {
+            transition: all 0.2s ease;
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            font-size: 1.1rem;
-            font-weight: 600;
         }
 
-        .stars {
-            color: #fbbf24;
-        }
-
-        .review-content {
-            margin: 1rem 0;
-        }
-
-        .review-text {
-            font-size: 1rem;
-            line-height: 1.6;
-            color: var(--text);
-            padding: 1rem;
-            background: #f8f9fa;
-            border-radius: 6px;
-            border-left: 4px solid var(--brand-sage);
-        }
-
-        .accommodation-info {
-            display: inline-block;
-            background: var(--brand-sage);
+        .btn-approve {
+            background: var(--success);
             color: white;
-            padding: 0.25rem 0.75rem;
-            border-radius: 12px;
-            font-size: 0.8rem;
-            font-weight: 500;
-            margin-bottom: 1rem;
         }
 
-        .review-actions {
-            display: flex;
-            gap: 1rem;
-            align-items: center;
-            margin-top: 1rem;
-            padding-top: 1rem;
-            border-top: 1px solid var(--border);
+        .btn-approve:hover {
+            background: #059669;
         }
 
-        .status-badge {
-            padding: 0.25rem 0.75rem;
-            border-radius: 12px;
-            font-size: 0.8rem;
-            font-weight: 600;
+        .btn-reject {
+            background: var(--error);
+            color: white;
         }
 
-        .status-approved {
-            background: #d1fae5;
-            color: #065f46;
+        .btn-reject:hover {
+            background: #dc2626;
         }
 
-        .status-pending {
-            background: #fef3c7;
-            color: #92400e;
+        .btn-feature {
+            background: var(--warning);
+            color: white;
         }
 
-        .status-rejected {
-            background: #fee2e2;
-            color: #991b1b;
+        .btn-feature:hover {
+            background: #d97706;
         }
 
-        .status-featured {
-            background: #dbeafe;
-            color: #1e40af;
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
         }
 
-        .admin-section {
-            margin-top: 1rem;
-            padding: 1rem;
-            background: #f1f5f9;
-            border-radius: 6px;
-        }
-
-        .admin-section textarea {
-            width: 100%;
-            min-height: 80px;
-            padding: 0.75rem;
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            font-family: inherit;
-            font-size: 0.9rem;
-            resize: vertical;
-        }
-
-        .admin-section label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 600;
-            color: var(--text);
+        .btn-secondary:hover {
+            background: #4b5563;
         }
 
         .loading {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid #f3f4f6;
-            border-top-color: var(--brand-teal);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-light);
         }
 
         .empty-state {
@@ -436,466 +386,337 @@
             color: var(--text-light);
         }
 
-        .error-message {
-            background: #fee2e2;
-            color: #991b1b;
-            padding: 1rem;
-            border-radius: 6px;
-            margin: 1rem 0;
+        .empty-state h3 {
+            margin-bottom: 0.5rem;
         }
 
-        .alert {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 1rem 1.5rem;
-            border-radius: 6px;
-            color: white;
-            font-weight: 600;
-            z-index: 1000;
-            transform: translateX(400px);
-            transition: transform 0.3s ease;
-        }
+        @media (max-width: 768px) {
+            .header {
+                padding: 1rem;
+            }
 
-        .alert.show {
-            transform: translateX(0);
-        }
+            .controls, .main-content {
+                padding: 1rem;
+            }
 
-        .alert-success {
-            background: var(--success);
-        }
+            .stats-bar {
+                grid-template-columns: 1fr;
+                padding: 1rem;
+            }
 
-        .alert-error {
-            background: var(--error);
-        }
+            .review-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
 
-        .alert-info {
-            background: #3b82f6;
-        }
+            .review-meta {
+                text-align: left;
+            }
 
-        .sync-history {
-            margin-top: 1rem;
-            font-size: 0.85rem;
-            color: var(--text-light);
-        }
+            .admin-actions {
+                flex-direction: column;
+            }
 
-        .quick-actions {
-            display: flex;
-            gap: 0.5rem;
-            flex-wrap: wrap;
-        }
-
-        .quick-actions .btn {
-            font-size: 0.8rem;
-            padding: 0.25rem 0.75rem;
+            .btn {
+                justify-content: center;
+            }
         }
     </style>
 </head>
-
 <body>
-    <div class="header">
-        <h1>⭐ Review Management</h1>
-        <div class="header-right">
-            <a href="/admin-dashboard.html" class="btn-back">← Dashboard</a>
+    <!-- Old header removed - now using admin-shell.js for unified navigation -->
+
+    <div class="stats-bar">
+        <div class="stat-card">
+            <div class="stat-number" id="totalReviews">-</div>
+            <div class="stat-label">Total Reviews</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" id="avgRating">-</div>
+            <div class="stat-label">Average Rating</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" id="pendingCount">-</div>
+            <div class="stat-label">Pending Review</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" id="approvedCount">-</div>
+            <div class="stat-label">Approved</div>
         </div>
     </div>
 
-    <div class="container">
-        <!-- Review Statistics -->
-        <div class="review-stats">
-            <div class="stat-card">
-                <div class="stat-value" id="totalReviews">0</div>
-                <div class="stat-label">Total Reviews</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="averageRating">0.0</div>
-                <div class="stat-label">Average Rating</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="pendingReviews">0</div>
-                <div class="stat-label">Pending Approval</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="featuredReviews">0</div>
-                <div class="stat-label">Featured Reviews</div>
-            </div>
+    <div class="controls">
+        <div class="filter-group">
+            <label>Status:</label>
+            <select class="filter-select" id="statusFilter">
+                <option value="">All</option>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+            </select>
         </div>
 
-        <!-- Platform Sync Status -->
-        <div class="sync-status">
-            <h3>🔄 Platform Integration Status</h3>
-            <div class="platform-sync">
-                <div class="platform-card">
-                    <div class="platform-icon airbnb-icon">Ab</div>
-                    <div class="platform-info">
-                        <div class="platform-name">Airbnb Reviews</div>
-                        <div class="platform-status" id="airbnb-status">Last sync: Never</div>
-                        <div class="sync-history" id="airbnb-history">0 reviews imported</div>
-                    </div>
-                    <button class="sync-btn" onclick="syncPlatformReviews('airbnb')" id="airbnb-sync-btn">
-                        Sync Airbnb
-                    </button>
-                </div>
-
-                <div class="platform-card">
-                    <div class="platform-icon booking-icon">B.com</div>
-                    <div class="platform-info">
-                        <div class="platform-name">Booking.com Reviews</div>
-                        <div class="platform-status" id="booking-status">Last sync: Never</div>
-                        <div class="sync-history" id="booking-history">0 reviews imported</div>
-                    </div>
-                    <button class="sync-btn" onclick="syncPlatformReviews('booking')" id="booking-sync-btn">
-                        Sync Booking.com
-                    </button>
-                </div>
-
-                <div class="platform-card">
-                    <div class="platform-icon direct-icon">Direct</div>
-                    <div class="platform-info">
-                        <div class="platform-name">Direct Bookings</div>
-                        <div class="platform-status" id="direct-status">Real-time updates</div>
-                        <div class="sync-history" id="direct-history">0 reviews collected</div>
-                    </div>
-                    <button class="sync-btn" onclick="refreshReviews()" id="direct-sync-btn">
-                        Refresh
-                    </button>
-                </div>
-            </div>
+        <div class="filter-group">
+            <label>Accommodation:</label>
+            <select class="filter-select" id="accommodationFilter">
+                <option value="">All</option>
+                <option value="pinot-dome">Pinot Dome</option>
+                <option value="rose-dome">Rosé Dome</option>
+                <option value="lakeside-cottage">Lakeside Cottage</option>
+            </select>
         </div>
 
-        <!-- Filters -->
-        <div class="filters">
-            <h3>🔍 Filter Reviews</h3>
-            <div class="filter-grid">
-                <div class="filter-group">
-                    <label>Search:</label>
-                    <input type="text" id="searchInput" placeholder="Guest name, email, or review text...">
-                </div>
-
-                <div class="filter-group">
-                    <label>Platform:</label>
-                    <select id="platformFilter">
-                        <option value="">All Platforms</option>
-                        <option value="airbnb">Airbnb</option>
-                        <option value="booking">Booking.com</option>
-                        <option value="direct">Direct Booking</option>
-                    </select>
-                </div>
-
-                <div class="filter-group">
-                    <label>Status:</label>
-                    <select id="statusFilter">
-                        <option value="">All Status</option>
-                        <option value="pending">Pending</option>
-                        <option value="approved">Approved</option>
-                        <option value="rejected">Rejected</option>
-                        <option value="featured">Featured</option>
-                    </select>
-                </div>
-
-                <div class="filter-group">
-                    <label>Rating:</label>
-                    <select id="ratingFilter">
-                        <option value="">All Ratings</option>
-                        <option value="5">5 Stars</option>
-                        <option value="4">4 Stars</option>
-                        <option value="3">3 Stars</option>
-                        <option value="2">2 Stars</option>
-                        <option value="1">1 Star</option>
-                    </select>
-                </div>
-
-                <div class="filter-group">
-                    <label>Accommodation:</label>
-                    <select id="accommodationFilter">
-                        <option value="">All Properties</option>
-                        <option value="dome-pinot">Dome Pinot</option>
-                        <option value="dome-rose">Dome Rosé</option>
-                        <option value="lakeside-cottage">Lakeside Cottage</option>
-                    </select>
-                </div>
-
-                <div class="filter-group">
-                    <button class="btn btn-primary" onclick="applyFilters()">Apply Filters</button>
-                    <button class="btn btn-secondary" onclick="resetFilters()" style="margin-top: 0.5rem;">Reset</button>
-                </div>
-            </div>
+        <div class="filter-group">
+            <label>Search:</label>
+            <input type="text" class="search-input" id="searchInput" placeholder="Guest name, email, or review text...">
         </div>
 
-        <!-- Reviews List -->
-        <div class="reviews-container">
-            <div class="reviews-header">
-                <h3>Reviews</h3>
-                <div class="review-count" id="reviewCount">Loading...</div>
-            </div>
-            
-            <div id="reviewsList">
-                <div class="empty-state">
-                    <div class="loading"></div>
-                    <p>Loading reviews from all platforms...</p>
-                </div>
-            </div>
+        <button class="btn btn-secondary" onclick="refreshReviews()">
+            🔄 Refresh
+        </button>
+    </div>
+
+    <div class="main-content">
+        <div id="loading" class="loading">
+            <div>Loading reviews...</div>
+        </div>
+
+        <div id="reviewsList"></div>
+
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <h3>No reviews found</h3>
+            <p>No reviews match your current filters.</p>
         </div>
     </div>
 
     <script>
-        // Check authentication
-        const token = localStorage.getItem('adminToken');
-        if (!token) {
+        let reviews = [];
+        let filteredReviews = [];
+
+        // Check authentication on page load
+        document.addEventListener('DOMContentLoaded', async function() {
+            await checkAuthentication();
+        });
+
+        function checkAuthentication() {
+            const token = localStorage.getItem('adminToken');
+            if (!token) {
+                window.location.href = '/admin.html';
+                return;
+            }
+            
+            // Update user info
+            document.getElementById('currentUser').textContent = 'Admin User';
+            
+            // Load reviews after authentication confirmed
+            loadReviews();
+            
+            // Set up event listeners
+            setupEventListeners();
+        }
+
+        function setupEventListeners() {
+            document.getElementById('statusFilter').addEventListener('change', filterReviews);
+            document.getElementById('accommodationFilter').addEventListener('change', filterReviews);
+            document.getElementById('searchInput').addEventListener('input', filterReviews);
+        }
+
+        function logout() {
+            localStorage.removeItem('adminToken');
             window.location.href = '/admin.html';
         }
 
-        let allReviews = [];
-        let filteredReviews = [];
+        function loadStats() {
+            try {
+                // Calculate stats from loaded reviews
+                const totalReviews = reviews.length;
+                const avgRating = reviews.length > 0 
+                    ? (reviews.reduce((sum, r) => sum + (r.rating || r.overall_rating || 0), 0) / reviews.length).toFixed(1)
+                    : '0.0';
+                const pendingCount = reviews.filter(r => r.status === 'pending').length;
+                const approvedCount = reviews.filter(r => r.status === 'approved').length;
+                
+                document.getElementById('totalReviews').textContent = totalReviews;
+                document.getElementById('avgRating').textContent = avgRating;
+                document.getElementById('pendingCount').textContent = pendingCount;
+                document.getElementById('approvedCount').textContent = approvedCount;
+                
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
 
-        // Load reviews from all sources - using real Airbnb and Booking.com data
         async function loadReviews() {
             try {
-                // Since the API endpoints don't exist yet, use real review data that's available
-                // These would be actual reviews from your Airbnb and Booking.com listings
-                allReviews = [
+                // Use mock data since API endpoints aren't implemented yet
+                const mockReviews = [
                     {
-                        id: 'airbnb-001',
-                        guest_name: 'Sarah M.',
-                        guest_email: 'sarah.m@airbnb.com',
-                        platform: 'airbnb',
+                        id: 1,
+                        guest_name: 'Sarah Johnson',
+                        guest_email: 'sarah@example.com',
+                        accommodation: 'Dome Rosé',
+                        accommodation_type: 'rose-dome',
                         rating: 5,
-                        review_text: 'Absolutely magical stay! The dome was beautifully appointed and the vineyard setting was breathtaking. We loved waking up to the mountain views and the hot tub was perfect after wine tasting. Highly recommend!',
-                        accommodation: 'dome-pinot',
-                        booking_reference: 'HMAB847291',
-                        created_at: '2025-09-05T14:30:00Z',
+                        overall_rating: 5,
+                        review_text: 'Amazing experience! The dome was beautiful and the views incredible.',
                         status: 'approved',
-                        featured: true,
-                        admin_notes: 'Great review highlighting key features',
-                        admin_reply: 'Thank you Sarah! We\'re so glad you enjoyed the vineyard setting and amenities. Hope to host you again soon!'
+                        created_at: '2025-03-15T10:30:00Z',
+                        stay_date: '2025-03-10'
                     },
                     {
-                        id: 'booking-001',
-                        guest_name: 'Michael Chen',
-                        guest_email: 'michael.chen@booking.com',
-                        platform: 'booking',
-                        rating: 5,
-                        review_text: 'Outstanding accommodation with incredible attention to detail. The location is perfect for exploring Central Otago wineries. The dome was clean, comfortable, and had everything we needed. The hosts were very responsive.',
-                        accommodation: 'dome-rose',
-                        booking_reference: 'BC9845123',
-                        created_at: '2025-09-03T09:15:00Z',
-                        status: 'approved',
-                        featured: true,
-                        admin_notes: 'Highlights location and host responsiveness',
-                        admin_reply: 'Thank you Michael! We pride ourselves on providing a perfect base for wine country exploration.'
-                    },
-                    {
-                        id: 'airbnb-002',
-                        guest_name: 'Emma & James',
-                        guest_email: 'emmajames@airbnb.com',
-                        platform: 'airbnb',
-                        rating: 5,
-                        review_text: 'The lakeside cottage exceeded all expectations! Stunning lake views, cozy interior, and the perfect romantic getaway. We spent hours on the deck watching the sunset. The kitchen was well-equipped and the bed incredibly comfortable.',
-                        accommodation: 'lakeside-cottage',
-                        booking_reference: 'HMAB789456',
-                        created_at: '2025-09-01T16:45:00Z',
-                        status: 'approved',
-                        featured: true,
-                        admin_notes: 'Great for marketing romantic getaways',
-                        admin_reply: 'We\'re thrilled you had such a romantic stay! The lakeside sunsets are truly special.'
-                    },
-                    {
-                        id: 'booking-002',
-                        guest_name: 'David Wilson',
-                        guest_email: 'david.w@booking.com',
-                        platform: 'booking',
+                        id: 2,
+                        guest_name: 'Mike Wilson',
+                        guest_email: 'mike@example.com',
+                        accommodation: 'Dome Pinot',
+                        accommodation_type: 'pinot-dome',
                         rating: 4,
-                        review_text: 'Great location and unique accommodation. The dome concept is interesting and well-executed. Good amenities and comfortable stay. Only minor issue was the heating system took a while to warm up, but overall very satisfied.',
-                        accommodation: 'dome-pinot',
-                        booking_reference: 'BC8736291',
-                        created_at: '2025-08-28T11:20:00Z',
-                        status: 'approved',
-                        featured: false,
-                        admin_notes: 'Note about heating - check system',
-                        admin_reply: 'Thank you David! We appreciate the feedback about heating and have made improvements to ensure quicker warm-up times.'
-                    },
-                    {
-                        id: 'airbnb-003',
-                        guest_name: 'Lisa Parker',
-                        guest_email: 'lisa.parker@airbnb.com',
-                        platform: 'airbnb',
-                        rating: 5,
-                        review_text: 'Incredible experience staying in the Rose Dome! The design is stunning, the spa facilities are top-notch, and the vineyard location is perfect. We felt like we were in a luxury resort. The attention to detail is remarkable.',
-                        accommodation: 'dome-rose',
-                        booking_reference: 'HMAB654789',
-                        created_at: '2025-08-25T13:10:00Z',
-                        status: 'approved',
-                        featured: true,
-                        admin_notes: 'Emphasizes luxury resort feel - great for marketing',
-                        admin_reply: 'Thank you Lisa! We work hard to provide that luxury resort experience in our unique vineyard setting.'
-                    },
-                    {
-                        id: 'booking-003',
-                        guest_name: 'Jennifer & Mark Thompson',
-                        guest_email: 'jmthompson@booking.com',
-                        platform: 'booking',
-                        rating: 5,
-                        review_text: 'Perfect anniversary getaway! The lakeside cottage is beautifully furnished with everything you need. Woke up to the most amazing lake views every morning. The hot tub was a highlight, and the kitchen allowed us to cook romantic dinners.',
-                        accommodation: 'lakeside-cottage',
-                        booking_reference: 'BC7429561',
-                        created_at: '2025-08-22T10:30:00Z',
-                        status: 'approved',
-                        featured: true,
-                        admin_notes: 'Perfect for anniversary marketing',
-                        admin_reply: 'Congratulations on your anniversary! We\'re honored to have provided the perfect setting for your celebration.'
-                    },
-                    {
-                        id: 'airbnb-004',
-                        guest_name: 'Robert Anderson',
-                        guest_email: 'robert.a@airbnb.com',
-                        platform: 'airbnb',
-                        rating: 4,
-                        review_text: 'Very unique and comfortable accommodation. The Pinot Dome has a great design and the location among the vines is special. Good facilities overall, though WiFi was a bit spotty in places. Would definitely stay again.',
-                        accommodation: 'dome-pinot',
-                        booking_reference: 'HMAB592847',
-                        created_at: '2025-08-20T15:45:00Z',
-                        status: 'approved',
-                        featured: false,
-                        admin_notes: 'WiFi feedback noted - check signal boosters',
-                        admin_reply: 'Thank you Robert! We appreciate the WiFi feedback and have since upgraded our system for better coverage throughout the dome.'
-                    },
-                    {
-                        id: 'booking-004',
-                        guest_name: 'Sophie Laurent',
-                        guest_email: 'sophie.l@booking.com',
-                        platform: 'booking',
-                        rating: 5,
-                        review_text: 'Magnifique! The Rose Dome is absolutely beautiful and the spa facilities are incredible. Perfect for a relaxing weekend away from the city. The wine region location is ideal for tastings. Exceptional hospitality and attention to detail.',
-                        accommodation: 'dome-rose',
-                        booking_reference: 'BC8529374',
-                        created_at: '2025-08-18T12:00:00Z',
-                        status: 'approved',
-                        featured: true,
-                        admin_notes: 'French guest - international appeal highlight',
-                        admin_reply: 'Merci beaucoup Sophie! We\'re delighted you enjoyed the Rose Dome spa experience and wine country location.'
-                    },
-                    {
-                        id: 'airbnb-005',
-                        guest_name: 'New Review',
-                        guest_email: 'newguest@airbnb.com',
-                        platform: 'airbnb',
-                        rating: 5,
-                        review_text: 'Just returned from an amazing 3-night stay at the lakeside cottage. The location is unbeatable with direct lake access and mountain views. The accommodation was spotless and had all modern amenities. Perfect for couples seeking tranquility.',
-                        accommodation: 'lakeside-cottage',
-                        booking_reference: 'HMAB847592',
-                        created_at: '2025-09-08T09:30:00Z',
+                        overall_rating: 4,
+                        review_text: 'Great stay, loved the sustainable features and location.',
                         status: 'pending',
-                        featured: false,
-                        admin_notes: '',
-                        admin_reply: ''
+                        created_at: '2025-03-14T14:20:00Z',
+                        stay_date: '2025-03-12'
+                    },
+                    {
+                        id: 3,
+                        guest_name: 'Emma & David',
+                        guest_email: 'emma@example.com',
+                        accommodation: 'Lakeside Cottage',
+                        accommodation_type: 'lakeside-cottage',
+                        rating: 5,
+                        overall_rating: 5,
+                        review_text: 'Perfect for our family! Kids loved the lake access and kayaks.',
+                        status: 'approved',
+                        created_at: '2025-03-13T09:15:00Z',
+                        stay_date: '2025-03-08'
                     }
                 ];
                 
-                filteredReviews = allReviews;
+                reviews = mockReviews;
+                filteredReviews = reviews;
+                
                 renderReviews();
-                updateStats();
-                updatePlatformStatus();
+                loadStats();
                 
             } catch (error) {
                 console.error('Error loading reviews:', error);
-                showError('Failed to load reviews: ' + error.message);
+                document.getElementById('loading').innerHTML = 
+                    '<div style="color: var(--error);">Error loading reviews. Please refresh the page.</div>';
             }
+        }
+
+        function filterReviews() {
+            const statusFilter = document.getElementById('statusFilter').value;
+            const accommodationFilter = document.getElementById('accommodationFilter').value;
+            const searchQuery = document.getElementById('searchInput').value.toLowerCase();
+            
+            filteredReviews = reviews.filter(review => {
+                const matchesStatus = !statusFilter || review.status === statusFilter;
+                const matchesAccommodation = !accommodationFilter || review.accommodation_type === accommodationFilter;
+                const matchesSearch = !searchQuery || 
+                    review.guest_name.toLowerCase().includes(searchQuery) ||
+                    review.guest_email.toLowerCase().includes(searchQuery) ||
+                    review.review_text.toLowerCase().includes(searchQuery) ||
+                    (review.review_title && review.review_title.toLowerCase().includes(searchQuery));
+                
+                return matchesStatus && matchesAccommodation && matchesSearch;
+            });
+            
+            renderReviews();
         }
 
         function renderReviews() {
             const container = document.getElementById('reviewsList');
-            const countElement = document.getElementById('reviewCount');
-
-            countElement.textContent = `${filteredReviews.length} reviews`;
-
+            const loading = document.getElementById('loading');
+            const emptyState = document.getElementById('emptyState');
+            
+            loading.style.display = 'none';
+            
             if (filteredReviews.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <p>No reviews found matching your criteria.</p>
-                        <button class="btn btn-primary" onclick="syncAllPlatforms()" style="margin-top: 1rem;">
-                            Sync All Platforms
-                        </button>
-                    </div>
-                `;
+                container.innerHTML = '';
+                emptyState.style.display = 'block';
                 return;
             }
-
+            
+            emptyState.style.display = 'none';
+            
             container.innerHTML = filteredReviews.map(review => `
-                <div class="review-card">
+                <div class="review-card ${review.status}" data-id="${review.id}">
                     <div class="review-header">
                         <div class="guest-info">
-                            <div class="guest-name">${escapeHtml(review.guest_name)}</div>
-                            <div class="review-meta">
-                                <span class="platform-badge badge-${review.platform}">
-                                    ${getPlatformName(review.platform)}
-                                </span>
-                                <span>${formatDate(review.created_at)}</span>
-                                <span>${review.guest_email || 'No email'}</span>
-                                ${review.booking_reference ? `<span>Booking: ${review.booking_reference}</span>` : ''}
+                            <h3>${escapeHtml(review.guest_name)}</h3>
+                            <div class="guest-details">
+                                📧 ${escapeHtml(review.guest_email)} | 
+                                📍 ${escapeHtml(review.guest_location || 'Location not provided')} | 
+                                🏠 ${formatAccommodationType(review.accommodation_type)}
+                                ${review.stay_dates ? ` | 📅 ${escapeHtml(review.stay_dates)}` : ''}
                             </div>
                         </div>
-                        <div class="rating">
-                            <span class="stars">${generateStars(review.rating)}</span>
-                            <span>${review.rating}/5</span>
+                        <div class="review-meta">
+                            <div class="status-badge ${review.status}">${review.status}</div>
+                            <div class="stars">${generateStars(review.overall_rating)} (${review.overall_rating}/5)</div>
+                            <div>Submitted: ${formatDate(review.created_at)}</div>
+                            ${review.approved_at ? `<div>Approved: ${formatDate(review.approved_at)}</div>` : ''}
                         </div>
                     </div>
-
-                    ${review.accommodation ? `
-                        <div class="accommodation-info">
-                            ${formatAccommodationName(review.accommodation)}
-                        </div>
-                    ` : ''}
-
+                    
                     <div class="review-content">
+                        ${review.review_title ? `<div class="review-title">${escapeHtml(review.review_title)}</div>` : ''}
+                        
                         <div class="review-text">${escapeHtml(review.review_text)}</div>
+                        
+                        ${review.highlight_positive ? `
+                            <div class="review-highlights">
+                                <div class="highlight-label">💚 What they loved most:</div>
+                                <div>${escapeHtml(review.highlight_positive)}</div>
+                            </div>
+                        ` : ''}
+                        
+                        ${review.suggestions ? `
+                            <div class="review-highlights">
+                                <div class="highlight-label">💡 Suggestions:</div>
+                                <div>${escapeHtml(review.suggestions)}</div>
+                            </div>
+                        ` : ''}
+                        
+                        ${review.review_photos ? renderPhotos(review.review_photos) : ''}
+                        
+                        ${renderRatingsBreakdown(review)}
                     </div>
-
-                    <div class="review-actions">
-                        <div class="status-badge status-${review.status}">
-                            ${review.status.toUpperCase()}
+                    
+                    <div class="admin-section">
+                        <div class="admin-notes">
+                            <label><strong>Admin Notes:</strong></label>
+                            <textarea id="notes_${review.id}" placeholder="Internal notes about this review...">${escapeHtml(review.admin_notes || '')}</textarea>
                         </div>
-
-                        <div class="quick-actions">
+                        
+                        ${review.status === 'approved' ? `
+                            <div class="admin-reply">
+                                <label><strong>Public Reply:</strong></label>
+                                <textarea id="reply_${review.id}" placeholder="Reply to guest (will be visible publicly)...">${escapeHtml(review.admin_reply || '')}</textarea>
+                            </div>
+                        ` : ''}
+                        
+                        <div class="admin-actions">
                             ${review.status === 'pending' ? `
-                                <button class="btn btn-primary" onclick="approveReview('${review.id}')">
-                                    ✓ Approve
+                                <button class="btn btn-approve" onclick="moderateReview(${review.id}, 'approved')">
+                                    ✅ Approve
                                 </button>
-                                <button class="btn btn-secondary" onclick="rejectReview('${review.id}')">
-                                    ✗ Reject
+                                <button class="btn btn-reject" onclick="moderateReview(${review.id}, 'rejected')">
+                                    ❌ Reject
                                 </button>
                             ` : ''}
                             
                             ${review.status === 'approved' ? `
-                                <button class="btn btn-primary" onclick="featureReview('${review.id}', ${!review.featured})">
-                                    ${review.featured ? '★ Unfeature' : '☆ Feature'}
+                                <button class="btn btn-feature" onclick="toggleFeature(${review.id}, ${!review.featured})">
+                                    ${review.featured ? '⭐ Unfeature' : '⭐ Feature'}
+                                </button>
+                                <button class="btn btn-secondary" onclick="updateReply(${review.id})">
+                                    💬 Update Reply
                                 </button>
                             ` : ''}
                             
-                            <button class="btn btn-secondary" onclick="toggleAdminSection('${review.id}')">
-                                📝 Manage
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="admin-section" id="admin-${review.id}" style="display: none;">
-                        <div style="margin-bottom: 1rem;">
-                            <label>Admin Notes:</label>
-                            <textarea id="notes-${review.id}" placeholder="Internal notes about this review...">${escapeHtml(review.admin_notes || '')}</textarea>
-                        </div>
-
-                        ${review.status === 'approved' ? `
-                            <div style="margin-bottom: 1rem;">
-                                <label>Public Reply:</label>
-                                <textarea id="reply-${review.id}" placeholder="Reply to guest (will be visible publicly)...">${escapeHtml(review.admin_reply || '')}</textarea>
-                            </div>
-                        ` : ''}
-
-                        <div style="display: flex; gap: 1rem;">
-                            <button class="btn btn-primary" onclick="saveAdminData('${review.id}')">
-                                💾 Save
-                            </button>
-                            <button class="btn btn-secondary" onclick="toggleAdminSection('${review.id}')">
-                                Cancel
+                            <button class="btn btn-secondary" onclick="updateNotes(${review.id})">
+                                📝 Save Notes
                             </button>
                         </div>
                     </div>
@@ -903,247 +724,155 @@
             `).join('');
         }
 
-        function updateStats() {
-            const totalCount = allReviews.length;
-            const avgRating = totalCount > 0 ? 
-                (allReviews.reduce((sum, r) => sum + r.rating, 0) / totalCount).toFixed(1) : '0.0';
-            const pendingCount = allReviews.filter(r => r.status === 'pending').length;
-            const featuredCount = allReviews.filter(r => r.featured).length;
-
-            document.getElementById('totalReviews').textContent = totalCount;
-            document.getElementById('averageRating').textContent = avgRating;
-            document.getElementById('pendingReviews').textContent = pendingCount;
-            document.getElementById('featuredReviews').textContent = featuredCount;
-        }
-
-        function updatePlatformStatus() {
-            const platforms = {
-                airbnb: allReviews.filter(r => r.platform === 'airbnb'),
-                booking: allReviews.filter(r => r.platform === 'booking'),
-                direct: allReviews.filter(r => r.platform === 'direct')
-            };
-
-            Object.entries(platforms).forEach(([platform, reviews]) => {
-                const statusEl = document.getElementById(`${platform}-status`);
-                const historyEl = document.getElementById(`${platform}-history`);
+        function renderPhotos(photosJson) {
+            try {
+                const photos = JSON.parse(photosJson);
+                if (!photos || photos.length === 0) return '';
                 
-                if (reviews.length > 0) {
-                    const latestReview = reviews.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
-                    statusEl.textContent = `Last sync: ${formatDate(latestReview.created_at)}`;
-                    historyEl.textContent = `${reviews.length} reviews imported`;
-                } else {
-                    statusEl.textContent = 'No reviews imported';
-                    historyEl.textContent = '0 reviews imported';
-                }
-            });
+                return `
+                    <div class="review-photos">
+                        ${photos.map(photo => `
+                            <img src="${photo}" alt="Guest photo" onclick="window.open('${photo}', '_blank')">
+                        `).join('')}
+                    </div>
+                `;
+            } catch (e) {
+                return '';
+            }
         }
 
-        // Sync reviews from specific platform - simulates real sync with existing reviews
-        async function syncPlatformReviews(platform) {
-            const syncBtn = document.getElementById(`${platform}-sync-btn`);
-            const originalText = syncBtn.textContent;
+        function renderRatingsBreakdown(review) {
+            const ratings = [
+                { label: 'Cleanliness', value: review.cleanliness_rating },
+                { label: 'Location', value: review.location_rating },
+                { label: 'Value', value: review.value_rating },
+                { label: 'Communication', value: review.communication_rating }
+            ].filter(r => r.value);
             
-            syncBtn.disabled = true;
-            syncBtn.innerHTML = '<div class="loading"></div> Syncing...';
-
-            // Simulate API call with delay
-            await new Promise(resolve => setTimeout(resolve, 2000));
-
-            try {
-                // Simulate successful sync - in reality this would call Airbnb/Booking.com APIs
-                const platformReviews = allReviews.filter(r => r.platform === platform);
-                const newReviewsCount = Math.floor(Math.random() * 3) + 1; // Simulate 1-3 new reviews
-                
-                showAlert(`Successfully synced ${newReviewsCount} new reviews from ${getPlatformName(platform)}`, 'success');
-                
-                // Update last sync time
-                const statusEl = document.getElementById(`${platform}-status`);
-                const historyEl = document.getElementById(`${platform}-history`);
-                const now = new Date();
-                
-                statusEl.textContent = `Last sync: ${formatDate(now.toISOString())}`;
-                historyEl.textContent = `${platformReviews.length + newReviewsCount} reviews imported`;
-                
-                // In a real implementation, this would add the new reviews to the database
-                showAlert(`${getPlatformName(platform)} integration is working. In production, this would import new reviews from the platform API.`, 'info');
-                
-            } catch (error) {
-                console.error(`Error syncing ${platform} reviews:`, error);
-                showAlert(`Failed to sync ${getPlatformName(platform)} reviews: ${error.message}`, 'error');
-            }
-
-            syncBtn.disabled = false;
-            syncBtn.textContent = originalText;
-        }
-
-        // Sync all platforms
-        async function syncAllPlatforms() {
-            showAlert('Syncing reviews from all platforms...', 'info');
+            if (ratings.length === 0) return '';
             
-            const platforms = ['airbnb', 'booking'];
-            let successCount = 0;
-
-            for (const platform of platforms) {
-                try {
-                    await syncPlatformReviews(platform);
-                    successCount++;
-                } catch (error) {
-                    console.error(`Failed to sync ${platform}:`, error);
-                }
-            }
-
-            if (successCount === platforms.length) {
-                showAlert('All platforms synced successfully!', 'success');
-            } else if (successCount > 0) {
-                showAlert(`${successCount}/${platforms.length} platforms synced successfully`, 'info');
-            } else {
-                showAlert('Failed to sync any platforms', 'error');
-            }
+            return `
+                <div style="margin-top: 1rem; padding: 1rem; background: #f8fafc; border-radius: 6px;">
+                    <div style="font-weight: 600; margin-bottom: 0.5rem;">Detailed Ratings:</div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.5rem;">
+                        ${ratings.map(rating => `
+                            <div style="display: flex; justify-content: space-between;">
+                                <span>${rating.label}:</span>
+                                <span>${generateStars(rating.value)} ${rating.value}/5</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
         }
 
-        // Review management functions
-        async function approveReview(reviewId) {
-            await updateReviewStatus(reviewId, 'approved');
-        }
-
-        async function rejectReview(reviewId) {
-            await updateReviewStatus(reviewId, 'rejected');
-        }
-
-        async function featureReview(reviewId, featured) {
+        async function moderateReview(reviewId, status) {
             try {
-                // Simulate API call delay
-                await new Promise(resolve => setTimeout(resolve, 500));
+                const notes = document.getElementById(`notes_${reviewId}`).value;
                 
-                // Update review in local data
-                const review = allReviews.find(r => r.id === reviewId);
-                if (review) {
-                    review.featured = featured;
-                    showAlert(`Review ${featured ? 'featured' : 'unfeatured'} successfully`, 'success');
+                // Mock API call - update the local data
+                const reviewIndex = reviews.findIndex(r => r.id === reviewId);
+                if (reviewIndex !== -1) {
+                    reviews[reviewIndex].status = status;
+                    reviews[reviewIndex].admin_notes = notes;
+                    filteredReviews = reviews;
                     renderReviews();
-                    updateStats();
-                } else {
-                    throw new Error('Review not found');
+                    loadStats();
+                    alert(`Review ${status} successfully!`);
                 }
-
+                
             } catch (error) {
-                console.error('Error updating feature status:', error);
-                showAlert('Failed to update feature status: ' + error.message, 'error');
+                console.error('Error moderating review:', error);
+                alert('Error moderating review');
             }
         }
 
-        async function updateReviewStatus(reviewId, status) {
+        async function toggleFeature(reviewId, featured) {
             try {
-                // Simulate API call delay
-                await new Promise(resolve => setTimeout(resolve, 500));
-                
-                // Update review in local data
-                const review = allReviews.find(r => r.id === reviewId);
-                if (review) {
-                    review.status = status;
-                    showAlert(`Review ${status} successfully`, 'success');
+                // Mock API call - update the local data
+                const reviewIndex = reviews.findIndex(r => r.id === reviewId);
+                if (reviewIndex !== -1) {
+                    reviews[reviewIndex].featured = featured;
+                    filteredReviews = reviews;
                     renderReviews();
-                    updateStats();
-                } else {
-                    throw new Error('Review not found');
+                    alert(`Review ${featured ? 'featured' : 'unfeatured'} successfully!`);
                 }
-
             } catch (error) {
-                console.error('Error updating review status:', error);
-                showAlert('Failed to update review status: ' + error.message, 'error');
+                console.error('Error featuring review:', error);
+                alert('Error updating feature status');
             }
         }
 
-        function toggleAdminSection(reviewId) {
-            const section = document.getElementById(`admin-${reviewId}`);
-            section.style.display = section.style.display === 'none' ? 'block' : 'none';
-        }
-
-        async function saveAdminData(reviewId) {
-            const notes = document.getElementById(`notes-${reviewId}`).value;
-            const replyElement = document.getElementById(`reply-${reviewId}`);
-            const reply = replyElement ? replyElement.value : '';
-
+        async function updateReply(reviewId) {
             try {
-                // Simulate API call delay
-                await new Promise(resolve => setTimeout(resolve, 500));
+                const reply = document.getElementById(`reply_${reviewId}`).value;
                 
-                // Update review in local data
-                const review = allReviews.find(r => r.id === reviewId);
-                if (review) {
-                    review.admin_notes = notes;
-                    review.admin_reply = reply;
-                    showAlert('Admin data saved successfully', 'success');
-                    toggleAdminSection(reviewId);
-                    renderReviews();
-                } else {
-                    throw new Error('Review not found');
+                // Mock API call - update the local data
+                const reviewIndex = reviews.findIndex(r => r.id === reviewId);
+                if (reviewIndex !== -1) {
+                    reviews[reviewIndex].admin_reply = reply;
+                    alert('Reply updated successfully!');
                 }
-
             } catch (error) {
-                console.error('Error saving admin data:', error);
-                showAlert('Failed to save admin data: ' + error.message, 'error');
+                console.error('Error updating reply:', error);
+                alert('Error updating reply');
             }
         }
 
-        // Filter functions
-        function applyFilters() {
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-            const platform = document.getElementById('platformFilter').value;
-            const status = document.getElementById('statusFilter').value;
-            const rating = document.getElementById('ratingFilter').value;
-            const accommodation = document.getElementById('accommodationFilter').value;
-
-            filteredReviews = allReviews.filter(review => {
-                const matchesSearch = !searchTerm || 
-                    review.guest_name.toLowerCase().includes(searchTerm) ||
-                    review.guest_email?.toLowerCase().includes(searchTerm) ||
-                    review.review_text.toLowerCase().includes(searchTerm);
-
-                const matchesPlatform = !platform || review.platform === platform;
-                const matchesStatus = !status || review.status === status;
-                const matchesRating = !rating || review.rating.toString() === rating;
-                const matchesAccommodation = !accommodation || review.accommodation === accommodation;
-
-                return matchesSearch && matchesPlatform && matchesStatus && matchesRating && matchesAccommodation;
-            });
-
-            renderReviews();
-        }
-
-        function resetFilters() {
-            document.getElementById('searchInput').value = '';
-            document.getElementById('platformFilter').value = '';
-            document.getElementById('statusFilter').value = '';
-            document.getElementById('ratingFilter').value = '';
-            document.getElementById('accommodationFilter').value = '';
-            filteredReviews = allReviews;
-            renderReviews();
+        async function updateNotes(reviewId) {
+            try {
+                const notes = document.getElementById(`notes_${reviewId}`).value;
+                
+                // Mock API call - update the local data
+                const reviewIndex = reviews.findIndex(r => r.id === reviewId);
+                if (reviewIndex !== -1) {
+                    reviews[reviewIndex].admin_notes = notes;
+                    alert('Notes updated successfully!');
+                }
+            } catch (error) {
+                console.error('Error updating notes:', error);
+                alert('Error updating notes');
+            }
         }
 
         function refreshReviews() {
-            showAlert('Refreshing reviews...', 'info');
+            document.getElementById('loading').style.display = 'block';
             loadReviews();
         }
 
         // Utility functions
-        function getPlatformName(platform) {
-            const names = {
-                'airbnb': 'Airbnb',
-                'booking': 'Booking.com',
-                'direct': 'Direct Booking'
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
             };
-            return names[platform] || platform;
+            return text ? text.replace(/[&<>"']/g, function(m) { return map[m]; }) : '';
         }
 
         function generateStars(rating) {
-            return '★'.repeat(rating) + '☆'.repeat(5 - rating);
+            const full = '★';
+            const empty = '☆';
+            let stars = '';
+            for (let i = 1; i <= 5; i++) {
+                stars += i <= rating ? full : empty;
+            }
+            return stars;
         }
 
-        function formatDate(dateStr) {
-            if (!dateStr) return 'Unknown';
-            const date = new Date(dateStr);
-            return date.toLocaleDateString('en-US', {
+        function formatAccommodationType(type) {
+            const types = {
+                'pinot-dome': 'Pinot Dome',
+                'rose-dome': 'Rosé Dome', 
+                'lakeside-cottage': 'Lakeside Cottage'
+            };
+            return types[type] || type;
+        }
+
+        function formatDate(dateString) {
+            return new Date(dateString).toLocaleDateString('en-NZ', {
                 year: 'numeric',
                 month: 'short',
                 day: 'numeric',
@@ -1152,57 +881,37 @@
             });
         }
 
-        function formatAccommodationName(accommodation) {
-            const names = {
-                'dome-pinot': 'Dome Pinot',
-                'dome-rose': 'Dome Rosé',
-                'lakeside-cottage': 'Lakeside Cottage'
-            };
-            return names[accommodation] || accommodation;
+        // Temporary mock data for testing until admin endpoints are created
+        if (window.location.search.includes('demo')) {
+            reviews = [
+                {
+                    id: 1,
+                    guest_name: 'Sarah Johnson',
+                    guest_email: 'sarah@example.com',
+                    guest_location: 'Auckland, New Zealand',
+                    accommodation_type: 'pinot-dome',
+                    stay_dates: 'March 15-18, 2025',
+                    overall_rating: 5,
+                    cleanliness_rating: 5,
+                    location_rating: 5,
+                    value_rating: 4,
+                    communication_rating: 5,
+                    review_title: 'Absolutely magical weekend!',
+                    review_text: 'Our stay exceeded every expectation. The views were breathtaking and Sandy was incredibly helpful.',
+                    highlight_positive: 'The private spa and stunning lake views were unforgettable.',
+                    suggestions: null,
+                    status: 'pending',
+                    created_at: '2025-08-25T10:30:00Z',
+                    admin_notes: null,
+                    admin_reply: null,
+                    featured: false,
+                    review_photos: null
+                }
+            ];
+            filteredReviews = reviews;
+            renderReviews();
         }
-
-        function escapeHtml(text) {
-            if (!text) return '';
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        function showError(message) {
-            const container = document.getElementById('reviewsList');
-            container.innerHTML = `
-                <div class="error-message">
-                    ${message}
-                    <button class="btn btn-primary" onclick="loadReviews()" style="margin-left: 1rem;">Retry</button>
-                </div>
-            `;
-        }
-
-        function showAlert(message, type = 'success') {
-            const alertDiv = document.createElement('div');
-            alertDiv.className = `alert alert-${type}`;
-            alertDiv.textContent = message;
-
-            document.body.appendChild(alertDiv);
-
-            setTimeout(() => alertDiv.classList.add('show'), 100);
-
-            setTimeout(() => {
-                alertDiv.classList.remove('show');
-                setTimeout(() => document.body.removeChild(alertDiv), 300);
-            }, 4000);
-        }
-
-        // Auto-refresh filters when typing
-        document.getElementById('searchInput').addEventListener('input', () => {
-            setTimeout(applyFilters, 300);
-        });
-
-        // Load reviews on page load
-        loadReviews();
-
-        // Auto-refresh every 5 minutes
-        setInterval(loadReviews, 300000);
     </script>
+    <script src="/admin-shell.js?v=2"></script>
 </body>
 </html>

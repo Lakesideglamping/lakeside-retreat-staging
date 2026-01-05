@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Promotional Codes - Lakeside Retreat Admin</title>
+    <link rel="stylesheet" href="/admin-shell.css?v=2">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2d5a5a 0%, #1e4040 100%);
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .nav-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .btn-back {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            text-decoration: none;
+        }
+        
+        .create-code-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+        
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #2d5a5a;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .filters {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .filter-group label {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .filter-select, .search-input {
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .promo-code {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-left: 4px solid #28a745;
+        }
+        
+        .promo-code.expired {
+            border-left-color: #dc3545;
+            opacity: 0.7;
+        }
+        
+        .promo-code.seasonal {
+            border-left-color: #ffc107;
+        }
+        
+        .promo-code.partner {
+            border-left-color: #17a2b8;
+        }
+        
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 1rem;
+        }
+        
+        .code-info h3 {
+            color: #2d5a5a;
+            margin-bottom: 0.5rem;
+            font-size: 1.25rem;
+        }
+        
+        .code-value {
+            font-family: monospace;
+            background: #f8f9fa;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            border: 1px solid #dee2e6;
+            display: inline-block;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+            color: #495057;
+        }
+        
+        .code-description {
+            color: #666;
+            margin-bottom: 1rem;
+        }
+        
+        .code-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+        
+        .stat-item {
+            text-align: center;
+            padding: 0.75rem;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+        
+        .stat-item .number {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #2d5a5a;
+        }
+        
+        .stat-item .label {
+            font-size: 0.875rem;
+            color: #666;
+        }
+        
+        .code-actions {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 0.875rem;
+        }
+        
+        .btn-primary {
+            background: #2d5a5a;
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-warning {
+            background: #ffc107;
+            color: #000;
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .btn-info {
+            background: #17a2b8;
+            color: white;
+        }
+        
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .status-active {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-expired {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .status-scheduled {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-paused {
+            background: #e2e3e5;
+            color: #495057;
+        }
+        
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 2rem;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .modal-header h2 {
+            color: #2d5a5a;
+        }
+        
+        .close {
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .close:hover {
+            color: #000;
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+        
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+        
+        .form-group textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        
+        .code-preview {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .code-preview h4 {
+            margin-bottom: 0.5rem;
+            color: #2d5a5a;
+        }
+        
+        @media (max-width: 768px) {
+            .filters {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .code-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .code-stats {
+                grid-template-columns: 1fr 1fr;
+            }
+            
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Old header removed - now using admin-shell.js for unified navigation -->
+    <div style="margin-bottom: 1.5rem;">
+        <button class="create-code-btn" onclick="openCreateModal()">+ Create Code</button>
+    </div>
+    
+    <div class="container">
+        <!-- Stats Bar -->
+        <div class="stats-bar">
+            <div class="stat-card">
+                <div class="stat-number" id="totalCodes">12</div>
+                <div class="stat-label">Active Codes</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalUses">47</div>
+                <div class="stat-label">Total Uses</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalSavings">$2,340</div>
+                <div class="stat-label">Total Savings Given</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="avgDiscount">15%</div>
+                <div class="stat-label">Average Discount</div>
+            </div>
+        </div>
+        
+        <!-- Filters -->
+        <div class="filters">
+            <div class="filter-group">
+                <label>Status:</label>
+                <select class="filter-select" id="statusFilter" onchange="filterCodes()">
+                    <option value="">All Codes</option>
+                    <option value="active">Active</option>
+                    <option value="expired">Expired</option>
+                    <option value="scheduled">Scheduled</option>
+                    <option value="paused">Paused</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label>Type:</label>
+                <select class="filter-select" id="typeFilter" onchange="filterCodes()">
+                    <option value="">All Types</option>
+                    <option value="seasonal">Seasonal</option>
+                    <option value="partner">Partner</option>
+                    <option value="general">General</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label>Search:</label>
+                <input type="text" class="search-input" id="searchInput" placeholder="Code name or description..." onkeyup="filterCodes()">
+            </div>
+        </div>
+        
+        <!-- Active Seasonal Offers -->
+        <div class="promo-code seasonal">
+            <div class="code-header">
+                <div class="code-info">
+                    <h3>🍂 Autumn Wine Harvest Special</h3>
+                    <div class="code-value">HARVEST2025</div>
+                    <div class="code-description">20% off 3+ night stays during Central Otago's harvest season</div>
+                </div>
+                <span class="status-badge status-active">Active</span>
+            </div>
+            
+            <div class="code-stats">
+                <div class="stat-item">
+                    <div class="number">23</div>
+                    <div class="label">Uses</div>
+                </div>
+                <div class="stat-item">
+                    <div class="number">20%</div>
+                    <div class="label">Discount</div>
+                </div>
+                <div class="stat-item">
+                    <div class="number">Mar 1 - May 31</div>
+                    <div class="label">Valid Period</div>
+                </div>
+                <div class="stat-item">
+                    <div class="number">$1,840</div>
+                    <div class="label">Total Savings</div>
+                </div>
+            </div>
+            
+            <div class="code-actions">
+                <button class="btn btn-primary" onclick="editCode('harvest2025')">Edit</button>
+                <button class="btn btn-info" onclick="viewStats('harvest2025')">View Stats</button>
+                <button class="btn btn-warning" onclick="pauseCode('harvest2025')">Pause</button>
+                <button class="btn btn-secondary" onclick="duplicateCode('harvest2025')">Duplicate</button>
+            </div>
+        </div>
+        
+        <!-- Partner Referral Code -->
+        <div class="promo-code partner">
+            <div class="code-header">
+                <div class="code-info">
+                    <h3>🤝 Gibbston Valley Winery Partnership</h3>
+                    <div class="code-value">GIBBSTON15</div>
+                    <div class="code-description">15% off for Gibbston Valley winery visitors</div>
+                </div>
+                <span class="status-badge status-active">Active</span>
+            </div>
+            
+            <div class="code-stats">
+                <div class="stat-item">
+                    <div class="number">8</div>
+                    <div class="label">Uses</div>
+                </div>
+                <div class="stat-item">
+                    <div class="number">15%</div>
+                    <div class="label">Discount</div>
+                </div>
+                <div class="stat-item">
+                    <div class="number">No Expiry</div>
+                    <div class="label">Valid Period</div>
+                </div>
+                <div class="stat-item">
+                    <div class="number">$720</div>
+                    <div class="label">Total Savings</div>
+                </div>
+            </div>
+            
+            <div class="code-actions">
+                <button class="btn btn-primary" onclick="editCode('gibbston15')">Edit</button>
+                <button class="btn btn-info" onclick="viewStats('gibbston15')">View Stats</button>
+                <button class="btn btn-warning" onclick="pauseCode('gibbston15')">Pause</button>
+                <button class="btn btn-secondary" onclick="duplicateCode('gibbston15')">Duplicate</button>
+            </div>
+        </div>
+        
+        <!-- Winter Cozy Stays -->
+        <div class="promo-code seasonal">
+            <div class="code-header">
+                <div class="code-info">
+                    <h3>❄️ Winter Cozy Stays</h3>
+                    <div class="code-value">COZY2025</div>
+                    <div class="code-description">25% off winter bookings with complimentary firewood</div>
+                </div>
+                <span class="status-badge status-scheduled">Scheduled</span>
+            </div>
+            
+            <div class="code-stats">
+                <div class="stat-item">
+                    <div class="number">0</div>
+                    <div class="label">Uses</div>
+                </div>
+                <div class="stat-item">
+                    <div class="number">25%</div>
+                    <div class="label">Discount</div>
+                </div>
+                <div class="stat-item">
+                    <div class="number">Jun 1 - Aug 31</div>
+                    <div class="label">Valid Period</div>
+                </div>
+                <div class="stat-item">
+                    <div class="number">$0</div>
+                    <div class="label">Total Savings</div>
+                </div>
+            </div>
+            
+            <div class="code-actions">
+                <button class="btn btn-primary" onclick="editCode('cozy2025')">Edit</button>
+                <button class="btn btn-success" onclick="activateEarly('cozy2025')">Activate Early</button>
+                <button class="btn btn-secondary" onclick="duplicateCode('cozy2025')">Duplicate</button>
+                <button class="btn btn-danger" onclick="deleteCode('cozy2025')">Delete</button>
+            </div>
+        </div>
+        
+        <!-- Expired Code Example -->
+        <div class="promo-code expired">
+            <div class="code-header">
+                <div class="code-info">
+                    <h3>🎄 Summer Holiday Special</h3>
+                    <div class="code-value">SUMMER2024</div>
+                    <div class="code-description">10% off December bookings - peak season discount</div>
+                </div>
+                <span class="status-badge status-expired">Expired</span>
+            </div>
+            
+            <div class="code-stats">
+                <div class="stat-item">
+                    <div class="number">34</div>
+                    <div class="label">Total Uses</div>
+                </div>
+                <div class="stat-item">
+                    <div class="number">10%</div>
+                    <div class="label">Discount</div>
+                </div>
+                <div class="stat-item">
+                    <div class="number">Dec 1-31, 2024</div>
+                    <div class="label">Valid Period</div>
+                </div>
+                <div class="stat-item">
+                    <div class="number">$1,360</div>
+                    <div class="label">Total Savings</div>
+                </div>
+            </div>
+            
+            <div class="code-actions">
+                <button class="btn btn-info" onclick="viewStats('summer2024')">View Stats</button>
+                <button class="btn btn-secondary" onclick="duplicateCode('summer2024')">Duplicate</button>
+                <button class="btn btn-danger" onclick="deleteCode('summer2024')">Delete</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Create/Edit Code Modal -->
+    <div id="codeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Create New Promotional Code</h2>
+                <span class="close" onclick="closeModal()">&times;</span>
+            </div>
+            
+            <div class="form-group">
+                <label>Code Name/Title</label>
+                <input type="text" id="codeName" placeholder="e.g., Spring Special, Partner Referral">
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Promotional Code</label>
+                    <input type="text" id="promoCode" placeholder="e.g., SPRING2025" style="text-transform: uppercase;">
+                </div>
+                <div class="form-group">
+                    <label>Code Type</label>
+                    <select id="codeType">
+                        <option value="seasonal">Seasonal Offer</option>
+                        <option value="partner">Partner Referral</option>
+                        <option value="general">General Promotion</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>Description</label>
+                <textarea id="codeDescription" placeholder="Brief description of the offer..."></textarea>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Discount Type</label>
+                    <select id="discountType" onchange="updateDiscountPreview()">
+                        <option value="percentage">Percentage Off</option>
+                        <option value="fixed">Fixed Dollar Amount</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label id="discountLabel">Discount Value (%)</label>
+                    <input type="number" id="discountValue" placeholder="15" onkeyup="updateDiscountPreview()">
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Valid From</label>
+                    <input type="date" id="validFrom">
+                </div>
+                <div class="form-group">
+                    <label>Valid Until</label>
+                    <input type="date" id="validUntil">
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Minimum Stay (nights)</label>
+                    <input type="number" id="minStay" value="1" min="1">
+                </div>
+                <div class="form-group">
+                    <label>Usage Limit</label>
+                    <input type="number" id="usageLimit" placeholder="Leave blank for unlimited">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>Partner Information (if applicable)</label>
+                <input type="text" id="partnerInfo" placeholder="e.g., Gibbston Valley Winery, Central Otago Tourism">
+            </div>
+            
+            <div class="code-preview">
+                <h4>Preview:</h4>
+                <p id="previewText">Enter details above to see preview</p>
+            </div>
+            
+            <div class="code-actions">
+                <button class="btn btn-primary" onclick="saveCode()">Save Code</button>
+                <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check authentication
+        const token = localStorage.getItem('adminToken');
+        if (!token) {
+            window.location.href = '/admin.html';
+        }
+
+        function openCreateModal() {
+            document.getElementById('modalTitle').textContent = 'Create New Promotional Code';
+            document.getElementById('codeModal').style.display = 'block';
+            
+            // Set default dates
+            const today = new Date().toISOString().split('T')[0];
+            const nextMonth = new Date();
+            nextMonth.setMonth(nextMonth.getMonth() + 1);
+            document.getElementById('validFrom').value = today;
+            document.getElementById('validUntil').value = nextMonth.toISOString().split('T')[0];
+        }
+
+        function closeModal() {
+            document.getElementById('codeModal').style.display = 'none';
+            clearForm();
+        }
+
+        function clearForm() {
+            document.getElementById('codeName').value = '';
+            document.getElementById('promoCode').value = '';
+            document.getElementById('codeDescription').value = '';
+            document.getElementById('discountValue').value = '';
+            document.getElementById('minStay').value = '1';
+            document.getElementById('usageLimit').value = '';
+            document.getElementById('partnerInfo').value = '';
+            updateDiscountPreview();
+        }
+
+        function updateDiscountPreview() {
+            const name = document.getElementById('codeName').value || 'Your Promotional Code';
+            const code = document.getElementById('promoCode').value || 'CODE123';
+            const discountType = document.getElementById('discountType').value;
+            const discountValue = document.getElementById('discountValue').value;
+            
+            // Update discount label
+            document.getElementById('discountLabel').textContent = 
+                discountType === 'percentage' ? 'Discount Value (%)' : 'Discount Value ($)';
+            
+            let previewText = `${name} - Code: ${code}`;
+            if (discountValue) {
+                const symbol = discountType === 'percentage' ? '%' : '$';
+                previewText += `\n${discountValue}${symbol} off your Central Otago getaway!`;
+            }
+            
+            document.getElementById('previewText').textContent = previewText;
+        }
+
+        function saveCode() {
+            const codeName = document.getElementById('codeName').value;
+            const promoCode = document.getElementById('promoCode').value;
+            
+            if (!codeName || !promoCode) {
+                alert('Please fill in at least the code name and promotional code.');
+                return;
+            }
+            
+            alert(`Promotional code "${promoCode}" created successfully!`);
+            closeModal();
+            
+            // In production, this would save to the database
+            // and refresh the codes list
+        }
+
+        function editCode(codeId) {
+            document.getElementById('modalTitle').textContent = 'Edit Promotional Code';
+            document.getElementById('codeModal').style.display = 'block';
+            
+            // In production, this would load the code data from the database
+            alert(`Editing code: ${codeId}`);
+        }
+
+        function viewStats(codeId) {
+            alert(`Viewing detailed statistics for code: ${codeId}\n\n📊 Usage over time\n📍 Guest locations\n🏠 Accommodation preferences\n💰 Revenue impact`);
+        }
+
+        function pauseCode(codeId) {
+            if (confirm(`Are you sure you want to pause the code "${codeId}"? It will no longer be usable by guests.`)) {
+                alert(`Code "${codeId}" has been paused.`);
+            }
+        }
+
+        function activateEarly(codeId) {
+            if (confirm(`Activate the code "${codeId}" early? It will become immediately available to guests.`)) {
+                alert(`Code "${codeId}" is now active!`);
+            }
+        }
+
+        function duplicateCode(codeId) {
+            document.getElementById('modalTitle').textContent = 'Duplicate Promotional Code';
+            document.getElementById('codeModal').style.display = 'block';
+            
+            // In production, this would load the code data for duplication
+            alert(`Creating a copy of code: ${codeId}`);
+        }
+
+        function deleteCode(codeId) {
+            if (confirm(`Are you sure you want to delete the code "${codeId}"? This cannot be undone.`)) {
+                alert(`Code "${codeId}" has been deleted.`);
+            }
+        }
+
+        function filterCodes() {
+            const status = document.getElementById('statusFilter').value;
+            const type = document.getElementById('typeFilter').value;
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            
+            console.log('Filtering codes:', { status, type, search });
+            // In production, this would filter the displayed codes
+        }
+
+        // Auto-uppercase promotional codes
+        document.getElementById('promoCode').addEventListener('input', function() {
+            this.value = this.value.toUpperCase();
+            updateDiscountPreview();
+        });
+
+        // Update preview when fields change
+        document.getElementById('codeName').addEventListener('input', updateDiscountPreview);
+        document.getElementById('discountType').addEventListener('change', updateDiscountPreview);
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('codeModal');
+            if (event.target == modal) {
+                closeModal();
+            }
+        }
+    </script>
+    <script src="/admin-shell.js?v=2"></script>
+</body>
+</html>
