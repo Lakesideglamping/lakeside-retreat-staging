@@ -89,6 +89,7 @@ function getUplistingApiKey() {
 
 function getUplistingAuthHeaders() {
     const apiKey = getUplistingApiKey();
+    const clientId = process.env.UPLISTING_CLIENT_ID;
     
     if (!apiKey) {
         console.warn('Warning: UPLISTING_API_KEY is not set or empty');
@@ -97,37 +98,54 @@ function getUplistingAuthHeaders() {
     
     // Default to 'basic' which is Uplisting's documented auth format
     const authMode = (process.env.UPLISTING_AUTH_MODE || 'basic').toLowerCase().trim();
-    console.log(`Uplisting auth mode: ${authMode}, API key length: ${apiKey.length}`);
+    console.log(`Uplisting auth mode: ${authMode}, API key length: ${apiKey.length}, Client ID: ${clientId ? 'configured' : 'not configured'}`);
+    
+    let headers = {};
     
     switch (authMode) {
         case 'basic':
             // Uplisting's documented format: API key base64 encoded directly
             // See: https://documenter.getpostman.com/view/1320372/SWTBfdW6
-            return { 'Authorization': `Basic ${Buffer.from(apiKey).toString('base64')}` };
+            headers['Authorization'] = `Basic ${Buffer.from(apiKey).toString('base64')}`;
+            break;
         case 'basic_username':
             // API key as username with empty password
-            return { 'Authorization': `Basic ${Buffer.from(`${apiKey}:`).toString('base64')}` };
+            headers['Authorization'] = `Basic ${Buffer.from(`${apiKey}:`).toString('base64')}`;
+            break;
         case 'basic_password':
             // Empty username with API key as password
-            return { 'Authorization': `Basic ${Buffer.from(`:${apiKey}`).toString('base64')}` };
+            headers['Authorization'] = `Basic ${Buffer.from(`:${apiKey}`).toString('base64')}`;
+            break;
         case 'token':
             // Rails-style token auth with token= syntax
-            return { 'Authorization': `Token token="${apiKey}"` };
+            headers['Authorization'] = `Token token="${apiKey}"`;
+            break;
         case 'token_simple':
             // Simple token auth without token= syntax
-            return { 'Authorization': `Token ${apiKey}` };
+            headers['Authorization'] = `Token ${apiKey}`;
+            break;
         case 'apikey':
             // ApiKey scheme
-            return { 'Authorization': `ApiKey ${apiKey}` };
+            headers['Authorization'] = `ApiKey ${apiKey}`;
+            break;
         case 'x_api_key':
             // X-API-Key custom header (not Authorization)
-            return { 'X-API-Key': apiKey };
+            headers['X-API-Key'] = apiKey;
+            break;
         case 'bearer':
-            return { 'Authorization': `Bearer ${apiKey}` };
+            headers['Authorization'] = `Bearer ${apiKey}`;
+            break;
         default:
             // Default to Uplisting's documented format
-            return { 'Authorization': `Basic ${Buffer.from(apiKey).toString('base64')}` };
+            headers['Authorization'] = `Basic ${Buffer.from(apiKey).toString('base64')}`;
     }
+    
+    // Add X-Uplisting-Client-ID header if configured (required for V2 Partner API endpoints)
+    if (clientId) {
+        headers['X-Uplisting-Client-ID'] = clientId;
+    }
+    
+    return headers;
 }
 
 // Legacy function for backward compatibility - returns just the Authorization header value
@@ -1397,6 +1415,7 @@ app.get('/api/admin/uplisting/verify', verifyAdmin, async (req, res) => {
                 configured: true,
                 baseUrl: baseUrl,
                 authMode: process.env.UPLISTING_AUTH_MODE || 'basic',
+                clientId: process.env.UPLISTING_CLIENT_ID ? 'configured' : 'not configured',
                 user: data
             });
         } else {
@@ -1407,6 +1426,7 @@ app.get('/api/admin/uplisting/verify', verifyAdmin, async (req, res) => {
                 error: `Uplisting API returned ${response.status}`,
                 details: errorText,
                 configured: true,
+                clientId: process.env.UPLISTING_CLIENT_ID ? 'configured' : 'not configured',
                 baseUrl: baseUrl,
                 authMode: process.env.UPLISTING_AUTH_MODE || 'basic',
                 suggestion: response.status === 401 
@@ -1468,9 +1488,10 @@ app.post('/api/admin/sync-uplisting-bookings', verifyAdmin, async (req, res) => 
                 const endDateStr = endDate.toISOString().split('T')[0];
                 
                 // Try fetching bookings for this property
-                // Use the same URL pattern as the availability endpoint: /properties/{id}/bookings
+                // Use the /bookings endpoint with property_id filter (V2 Partner API)
+                // Requires X-Uplisting-Client-ID header (added by getUplistingAuthHeaders)
                 const baseUrl = getUplistingBaseUrl();
-                const bookingsUrl = `${baseUrl}/properties/${propertyId}/bookings?start_date=${startDateStr}&end_date=${endDateStr}`;
+                const bookingsUrl = `${baseUrl}/bookings?property_id=${propertyId}&start_date=${startDateStr}&end_date=${endDateStr}`;
                 
                 console.log(`🔍 Fetching bookings for ${accommodation} from: ${bookingsUrl}`);
                 

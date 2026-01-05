@@ -1002,10 +1002,16 @@
                 let message = '🔑 Uplisting API Verification Results\n\n';
                 message += `Base URL: ${data.baseUrl || 'Not configured'}\n`;
                 message += `Auth Mode: ${data.authMode || 'Not configured'}\n`;
+                message += `Client ID: ${data.clientId || 'Not configured'}\n`;
                 message += `Configured: ${data.configured ? 'Yes' : 'No'}\n\n`;
                 
                 if (data.success) {
                     message += '✅ API Key is VALID!\n\n';
+                    if (data.clientId === 'configured') {
+                        message += '✅ Client ID is configured (V2 Partner API ready)\n\n';
+                    } else {
+                        message += '⚠️ Client ID not configured (sync may not work)\n\n';
+                    }
                     if (data.user) {
                         message += `User ID: ${data.user.id || 'N/A'}\n`;
                         message += `Email: ${data.user.email || 'N/A'}\n`;
