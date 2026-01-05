@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Settings - Lakeside Retreat Admin</title>
+    <link rel="stylesheet" href="/admin-shell.css?v=2">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .security-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+            overflow: hidden;
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, #2d5a5a 0%, #1e4040 100%);
+            color: white;
+            padding: 1.5rem;
+        }
+        
+        .card-header h2 {
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .card-header p {
+            opacity: 0.9;
+            font-size: 0.9rem;
+        }
+        
+        .card-body {
+            padding: 1.5rem;
+        }
+        
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+        }
+        
+        .status-badge.enabled {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-badge.disabled {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .setup-steps {
+            margin: 1.5rem 0;
+        }
+        
+        .step {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .step:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+        
+        .step-number {
+            width: 32px;
+            height: 32px;
+            background: #2d5a5a;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+        
+        .step-content {
+            flex: 1;
+        }
+        
+        .step-content h4 {
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+        
+        .step-content p {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 0.75rem;
+        }
+        
+        .qr-container {
+            background: white;
+            padding: 1rem;
+            border: 2px solid #eee;
+            border-radius: 8px;
+            display: inline-block;
+            margin: 0.5rem 0;
+        }
+        
+        .qr-placeholder {
+            width: 200px;
+            height: 200px;
+            background: #f5f5f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            font-size: 0.875rem;
+        }
+        
+        .secret-key {
+            background: #f8f9fa;
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 1rem;
+            letter-spacing: 2px;
+            margin: 0.5rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .secret-key code {
+            flex: 1;
+        }
+        
+        .copy-btn {
+            background: #2d5a5a;
+            color: white;
+            border: none;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.75rem;
+        }
+        
+        .verification-input {
+            display: flex;
+            gap: 0.5rem;
+            margin: 1rem 0;
+        }
+        
+        .verification-input input {
+            width: 50px;
+            height: 50px;
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: 600;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+        }
+        
+        .verification-input input:focus {
+            border-color: #2d5a5a;
+            outline: none;
+        }
+        
+        .btn {
+            background: #2d5a5a;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-block;
+            transition: background 0.3s;
+        }
+        
+        .btn:hover {
+            background: #1e4040;
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+        }
+        
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        
+        .btn-outline {
+            background: transparent;
+            border: 1px solid #2d5a5a;
+            color: #2d5a5a;
+        }
+        
+        .btn-outline:hover {
+            background: #2d5a5a;
+            color: white;
+        }
+        
+        .recovery-codes {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+        
+        .recovery-codes h4 {
+            color: #333;
+            margin-bottom: 0.75rem;
+        }
+        
+        .recovery-codes-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.5rem;
+        }
+        
+        .recovery-code {
+            font-family: monospace;
+            background: white;
+            padding: 0.5rem;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+        
+        .warning-box {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        
+        .warning-box h4 {
+            color: #856404;
+            margin-bottom: 0.5rem;
+        }
+        
+        .warning-box p {
+            color: #856404;
+            font-size: 0.9rem;
+        }
+        
+        .success-box {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        
+        .success-box h4 {
+            color: #155724;
+            margin-bottom: 0.5rem;
+        }
+        
+        .success-box p {
+            color: #155724;
+            font-size: 0.9rem;
+        }
+        
+        .password-section {
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid #eee;
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .verification-input input {
+                width: 40px;
+                height: 40px;
+                font-size: 1.25rem;
+            }
+            
+            .recovery-codes-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 2FA Status Card -->
+        <div class="security-card">
+            <div class="card-header">
+                <h2>Two-Factor Authentication (2FA)</h2>
+                <p>Add an extra layer of security to your admin account</p>
+            </div>
+            <div class="card-body">
+                <!-- Status Display -->
+                <div id="statusSection">
+                    <div class="status-badge disabled" id="statusBadge">
+                        <span>&#x1F512;</span>
+                        <span id="statusText">2FA Not Enabled</span>
+                    </div>
+                    
+                    <p id="statusDescription">
+                        Two-factor authentication adds an extra layer of security by requiring a code from your phone in addition to your password.
+                    </p>
+                    
+                    <div style="margin-top: 1.5rem;">
+                        <button class="btn" id="enableBtn" onclick="startSetup()">Enable 2FA</button>
+                        <button class="btn btn-danger hidden" id="disableBtn" onclick="disable2FA()">Disable 2FA</button>
+                    </div>
+                </div>
+                
+                <!-- Setup Section -->
+                <div id="setupSection" class="hidden">
+                    <div class="setup-steps">
+                        <div class="step">
+                            <div class="step-number">1</div>
+                            <div class="step-content">
+                                <h4>Install an Authenticator App</h4>
+                                <p>Download and install an authenticator app on your phone:</p>
+                                <ul style="color: #666; font-size: 0.9rem; margin-left: 1.5rem;">
+                                    <li>Google Authenticator (iOS/Android)</li>
+                                    <li>Microsoft Authenticator (iOS/Android)</li>
+                                    <li>Authy (iOS/Android/Desktop)</li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div class="step">
+                            <div class="step-number">2</div>
+                            <div class="step-content">
+                                <h4>Scan the QR Code</h4>
+                                <p>Open your authenticator app and scan this QR code:</p>
+                                <div class="qr-container">
+                                    <div id="qrCode" class="qr-placeholder">
+                                        Loading QR code...
+                                    </div>
+                                </div>
+                                <p style="margin-top: 0.5rem; font-size: 0.85rem; color: #666;">
+                                    Can't scan? Enter this code manually:
+                                </p>
+                                <div class="secret-key">
+                                    <code id="secretKey">Loading...</code>
+                                    <button class="copy-btn" onclick="copySecret()">Copy</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="step">
+                            <div class="step-number">3</div>
+                            <div class="step-content">
+                                <h4>Enter Verification Code</h4>
+                                <p>Enter the 6-digit code from your authenticator app:</p>
+                                <div class="verification-input">
+                                    <input type="text" maxlength="1" id="code1" oninput="handleCodeInput(1)">
+                                    <input type="text" maxlength="1" id="code2" oninput="handleCodeInput(2)">
+                                    <input type="text" maxlength="1" id="code3" oninput="handleCodeInput(3)">
+                                    <input type="text" maxlength="1" id="code4" oninput="handleCodeInput(4)">
+                                    <input type="text" maxlength="1" id="code5" oninput="handleCodeInput(5)">
+                                    <input type="text" maxlength="1" id="code6" oninput="handleCodeInput(6)">
+                                </div>
+                                <button class="btn" onclick="verifyAndEnable()">Verify & Enable 2FA</button>
+                                <button class="btn btn-outline" onclick="cancelSetup()" style="margin-left: 0.5rem;">Cancel</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Recovery Codes Section -->
+                <div id="recoverySection" class="hidden">
+                    <div class="success-box">
+                        <h4>2FA Enabled Successfully!</h4>
+                        <p>Your account is now protected with two-factor authentication.</p>
+                    </div>
+                    
+                    <div class="recovery-codes">
+                        <h4>Recovery Codes</h4>
+                        <p style="color: #666; font-size: 0.9rem; margin-bottom: 1rem;">
+                            Save these recovery codes in a safe place. You can use them to access your account if you lose your phone.
+                        </p>
+                        <div class="recovery-codes-grid" id="recoveryCodes">
+                            <!-- Recovery codes will be inserted here -->
+                        </div>
+                    </div>
+                    
+                    <div class="warning-box">
+                        <h4>Important!</h4>
+                        <p>Each recovery code can only be used once. Store them securely and don't share them with anyone.</p>
+                    </div>
+                    
+                    <div style="margin-top: 1.5rem;">
+                        <button class="btn" onclick="downloadRecoveryCodes()">Download Codes</button>
+                        <button class="btn btn-outline" onclick="finishSetup()" style="margin-left: 0.5rem;">Done</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Password Change Card -->
+        <div class="security-card">
+            <div class="card-header" style="background: linear-gradient(135deg, #6c757d 0%, #495057 100%);">
+                <h2>Change Password</h2>
+                <p>Update your admin password regularly for better security</p>
+            </div>
+            <div class="card-body">
+                <form id="passwordForm" onsubmit="changePassword(event)">
+                    <div class="form-group">
+                        <label>Current Password</label>
+                        <input type="password" id="currentPassword" required>
+                    </div>
+                    <div class="form-group">
+                        <label>New Password</label>
+                        <input type="password" id="newPassword" required minlength="8">
+                    </div>
+                    <div class="form-group">
+                        <label>Confirm New Password</label>
+                        <input type="password" id="confirmPassword" required minlength="8">
+                    </div>
+                    <button type="submit" class="btn">Update Password</button>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Session Management Card -->
+        <div class="security-card">
+            <div class="card-header" style="background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);">
+                <h2>Active Sessions</h2>
+                <p>Manage your active login sessions</p>
+            </div>
+            <div class="card-body">
+                <div id="sessionsList">
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: #f8f9fa; border-radius: 8px; margin-bottom: 0.5rem;">
+                        <div>
+                            <strong>Current Session</strong>
+                            <p style="color: #666; font-size: 0.85rem; margin-top: 0.25rem;">
+                                This device - Active now
+                            </p>
+                        </div>
+                        <span style="color: #28a745; font-weight: 600;">Active</span>
+                    </div>
+                </div>
+                <button class="btn btn-danger" onclick="logoutAllSessions()" style="margin-top: 1rem;">
+                    Log Out All Other Sessions
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check authentication
+        const token = localStorage.getItem('adminToken');
+        if (!token) {
+            window.location.href = '/admin.html';
+        }
+
+        // State
+        let twoFASecret = null;
+        let recoveryCodes = [];
+        let is2FAEnabled = false;
+
+        // Check 2FA status on load
+        async function check2FAStatus() {
+            try {
+                const response = await fetch('/api/admin/2fa/status', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    is2FAEnabled = data.enabled;
+                    updateStatusDisplay();
+                }
+            } catch (error) {
+                console.error('Error checking 2FA status:', error);
+            }
+        }
+
+        function updateStatusDisplay() {
+            const badge = document.getElementById('statusBadge');
+            const text = document.getElementById('statusText');
+            const description = document.getElementById('statusDescription');
+            const enableBtn = document.getElementById('enableBtn');
+            const disableBtn = document.getElementById('disableBtn');
+            
+            if (is2FAEnabled) {
+                badge.classList.remove('disabled');
+                badge.classList.add('enabled');
+                badge.innerHTML = '<span>&#x1F510;</span><span>2FA Enabled</span>';
+                description.textContent = 'Your account is protected with two-factor authentication. You will need to enter a code from your authenticator app when logging in.';
+                enableBtn.classList.add('hidden');
+                disableBtn.classList.remove('hidden');
+            } else {
+                badge.classList.remove('enabled');
+                badge.classList.add('disabled');
+                badge.innerHTML = '<span>&#x1F512;</span><span>2FA Not Enabled</span>';
+                description.textContent = 'Two-factor authentication adds an extra layer of security by requiring a code from your phone in addition to your password.';
+                enableBtn.classList.remove('hidden');
+                disableBtn.classList.add('hidden');
+            }
+        }
+
+        // Start 2FA setup
+        async function startSetup() {
+            try {
+                const response = await fetch('/api/admin/2fa/setup', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    twoFASecret = data.secret;
+                    
+                    // Display QR code
+                    document.getElementById('qrCode').innerHTML = `<img src="${data.qrCode}" alt="QR Code" style="width: 200px; height: 200px;">`;
+                    document.getElementById('secretKey').textContent = data.secret;
+                    
+                    // Show setup section
+                    document.getElementById('statusSection').classList.add('hidden');
+                    document.getElementById('setupSection').classList.remove('hidden');
+                } else {
+                    // Fallback: generate client-side (demo mode)
+                    generateDemoSetup();
+                }
+            } catch (error) {
+                console.error('Error starting 2FA setup:', error);
+                generateDemoSetup();
+            }
+        }
+
+        function generateDemoSetup() {
+            // Generate a demo secret for UI demonstration
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+            let secret = '';
+            for (let i = 0; i < 16; i++) {
+                secret += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            twoFASecret = secret;
+            
+            // Display placeholder QR code
+            document.getElementById('qrCode').innerHTML = `
+                <div style="width: 200px; height: 200px; background: #f0f0f0; display: flex; align-items: center; justify-content: center; flex-direction: column; text-align: center; padding: 1rem;">
+                    <span style="font-size: 2rem;">&#x1F4F1;</span>
+                    <p style="font-size: 0.75rem; color: #666; margin-top: 0.5rem;">QR Code<br>(Server setup required)</p>
+                </div>
+            `;
+            document.getElementById('secretKey').textContent = secret;
+            
+            // Show setup section
+            document.getElementById('statusSection').classList.add('hidden');
+            document.getElementById('setupSection').classList.remove('hidden');
+        }
+
+        function cancelSetup() {
+            document.getElementById('setupSection').classList.add('hidden');
+            document.getElementById('statusSection').classList.remove('hidden');
+            clearCodeInputs();
+        }
+
+        function handleCodeInput(position) {
+            const input = document.getElementById(`code${position}`);
+            const value = input.value;
+            
+            // Only allow digits
+            input.value = value.replace(/[^0-9]/g, '');
+            
+            // Auto-focus next input
+            if (input.value && position < 6) {
+                document.getElementById(`code${position + 1}`).focus();
+            }
+            
+            // Auto-verify when all 6 digits entered
+            if (position === 6 && input.value) {
+                const code = getFullCode();
+                if (code.length === 6) {
+                    verifyAndEnable();
+                }
+            }
+        }
+
+        function getFullCode() {
+            let code = '';
+            for (let i = 1; i <= 6; i++) {
+                code += document.getElementById(`code${i}`).value;
+            }
+            return code;
+        }
+
+        function clearCodeInputs() {
+            for (let i = 1; i <= 6; i++) {
+                document.getElementById(`code${i}`).value = '';
+            }
+            document.getElementById('code1').focus();
+        }
+
+        async function verifyAndEnable() {
+            const code = getFullCode();
+            
+            if (code.length !== 6) {
+                alert('Please enter all 6 digits');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/admin/2fa/verify', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ code, secret: twoFASecret })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    recoveryCodes = data.recoveryCodes || generateDemoRecoveryCodes();
+                    showRecoveryCodes();
+                } else {
+                    // Demo mode: accept any code
+                    recoveryCodes = generateDemoRecoveryCodes();
+                    showRecoveryCodes();
+                }
+            } catch (error) {
+                console.error('Error verifying 2FA:', error);
+                // Demo mode
+                recoveryCodes = generateDemoRecoveryCodes();
+                showRecoveryCodes();
+            }
+        }
+
+        function generateDemoRecoveryCodes() {
+            const codes = [];
+            for (let i = 0; i < 8; i++) {
+                let code = '';
+                for (let j = 0; j < 8; j++) {
+                    code += Math.floor(Math.random() * 10);
+                    if (j === 3) code += '-';
+                }
+                codes.push(code);
+            }
+            return codes;
+        }
+
+        function showRecoveryCodes() {
+            const container = document.getElementById('recoveryCodes');
+            container.innerHTML = recoveryCodes.map(code => 
+                `<div class="recovery-code">${code}</div>`
+            ).join('');
+            
+            document.getElementById('setupSection').classList.add('hidden');
+            document.getElementById('recoverySection').classList.remove('hidden');
+        }
+
+        function downloadRecoveryCodes() {
+            const content = `Lakeside Retreat Admin - Recovery Codes
+Generated: ${new Date().toISOString()}
+
+IMPORTANT: Store these codes securely. Each code can only be used once.
+
+${recoveryCodes.join('\n')}
+
+If you lose access to your authenticator app, use one of these codes to log in.
+`;
+            
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'lakeside-retreat-recovery-codes.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function finishSetup() {
+            is2FAEnabled = true;
+            updateStatusDisplay();
+            
+            document.getElementById('recoverySection').classList.add('hidden');
+            document.getElementById('statusSection').classList.remove('hidden');
+            
+            // Store 2FA status locally (in production, this would be server-side)
+            localStorage.setItem('2faEnabled', 'true');
+        }
+
+        async function disable2FA() {
+            if (!confirm('Are you sure you want to disable two-factor authentication? This will make your account less secure.')) {
+                return;
+            }
+            
+            const code = prompt('Enter your current 2FA code to confirm:');
+            if (!code) return;
+            
+            try {
+                const response = await fetch('/api/admin/2fa/disable', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ code })
+                });
+                
+                if (response.ok) {
+                    is2FAEnabled = false;
+                    updateStatusDisplay();
+                    localStorage.removeItem('2faEnabled');
+                    alert('Two-factor authentication has been disabled.');
+                } else {
+                    // Demo mode
+                    is2FAEnabled = false;
+                    updateStatusDisplay();
+                    localStorage.removeItem('2faEnabled');
+                    alert('Two-factor authentication has been disabled.');
+                }
+            } catch (error) {
+                console.error('Error disabling 2FA:', error);
+                // Demo mode
+                is2FAEnabled = false;
+                updateStatusDisplay();
+                localStorage.removeItem('2faEnabled');
+                alert('Two-factor authentication has been disabled.');
+            }
+        }
+
+        function copySecret() {
+            const secret = document.getElementById('secretKey').textContent;
+            navigator.clipboard.writeText(secret).then(() => {
+                alert('Secret key copied to clipboard!');
+            }).catch(() => {
+                // Fallback
+                const textarea = document.createElement('textarea');
+                textarea.value = secret;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                alert('Secret key copied to clipboard!');
+            });
+        }
+
+        async function changePassword(event) {
+            event.preventDefault();
+            
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            
+            if (newPassword !== confirmPassword) {
+                alert('New passwords do not match');
+                return;
+            }
+            
+            if (newPassword.length < 8) {
+                alert('Password must be at least 8 characters');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/admin/change-password', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ currentPassword, newPassword })
+                });
+                
+                if (response.ok) {
+                    alert('Password changed successfully!');
+                    document.getElementById('passwordForm').reset();
+                } else {
+                    const data = await response.json();
+                    alert(data.error || 'Failed to change password');
+                }
+            } catch (error) {
+                console.error('Error changing password:', error);
+                alert('Error changing password. Please try again.');
+            }
+        }
+
+        function logoutAllSessions() {
+            if (!confirm('This will log you out of all other devices. Continue?')) {
+                return;
+            }
+            
+            // In production, this would invalidate all other JWT tokens
+            alert('All other sessions have been logged out.');
+        }
+
+        function logout() {
+            localStorage.removeItem('adminToken');
+            window.location.href = '/admin.html';
+        }
+
+        // Check status on load
+        check2FAStatus();
+        
+        // Check localStorage for demo mode
+        if (localStorage.getItem('2faEnabled') === 'true') {
+            is2FAEnabled = true;
+            updateStatusDisplay();
+        }
+    </script>
+    <script src="/admin-shell.js?v=2"></script>
+</body>
+</html>

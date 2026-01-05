@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inbox - Lakeside Retreat Admin</title>
+    <link rel="stylesheet" href="/admin-shell.css?v=2">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .inbox-layout {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 2rem;
+            min-height: calc(100vh - 150px);
+        }
+        
+        /* Sidebar */
+        .inbox-sidebar {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .compose-btn {
+            display: block;
+            width: calc(100% - 2rem);
+            margin: 1rem;
+            padding: 0.75rem 1rem;
+            background: #2d5a5a;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            transition: background 0.3s;
+        }
+        
+        .compose-btn:hover {
+            background: #1e4040;
+        }
+        
+        .folder-list {
+            list-style: none;
+        }
+        
+        .folder-item {
+            padding: 0.75rem 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            border-left: 3px solid transparent;
+            transition: all 0.2s;
+        }
+        
+        .folder-item:hover {
+            background: #f8f9fa;
+        }
+        
+        .folder-item.active {
+            background: #e8f5e8;
+            border-left-color: #2d5a5a;
+        }
+        
+        .folder-item .icon {
+            margin-right: 0.5rem;
+        }
+        
+        .folder-item .badge {
+            background: #dc3545;
+            color: white;
+            padding: 0.125rem 0.5rem;
+            border-radius: 10px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .folder-divider {
+            border-top: 1px solid #eee;
+            margin: 0.5rem 0;
+        }
+        
+        /* Message List */
+        .inbox-main {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .inbox-header {
+            background: white;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .inbox-header h2 {
+            color: #2d5a5a;
+            font-size: 1.25rem;
+        }
+        
+        .search-box {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .search-box input {
+            padding: 0.5rem 1rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            width: 250px;
+        }
+        
+        .message-list {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            overflow: hidden;
+            flex: 1;
+        }
+        
+        .message-item {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 1rem;
+            align-items: center;
+        }
+        
+        .message-item:hover {
+            background: #f8f9fa;
+        }
+        
+        .message-item:last-child {
+            border-bottom: none;
+        }
+        
+        .message-item.unread {
+            background: #f0f7ff;
+            font-weight: 600;
+        }
+        
+        .message-item.unread:hover {
+            background: #e0efff;
+        }
+        
+        .message-checkbox {
+            width: 18px;
+            height: 18px;
+        }
+        
+        .message-content {
+            overflow: hidden;
+        }
+        
+        .message-from {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.25rem;
+        }
+        
+        .message-subject {
+            color: #666;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: 0.9rem;
+        }
+        
+        .message-preview {
+            color: #999;
+            font-size: 0.85rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .message-meta {
+            text-align: right;
+            white-space: nowrap;
+        }
+        
+        .message-date {
+            color: #666;
+            font-size: 0.85rem;
+        }
+        
+        .message-type {
+            display: inline-block;
+            padding: 0.125rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            margin-top: 0.25rem;
+        }
+        
+        .message-type.contact { background: #d1ecf1; color: #0c5460; }
+        .message-type.booking { background: #d4edda; color: #155724; }
+        .message-type.inquiry { background: #fff3cd; color: #856404; }
+        
+        /* Compose Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            max-width: 700px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            background: linear-gradient(135deg, #2d5a5a 0%, #1e4040 100%);
+            color: white;
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-header h3 {
+            font-size: 1.25rem;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+        
+        .modal-body {
+            padding: 1.5rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+        
+        .form-group textarea {
+            min-height: 200px;
+            resize: vertical;
+        }
+        
+        .template-selector {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+        
+        .template-btn {
+            padding: 0.5rem 1rem;
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+        
+        .template-btn:hover {
+            background: #e9ecef;
+        }
+        
+        .template-btn.active {
+            background: #2d5a5a;
+            color: white;
+            border-color: #2d5a5a;
+        }
+        
+        .modal-actions {
+            padding: 1rem 1.5rem;
+            background: #f8f9fa;
+            display: flex;
+            gap: 0.5rem;
+            justify-content: flex-end;
+        }
+        
+        .btn {
+            background: #2d5a5a;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-block;
+            transition: background 0.3s;
+        }
+        
+        .btn:hover {
+            background: #1e4040;
+        }
+        
+        .btn-outline {
+            background: transparent;
+            border: 1px solid #2d5a5a;
+            color: #2d5a5a;
+        }
+        
+        .btn-outline:hover {
+            background: #2d5a5a;
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+        }
+        
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+        
+        /* Message View */
+        .message-view {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: none;
+        }
+        
+        .message-view.active {
+            display: block;
+        }
+        
+        .message-view-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .message-view-subject {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+        
+        .message-view-meta {
+            display: flex;
+            justify-content: space-between;
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .message-view-body {
+            padding: 1.5rem;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+        
+        .message-view-actions {
+            padding: 1rem 1.5rem;
+            background: #f8f9fa;
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #666;
+        }
+        
+        .empty-state .icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        
+        @media (max-width: 1024px) {
+            .inbox-layout {
+                grid-template-columns: 1fr;
+            }
+            
+            .inbox-sidebar {
+                display: none;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .inbox-header {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .search-box input {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="inbox-layout">
+            <!-- Sidebar -->
+            <div class="inbox-sidebar">
+                <button class="compose-btn" onclick="openCompose()">+ Compose</button>
+                
+                <ul class="folder-list">
+                    <li class="folder-item active" onclick="setFolder('inbox')">
+                        <span><span class="icon">&#x1F4E5;</span> Inbox</span>
+                        <span class="badge" id="inboxBadge">0</span>
+                    </li>
+                    <li class="folder-item" onclick="setFolder('sent')">
+                        <span><span class="icon">&#x1F4E4;</span> Sent</span>
+                    </li>
+                    <li class="folder-item" onclick="setFolder('drafts')">
+                        <span><span class="icon">&#x1F4DD;</span> Drafts</span>
+                        <span class="badge" id="draftsBadge" style="background: #6c757d;">0</span>
+                    </li>
+                    
+                    <li class="folder-divider"></li>
+                    
+                    <li class="folder-item" onclick="setFolder('contact')">
+                        <span><span class="icon">&#x1F4AC;</span> Contact Forms</span>
+                    </li>
+                    <li class="folder-item" onclick="setFolder('booking')">
+                        <span><span class="icon">&#x1F3E0;</span> Booking Inquiries</span>
+                    </li>
+                    
+                    <li class="folder-divider"></li>
+                    
+                    <li class="folder-item" onclick="openTemplates()">
+                        <span><span class="icon">&#x1F4CB;</span> Email Templates</span>
+                    </li>
+                </ul>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="inbox-main">
+                <div class="inbox-header">
+                    <h2 id="folderTitle">Inbox</h2>
+                    <div class="search-box">
+                        <input type="text" id="searchInput" placeholder="Search messages..." onkeyup="searchMessages()">
+                    </div>
+                </div>
+                
+                <!-- Message List -->
+                <div class="message-list" id="messageList">
+                    <div class="empty-state">
+                        <div class="icon">&#x1F4E7;</div>
+                        <p>Loading messages...</p>
+                    </div>
+                </div>
+                
+                <!-- Message View -->
+                <div class="message-view" id="messageView">
+                    <div class="message-view-header">
+                        <div class="message-view-subject" id="viewSubject">Subject</div>
+                        <div class="message-view-meta">
+                            <span id="viewFrom">From: guest@example.com</span>
+                            <span id="viewDate">Jan 1, 2026</span>
+                        </div>
+                    </div>
+                    <div class="message-view-body" id="viewBody">
+                        Message content...
+                    </div>
+                    <div class="message-view-actions">
+                        <button class="btn" onclick="replyToMessage()">Reply</button>
+                        <button class="btn btn-outline" onclick="closeMessageView()">Back to List</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Compose Modal -->
+    <div class="modal" id="composeModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="composeTitle">Compose Email</h3>
+                <button class="modal-close" onclick="closeCompose()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>To:</label>
+                    <input type="email" id="composeTo" placeholder="recipient@example.com">
+                </div>
+                <div class="form-group">
+                    <label>Subject:</label>
+                    <input type="text" id="composeSubject" placeholder="Email subject">
+                </div>
+                <div class="form-group">
+                    <label>Use Template:</label>
+                    <div class="template-selector">
+                        <button class="template-btn" onclick="applyTemplate('none')">None</button>
+                        <button class="template-btn" onclick="applyTemplate('welcome')">Welcome</button>
+                        <button class="template-btn" onclick="applyTemplate('checkin')">Check-in Info</button>
+                        <button class="template-btn" onclick="applyTemplate('checkout')">Check-out</button>
+                        <button class="template-btn" onclick="applyTemplate('review')">Review Request</button>
+                        <button class="template-btn" onclick="applyTemplate('inquiry')">Inquiry Response</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Message:</label>
+                    <textarea id="composeBody" placeholder="Type your message here..."></textarea>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="saveDraft()">Save Draft</button>
+                <button class="btn btn-outline" onclick="closeCompose()">Cancel</button>
+                <button class="btn" onclick="sendEmail()">Send</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Templates Modal -->
+    <div class="modal" id="templatesModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Email Templates</h3>
+                <button class="modal-close" onclick="closeTemplates()">&times;</button>
+            </div>
+            <div class="modal-body" id="templatesList">
+                <!-- Templates will be rendered here -->
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-outline" onclick="closeTemplates()">Close</button>
+                <button class="btn" onclick="createTemplate()">Create New Template</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check authentication
+        const token = localStorage.getItem('adminToken');
+        if (!token) {
+            window.location.href = '/admin.html';
+        }
+
+        // State
+        let currentFolder = 'inbox';
+        let messages = [];
+        let drafts = [];
+        let currentMessage = null;
+        let replyingTo = null;
+
+        // Email templates
+        const templates = {
+            welcome: {
+                name: 'Welcome Message',
+                subject: 'Welcome to Lakeside Retreat - Your Booking Confirmation',
+                body: `Dear {guest_name},
+
+Thank you for choosing Lakeside Retreat for your upcoming stay! We're thrilled to welcome you to our beautiful property in Central Otago.
+
+Your Booking Details:
+- Accommodation: {accommodation}
+- Check-in: {check_in} (from 3:00 PM)
+- Check-out: {check_out} (by 11:00 AM)
+- Guests: {guests}
+
+What to Expect:
+Our property is located at 96 Smiths Way, Mount Pisa, just 12km from Cromwell. You'll be surrounded by stunning vineyard views and have easy access to world-class wineries.
+
+We'll send you detailed check-in instructions closer to your arrival date.
+
+If you have any questions before your stay, please don't hesitate to reach out.
+
+Warm regards,
+The Lakeside Retreat Team`
+            },
+            checkin: {
+                name: 'Check-in Instructions',
+                subject: 'Your Check-in Instructions for Lakeside Retreat',
+                body: `Dear {guest_name},
+
+Your stay at Lakeside Retreat is just around the corner! Here are your check-in instructions:
+
+CHECK-IN DETAILS:
+- Date: {check_in}
+- Time: From 3:00 PM
+- Address: 96 Smiths Way, Mount Pisa, Cromwell 9384
+
+ACCESS INSTRUCTIONS:
+1. Drive to 96 Smiths Way, Mount Pisa
+2. The property entrance is marked with a Lakeside Retreat sign
+3. Your accommodation is {accommodation}
+4. The door code is: [CODE]
+
+AMENITIES:
+- WiFi Network: LakesideRetreat
+- WiFi Password: [PASSWORD]
+- Hot tub is pre-heated and ready for your arrival
+- Complimentary wine and local produce in the welcome basket
+
+NEARBY RECOMMENDATIONS:
+- Rippon Vineyard: 5 min walk
+- Mt Difficulty: 8 min drive
+- Cromwell town center: 12 min drive
+
+If you have any issues on arrival, please call us at [PHONE].
+
+We hope you have a wonderful stay!
+
+The Lakeside Retreat Team`
+            },
+            checkout: {
+                name: 'Check-out Reminder',
+                subject: 'Check-out Reminder - Lakeside Retreat',
+                body: `Dear {guest_name},
+
+We hope you've had a wonderful stay at Lakeside Retreat!
+
+Just a friendly reminder that check-out is tomorrow at 11:00 AM.
+
+BEFORE YOU LEAVE:
+- Please leave the keys on the kitchen counter
+- Turn off all lights and appliances
+- Close all windows and doors
+- Leave the hot tub cover on
+
+We'd love to hear about your experience! If you have a moment, we'd greatly appreciate a review on Google or Airbnb.
+
+Thank you for staying with us, and we hope to welcome you back soon!
+
+Safe travels,
+The Lakeside Retreat Team`
+            },
+            review: {
+                name: 'Review Request',
+                subject: 'How was your stay at Lakeside Retreat?',
+                body: `Dear {guest_name},
+
+Thank you for choosing Lakeside Retreat for your recent getaway! We hope you had a memorable experience.
+
+We'd love to hear your feedback! Your review helps other travelers discover our property and helps us continue to improve.
+
+Would you mind taking a moment to share your experience?
+
+Leave a Google Review: [GOOGLE_LINK]
+Leave an Airbnb Review: [AIRBNB_LINK]
+
+Thank you so much for your time. We hope to welcome you back to Lakeside Retreat soon!
+
+Warm regards,
+The Lakeside Retreat Team`
+            },
+            inquiry: {
+                name: 'Inquiry Response',
+                subject: 'Re: Your Inquiry about Lakeside Retreat',
+                body: `Dear {guest_name},
+
+Thank you for your interest in Lakeside Retreat!
+
+I'd be happy to help answer your questions about our property.
+
+[ANSWER THEIR SPECIFIC QUESTIONS HERE]
+
+Our accommodations include:
+- Dome Pinot (50sqm luxury eco-dome) - $580/night
+- Dome Rose (40sqm romantic eco-dome) - $550/night
+- Lakeside Cottage (family-friendly) - $300/night
+
+All accommodations include:
+- Private hot tub
+- Stunning vineyard and lake views
+- Complimentary welcome basket with local wine
+- Full kitchen facilities
+- Free WiFi
+
+Would you like me to check availability for specific dates?
+
+Best regards,
+The Lakeside Retreat Team`
+            }
+        };
+
+        // Load messages
+        async function loadMessages() {
+            try {
+                // Load contact form messages
+                const contactRes = await fetch('/api/admin/contact-messages', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                let contactMessages = [];
+                if (contactRes.ok) {
+                    const data = await contactRes.json();
+                    contactMessages = (data.messages || []).map(m => ({
+                        ...m,
+                        type: 'contact',
+                        subject: 'Contact Form Submission',
+                        from: m.email || m.name,
+                        read: false
+                    }));
+                }
+                
+                // Load booking-related messages (simulated for now)
+                const bookingMessages = [];
+                
+                messages = [...contactMessages, ...bookingMessages].sort((a, b) => 
+                    new Date(b.created_at) - new Date(a.created_at)
+                );
+                
+                // Load drafts from localStorage
+                drafts = JSON.parse(localStorage.getItem('emailDrafts') || '[]');
+                
+                updateBadges();
+                renderMessages();
+                
+            } catch (error) {
+                console.error('Error loading messages:', error);
+                messages = [];
+                renderMessages();
+            }
+        }
+
+        // Update folder badges
+        function updateBadges() {
+            const unreadCount = messages.filter(m => !m.read).length;
+            document.getElementById('inboxBadge').textContent = unreadCount;
+            document.getElementById('inboxBadge').style.display = unreadCount > 0 ? 'inline' : 'none';
+            
+            document.getElementById('draftsBadge').textContent = drafts.length;
+            document.getElementById('draftsBadge').style.display = drafts.length > 0 ? 'inline' : 'none';
+        }
+
+        // Render messages based on current folder
+        function renderMessages() {
+            const container = document.getElementById('messageList');
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            
+            let filteredMessages = [];
+            
+            switch (currentFolder) {
+                case 'inbox':
+                    filteredMessages = messages;
+                    break;
+                case 'sent':
+                    filteredMessages = []; // Would come from sent emails table
+                    break;
+                case 'drafts':
+                    filteredMessages = drafts.map((d, i) => ({
+                        id: `draft-${i}`,
+                        from: d.to || 'No recipient',
+                        subject: d.subject || 'No subject',
+                        message: d.body,
+                        created_at: d.savedAt,
+                        type: 'draft',
+                        read: true
+                    }));
+                    break;
+                case 'contact':
+                    filteredMessages = messages.filter(m => m.type === 'contact');
+                    break;
+                case 'booking':
+                    filteredMessages = messages.filter(m => m.type === 'booking');
+                    break;
+            }
+            
+            // Apply search filter
+            if (searchTerm) {
+                filteredMessages = filteredMessages.filter(m => 
+                    (m.from || '').toLowerCase().includes(searchTerm) ||
+                    (m.subject || '').toLowerCase().includes(searchTerm) ||
+                    (m.message || '').toLowerCase().includes(searchTerm)
+                );
+            }
+            
+            if (filteredMessages.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">&#x1F4ED;</div>
+                        <p>No messages in this folder</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = filteredMessages.map(m => `
+                <div class="message-item ${m.read ? '' : 'unread'}" onclick="viewMessage('${m.id}')">
+                    <input type="checkbox" class="message-checkbox" onclick="event.stopPropagation()">
+                    <div class="message-content">
+                        <div class="message-from">${escapeHtml(m.from || m.name || 'Unknown')}</div>
+                        <div class="message-subject">${escapeHtml(m.subject || 'No subject')}</div>
+                        <div class="message-preview">${escapeHtml((m.message || '').substring(0, 100))}...</div>
+                    </div>
+                    <div class="message-meta">
+                        <div class="message-date">${formatDate(m.created_at)}</div>
+                        ${m.type ? `<span class="message-type ${m.type}">${m.type}</span>` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // View a message
+        function viewMessage(messageId) {
+            const message = messages.find(m => m.id === messageId) || 
+                           drafts.find((d, i) => `draft-${i}` === messageId);
+            
+            if (!message) return;
+            
+            currentMessage = message;
+            
+            // Mark as read
+            if (!message.read) {
+                message.read = true;
+                updateBadges();
+            }
+            
+            document.getElementById('viewSubject').textContent = message.subject || 'No subject';
+            document.getElementById('viewFrom').textContent = `From: ${message.from || message.email || message.name || 'Unknown'}`;
+            document.getElementById('viewDate').textContent = formatDate(message.created_at);
+            document.getElementById('viewBody').textContent = message.message || message.body || '';
+            
+            document.getElementById('messageList').style.display = 'none';
+            document.getElementById('messageView').classList.add('active');
+        }
+
+        // Close message view
+        function closeMessageView() {
+            document.getElementById('messageList').style.display = 'block';
+            document.getElementById('messageView').classList.remove('active');
+            currentMessage = null;
+        }
+
+        // Reply to message
+        function replyToMessage() {
+            if (!currentMessage) return;
+            
+            replyingTo = currentMessage;
+            document.getElementById('composeTo').value = currentMessage.from || currentMessage.email || '';
+            document.getElementById('composeSubject').value = `Re: ${currentMessage.subject || 'Your message'}`;
+            document.getElementById('composeBody').value = `\n\n---\nOn ${formatDate(currentMessage.created_at)}, ${currentMessage.from || currentMessage.name} wrote:\n${currentMessage.message || ''}`;
+            document.getElementById('composeTitle').textContent = 'Reply';
+            
+            closeMessageView();
+            openCompose();
+        }
+
+        // Set current folder
+        function setFolder(folder) {
+            currentFolder = folder;
+            
+            // Update active state
+            document.querySelectorAll('.folder-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.currentTarget.classList.add('active');
+            
+            // Update title
+            const titles = {
+                inbox: 'Inbox',
+                sent: 'Sent',
+                drafts: 'Drafts',
+                contact: 'Contact Forms',
+                booking: 'Booking Inquiries'
+            };
+            document.getElementById('folderTitle').textContent = titles[folder] || 'Messages';
+            
+            closeMessageView();
+            renderMessages();
+        }
+
+        // Search messages
+        function searchMessages() {
+            renderMessages();
+        }
+
+        // Compose functions
+        function openCompose() {
+            if (!replyingTo) {
+                document.getElementById('composeTo').value = '';
+                document.getElementById('composeSubject').value = '';
+                document.getElementById('composeBody').value = '';
+                document.getElementById('composeTitle').textContent = 'Compose Email';
+            }
+            document.getElementById('composeModal').classList.add('active');
+        }
+
+        function closeCompose() {
+            document.getElementById('composeModal').classList.remove('active');
+            replyingTo = null;
+        }
+
+        function applyTemplate(templateKey) {
+            // Update active state
+            document.querySelectorAll('.template-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.currentTarget.classList.add('active');
+            
+            if (templateKey === 'none') {
+                return;
+            }
+            
+            const template = templates[templateKey];
+            if (template) {
+                document.getElementById('composeSubject').value = template.subject;
+                document.getElementById('composeBody').value = template.body;
+            }
+        }
+
+        function saveDraft() {
+            const draft = {
+                to: document.getElementById('composeTo').value,
+                subject: document.getElementById('composeSubject').value,
+                body: document.getElementById('composeBody').value,
+                savedAt: new Date().toISOString()
+            };
+            
+            drafts.push(draft);
+            localStorage.setItem('emailDrafts', JSON.stringify(drafts));
+            
+            updateBadges();
+            closeCompose();
+            alert('Draft saved!');
+        }
+
+        async function sendEmail() {
+            const to = document.getElementById('composeTo').value;
+            const subject = document.getElementById('composeSubject').value;
+            const body = document.getElementById('composeBody').value;
+            
+            if (!to || !subject || !body) {
+                alert('Please fill in all fields');
+                return;
+            }
+            
+            try {
+                // In production, this would call an email sending API
+                const response = await fetch('/api/admin/send-email', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ to, subject, body })
+                });
+                
+                if (response.ok) {
+                    alert('Email sent successfully!');
+                    closeCompose();
+                } else {
+                    // Fallback - save as draft and show mailto link
+                    const mailtoLink = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                    window.open(mailtoLink, '_blank');
+                    alert('Email client opened. If email sending is not configured, please send manually.');
+                    closeCompose();
+                }
+            } catch (error) {
+                console.error('Error sending email:', error);
+                // Fallback to mailto
+                const mailtoLink = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                window.open(mailtoLink, '_blank');
+                alert('Email client opened. Please send manually.');
+                closeCompose();
+            }
+        }
+
+        // Templates modal
+        function openTemplates() {
+            const container = document.getElementById('templatesList');
+            container.innerHTML = Object.entries(templates).map(([key, template]) => `
+                <div style="margin-bottom: 1.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid #eee;">
+                    <h4 style="color: #2d5a5a; margin-bottom: 0.5rem;">${template.name}</h4>
+                    <p style="color: #666; font-size: 0.9rem; margin-bottom: 0.5rem;"><strong>Subject:</strong> ${template.subject}</p>
+                    <p style="color: #999; font-size: 0.85rem; white-space: pre-wrap; max-height: 100px; overflow-y: auto;">${template.body.substring(0, 200)}...</p>
+                    <button class="btn btn-outline" style="margin-top: 0.5rem;" onclick="useTemplate('${key}')">Use Template</button>
+                </div>
+            `).join('');
+            
+            document.getElementById('templatesModal').classList.add('active');
+        }
+
+        function closeTemplates() {
+            document.getElementById('templatesModal').classList.remove('active');
+        }
+
+        function useTemplate(key) {
+            closeTemplates();
+            applyTemplate(key);
+            openCompose();
+        }
+
+        function createTemplate() {
+            alert('Template creation coming soon! For now, templates are pre-configured.');
+        }
+
+        // Utility functions
+        function formatDate(dateStr) {
+            if (!dateStr) return 'Unknown';
+            const date = new Date(dateStr);
+            const now = new Date();
+            const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+            
+            if (diffDays === 0) {
+                return date.toLocaleTimeString('en-NZ', { hour: '2-digit', minute: '2-digit' });
+            } else if (diffDays === 1) {
+                return 'Yesterday';
+            } else if (diffDays < 7) {
+                return date.toLocaleDateString('en-NZ', { weekday: 'short' });
+            } else {
+                return date.toLocaleDateString('en-NZ', { day: 'numeric', month: 'short' });
+            }
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Close modals on outside click
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.classList.remove('active');
+                    replyingTo = null;
+                }
+            });
+        });
+
+        // Close modals on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.modal.active').forEach(modal => {
+                    modal.classList.remove('active');
+                });
+                replyingTo = null;
+            }
+        });
+
+        function logout() {
+            localStorage.removeItem('adminToken');
+            window.location.href = '/admin.html';
+        }
+
+        // Load messages on page load
+        loadMessages();
+    </script>
+    <script src="/admin-shell.js?v=2"></script>
+</body>
+</html>

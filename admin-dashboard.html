@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Lakeside Retreat</title>
+    <link rel="stylesheet" href="/admin-shell.css?v=2">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2d5a5a 0%, #1e4040 100%);
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-size: 1.5rem;
+        }
+        
+        .logout-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #2d5a5a;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-weight: 500;
+        }
+        
+        .admin-sections {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+        
+        .admin-card {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .admin-card h3 {
+            color: #2d5a5a;
+            margin-bottom: 1rem;
+            font-size: 1.25rem;
+        }
+        
+        .admin-card p {
+            color: #666;
+            margin-bottom: 1.5rem;
+            line-height: 1.5;
+        }
+        
+        .btn {
+            background: #2d5a5a;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-block;
+            transition: background 0.3s;
+        }
+        
+        .btn:hover {
+            background: #1e4040;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+        }
+        
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+        
+        .quick-actions {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        
+        .system-status {
+            background: #e8f5e8;
+            border: 1px solid #c3e6c3;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+        
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+        }
+        
+        .status-good {
+            color: #10b981;
+            font-weight: 600;
+        }
+        
+        .recent-activity {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .activity-item {
+            padding: 0.75rem;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .activity-time {
+            color: #999;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Old header removed - now using admin-shell.js for unified navigation -->
+    
+    <div class="container">
+        <!-- Statistics Overview -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="totalBookings">Loading...</div>
+                <div class="stat-label">Total Bookings</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="monthlyRevenue">Loading...</div>
+                <div class="stat-label">Monthly Revenue</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="occupancyRate">Loading...</div>
+                <div class="stat-label">Occupancy Rate</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="avgRating">Loading...</div>
+                <div class="stat-label">Average Rating</div>
+            </div>
+        </div>
+        
+        <!-- Admin Sections -->
+        <div class="admin-sections">
+            <!-- Analytics Dashboard -->
+            <div class="admin-card" style="background: linear-gradient(135deg, #2d5a5a 0%, #8fbc8f 20%); color: white;">
+                <h3>📊 Analytics Dashboard</h3>
+                <p style="color: rgba(255,255,255,0.9);">Comprehensive business insights, revenue trends, occupancy rates, and performance metrics.</p>
+                <div class="quick-actions">
+                    <a href="/admin-analytics.html" class="btn" style="background: white; color: #2d5a5a;">View Analytics</a>
+                    <a href="/admin-analytics.html#reports" class="btn btn-secondary" style="background: rgba(255,255,255,0.2); border-color: white;">Generate Reports</a>
+                </div>
+            </div>
+            
+            <!-- Booking Management -->
+            <div class="admin-card">
+                <h3>📅 Booking Management</h3>
+                <p>View, add, modify, and cancel bookings. Export booking data and manage guest information.</p>
+                <div class="quick-actions">
+                    <a href="/admin-bookings.html" class="btn">Manage Bookings</a>
+                    <a href="/add-booking.html" class="btn btn-secondary">Add Booking</a>
+                </div>
+            </div>
+            
+            <!-- Pricing Management -->
+            <div class="admin-card">
+                <h3>💰 Pricing & Rates</h3>
+                <p>Update accommodation prices, set seasonal rates, and manage special offers.</p>
+                <div class="quick-actions">
+                    <a href="/admin-pricing.html" class="btn">Update Prices</a>
+                    <a href="/seasonal-rates.html" class="btn btn-secondary">Seasonal Rates</a>
+                </div>
+            </div>
+            
+            <!-- Content Management -->
+            <div class="admin-card">
+                <h3>📝 Content Management</h3>
+                <p>Update website content, manage image galleries, and edit accommodation descriptions.</p>
+                <div class="quick-actions">
+                    <a href="/admin-content.html" class="btn">Edit Content</a>
+                    <a href="/gallery-management.html" class="btn btn-secondary">Manage Gallery</a>
+                </div>
+            </div>
+            
+            <!-- Promotional Codes -->
+            <div class="admin-card" style="background: linear-gradient(135deg, #ff6b6b 0%, #ffa500 20%); color: white;">
+                <h3>🎁 Promotional Codes</h3>
+                <p style="color: rgba(255,255,255,0.9);">Manage discount codes, seasonal offers, and partner referral programs to boost bookings.</p>
+                <div class="quick-actions">
+                    <a href="/admin-promotions.html" class="btn" style="background: white; color: #ff6b6b;">Manage Codes</a>
+                    <a href="/admin-promotions.html#create" class="btn btn-secondary" style="background: rgba(255,255,255,0.2); border-color: white;">Create Code</a>
+                </div>
+            </div>
+
+            <!-- Marketing Automation -->
+            <div class="admin-card" style="background: linear-gradient(135deg, #6b5b95 0%, #9b59b6 20%); color: white;">
+                <h3>📧 Marketing Automation</h3>
+                <p style="color: rgba(255,255,255,0.9);">Abandoned checkout recovery, automated review requests, and social content generation.</p>
+                <div class="quick-actions">
+                    <a href="/admin-marketing.html" class="btn" style="background: white; color: #6b5b95;">Open Marketing</a>
+                    <a href="/admin-marketing.html#social" class="btn btn-secondary" style="background: rgba(255,255,255,0.2); border-color: white;">Social Content</a>
+                </div>
+            </div>
+
+            <!-- Reviews Management -->
+            <div class="admin-card">
+                <h3>⭐ Reviews & Feedback</h3>
+                <p>View and moderate guest reviews, respond to feedback, and manage testimonials.</p>
+                <div class="quick-actions">
+                    <a href="/admin-reviews.html" class="btn">View Reviews</a>
+                    <a href="/review-responses.html" class="btn btn-secondary">Respond</a>
+                </div>
+            </div>
+            
+            <!-- System Management -->
+            <div class="admin-card">
+                <h3>⚙️ System Management</h3>
+                <p>Monitor system health, manage integrations, and configure settings.</p>
+                <div class="system-status">
+                    <div class="status-item">
+                        <span>Server Status</span>
+                        <span class="status-good">✅ Online</span>
+                    </div>
+                    <div class="status-item">
+                        <span>Database</span>
+                        <span class="status-good">✅ Connected</span>
+                    </div>
+                    <div class="status-item">
+                        <span>Stripe Integration</span>
+                        <span class="status-good">✅ Active</span>
+                    </div>
+                    <div class="status-item">
+                        <span>Uplisting Sync</span>
+                        <span class="status-good">✅ Connected</span>
+                    </div>
+                </div>
+                <div class="quick-actions">
+                    <a href="/system-settings.html" class="btn">Settings</a>
+                    <a href="/backup-system.html" class="btn btn-secondary">Backup</a>
+                </div>
+            </div>
+            
+            <!-- Recent Activity -->
+            <div class="admin-card">
+                <h3>📊 Recent Activity</h3>
+                <div class="recent-activity" id="recentActivity">
+                    <div class="activity-item">
+                        <span>No recent activity</span>
+                        <span class="activity-time">System ready for bookings</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check authentication on load
+        const token = localStorage.getItem('adminToken');
+        if (!token) {
+            window.location.href = '/admin.html';
+        }
+
+        // Load dashboard data from live APIs
+        async function loadDashboardData() {
+            try {
+                const token = localStorage.getItem('adminToken');
+                if (!token) {
+                    window.location.href = '/admin.html';
+                    return;
+                }
+
+                // Fetch real booking stats from API and Uplisting data
+                const [statsResponse, bookingStatsResponse, uplistingResponse] = await Promise.all([
+                    fetch('/api/admin/stats', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    }),
+                    fetch('/api/admin/booking-stats', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    }),
+                    fetch('/api/admin/uplisting-dashboard', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    })
+                ]);
+
+                if (statsResponse.ok && bookingStatsResponse.ok) {
+                    const stats = await statsResponse.json();
+                    const bookingStats = await bookingStatsResponse.json();
+                    
+                    // Get Uplisting data if available
+                    let uplistingData = null;
+                    if (uplistingResponse && uplistingResponse.ok) {
+                        uplistingData = await uplistingResponse.json();
+                    }
+                    
+                    // Check if we have actual booking data (local or Uplisting)
+                    const hasLocalBookings = stats.total_bookings > 0;
+                    const hasUplistingData = uplistingData && uplistingData.success;
+                    
+                    // Update dashboard with Uplisting-enhanced data
+                    if (hasUplistingData) {
+                        // Show Uplisting integration status
+                        document.getElementById('totalBookings').textContent = 
+                            `${stats.total_bookings} (Uplisting: ${uplistingData.total_properties} properties)`;
+                        
+                        // Show connection status in revenue field for now
+                        document.getElementById('monthlyRevenue').textContent = 
+                            hasLocalBookings ? `$${(stats.total_revenue || 0).toLocaleString()}` : 'Uplisting Connected';
+                        
+                        document.getElementById('occupancyRate').textContent = 'Connected to Uplisting';
+                        document.getElementById('avgRating').textContent = `${uplistingData.total_properties} Properties`;
+                        
+                        // Update recent activity with Uplisting info
+                        const activityDiv = document.getElementById('recentActivity');
+                        activityDiv.innerHTML = `
+                            <div class="activity-item">
+                                <span>✅ Connected to Uplisting channel manager</span>
+                                <span class="activity-time">Properties: ${uplistingData.total_properties}</span>
+                            </div>
+                            <div class="activity-item">
+                                <span>🏠 Properties found: ${uplistingData.properties.map(p => p.name).join(', ')}</span>
+                                <span class="activity-time">Ready for live data</span>
+                            </div>
+                        `;
+                        
+                    } else {
+                        // Fallback to local data only
+                        document.getElementById('totalBookings').textContent = stats.total_bookings || '0';
+                        
+                        if (hasLocalBookings) {
+                            document.getElementById('monthlyRevenue').textContent = `$${(stats.total_revenue || 0).toLocaleString()}`;
+                        } else {
+                            document.getElementById('monthlyRevenue').textContent = '$0';
+                        }
+                        
+                        if (hasLocalBookings && bookingStats.overview && bookingStats.overview.total_bookings > 0) {
+                            const occupancyRate = Math.round((bookingStats.overview.paid_bookings / bookingStats.overview.total_bookings) * 100);
+                            document.getElementById('occupancyRate').textContent = `${occupancyRate}%`;
+                        } else {
+                            document.getElementById('occupancyRate').textContent = 'No data';
+                        }
+                        
+                        if (hasLocalBookings) {
+                            document.getElementById('avgRating').textContent = 'No reviews yet';
+                        } else {
+                            document.getElementById('avgRating').textContent = 'No data';
+                        }
+                    }
+                } else {
+                    // Fallback if API fails
+                    throw new Error('Failed to fetch dashboard data');
+                }
+                
+            } catch (error) {
+                console.error('Failed to load dashboard data:', error);
+                // Show error state
+                document.getElementById('totalBookings').textContent = 'Error';
+                document.getElementById('monthlyRevenue').textContent = 'Error';
+                document.getElementById('occupancyRate').textContent = 'Error';
+                document.getElementById('avgRating').textContent = 'Error';
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('adminToken');
+            window.location.href = '/admin.html';
+        }
+
+        // Load data when page loads
+        loadDashboardData();
+    </script>
+    <script src="/admin-shell.js?v=2"></script>
+</body>
+</html>
