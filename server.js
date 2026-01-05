@@ -1488,10 +1488,11 @@ app.post('/api/admin/sync-uplisting-bookings', verifyAdmin, async (req, res) => 
                 const endDateStr = endDate.toISOString().split('T')[0];
                 
                 // Try fetching bookings for this property
-                // Use the /bookings endpoint with property_id filter (V2 Partner API)
-                // Requires X-Uplisting-Client-ID header (added by getUplistingAuthHeaders)
+                // Use the /bookings/:listing_id endpoint (per Uplisting Postman documentation)
+                // URL format: https://connect.uplisting.io/bookings/:listing_id?from=YYYY-MM-DD&to=YYYY-MM-DD
+                // Requires X-Uplisting-Client-ID header for V2 Partner API (added by getUplistingAuthHeaders)
                 const baseUrl = getUplistingBaseUrl();
-                const bookingsUrl = `${baseUrl}/bookings?property_id=${propertyId}&start_date=${startDateStr}&end_date=${endDateStr}`;
+                const bookingsUrl = `${baseUrl}/bookings/${propertyId}?from=${startDateStr}&to=${endDateStr}`;
                 
                 console.log(`🔍 Fetching bookings for ${accommodation} from: ${bookingsUrl}`);
                 
