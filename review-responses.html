@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Review Responses - Lakeside Retreat Admin</title>
+    <link rel="stylesheet" href="/admin-shell.css?v=2">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+        
+        .page-header {
+            margin-bottom: 2rem;
+        }
+        
+        .page-header h2 {
+            color: #2d5a5a;
+            font-size: 1.5rem;
+        }
+        
+        .page-header p {
+            color: #666;
+            margin-top: 0.5rem;
+        }
+        
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .stat-card .number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #2d5a5a;
+        }
+        
+        .stat-card .label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .stat-card.pending .number {
+            color: #ffc107;
+        }
+        
+        .review-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .review-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+        
+        .review-meta {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .review-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: #2d5a5a;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+        
+        .review-info h4 {
+            color: #333;
+            margin-bottom: 0.25rem;
+        }
+        
+        .review-info .date {
+            color: #666;
+            font-size: 0.85rem;
+        }
+        
+        .review-platform {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .platform-airbnb {
+            background: #ff5a5f;
+            color: white;
+        }
+        
+        .platform-booking {
+            background: #003580;
+            color: white;
+        }
+        
+        .platform-direct {
+            background: #2d5a5a;
+            color: white;
+        }
+        
+        .review-rating {
+            color: #ffc107;
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .review-content {
+            color: #333;
+            line-height: 1.6;
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 3px solid #2d5a5a;
+        }
+        
+        .response-section {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #eee;
+        }
+        
+        .response-section h5 {
+            color: #2d5a5a;
+            margin-bottom: 0.75rem;
+        }
+        
+        .response-textarea {
+            width: 100%;
+            padding: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 1rem;
+            resize: vertical;
+            min-height: 100px;
+        }
+        
+        .response-textarea:focus {
+            outline: none;
+            border-color: #2d5a5a;
+        }
+        
+        .existing-response {
+            background: #e8f5e9;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 3px solid #28a745;
+            margin-bottom: 1rem;
+        }
+        
+        .existing-response .response-date {
+            color: #666;
+            font-size: 0.85rem;
+            margin-top: 0.5rem;
+        }
+        
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        
+        .btn-primary {
+            background: #2d5a5a;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #1e4040;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-outline {
+            background: transparent;
+            border: 1px solid #2d5a5a;
+            color: #2d5a5a;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+        
+        .template-buttons {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+            flex-wrap: wrap;
+        }
+        
+        .template-btn {
+            padding: 0.25rem 0.75rem;
+            background: #e9ecef;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            color: #666;
+        }
+        
+        .template-btn:hover {
+            background: #dee2e6;
+        }
+        
+        .alert {
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+        }
+        
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .filter-bar {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+        
+        .filter-bar select {
+            padding: 0.5rem 1rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="alertBox"></div>
+        
+        <div class="page-header">
+            <h2>Review Responses</h2>
+            <p>Respond to guest reviews and manage your online reputation</p>
+        </div>
+        
+        <div class="stats-row">
+            <div class="stat-card pending">
+                <div class="number">3</div>
+                <div class="label">Pending Response</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">24</div>
+                <div class="label">Responded</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">4.9</div>
+                <div class="label">Average Rating</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">89%</div>
+                <div class="label">Response Rate</div>
+            </div>
+        </div>
+        
+        <div class="filter-bar">
+            <select id="filterStatus">
+                <option value="pending">Pending Response</option>
+                <option value="responded">Responded</option>
+                <option value="all">All Reviews</option>
+            </select>
+            <select id="filterPlatform">
+                <option value="">All Platforms</option>
+                <option value="airbnb">Airbnb</option>
+                <option value="booking">Booking.com</option>
+                <option value="direct">Direct</option>
+            </select>
+        </div>
+        
+        <div class="review-card">
+            <div class="review-header">
+                <div class="review-meta">
+                    <div class="review-avatar">SJ</div>
+                    <div class="review-info">
+                        <h4>Sarah Johnson</h4>
+                        <div class="date">Stayed at Dome Pinot - Jan 2, 2026</div>
+                    </div>
+                </div>
+                <span class="review-platform platform-airbnb">Airbnb</span>
+            </div>
+            <div class="review-rating">★★★★★</div>
+            <div class="review-content">
+                "Absolutely magical experience! The dome was stunning with incredible views of Lake Dunstan. The attention to detail was impressive - from the quality linens to the complimentary wine. We loved the private hot tub and watching the sunset over the vineyard. Will definitely be back!"
+            </div>
+            <div class="response-section">
+                <h5>Your Response</h5>
+                <div class="template-buttons">
+                    <button class="template-btn" onclick="useTemplate('thank')">Thank You</button>
+                    <button class="template-btn" onclick="useTemplate('welcome')">Welcome Back</button>
+                    <button class="template-btn" onclick="useTemplate('highlight')">Highlight Features</button>
+                </div>
+                <textarea class="response-textarea" id="response-1" placeholder="Write your response...">Thank you so much for your wonderful review, Sarah! We're thrilled that you enjoyed your stay at Dome Pinot and appreciated the little touches we put into making your experience special. The sunset views over the vineyard are truly one of our favorite features too! We'd love to welcome you back anytime.</textarea>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="submitResponse(1)">Post Response</button>
+                    <button class="btn btn-outline" onclick="saveAsDraft(1)">Save Draft</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="review-card">
+            <div class="review-header">
+                <div class="review-meta">
+                    <div class="review-avatar">MW</div>
+                    <div class="review-info">
+                        <h4>Mike Wilson</h4>
+                        <div class="date">Stayed at Lakeside Cottage - Dec 28, 2025</div>
+                    </div>
+                </div>
+                <span class="review-platform platform-booking">Booking.com</span>
+            </div>
+            <div class="review-rating">★★★★☆</div>
+            <div class="review-content">
+                "Great location and beautiful property. The cottage was clean and well-equipped. Only minor issue was the WiFi was a bit slow for video calls, but otherwise perfect for a relaxing getaway. The kids loved the lake access!"
+            </div>
+            <div class="response-section">
+                <h5>Your Response</h5>
+                <div class="template-buttons">
+                    <button class="template-btn" onclick="useTemplate('thank')">Thank You</button>
+                    <button class="template-btn" onclick="useTemplate('feedback')">Address Feedback</button>
+                </div>
+                <textarea class="response-textarea" id="response-2" placeholder="Write your response..."></textarea>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="submitResponse(2)">Post Response</button>
+                    <button class="btn btn-outline" onclick="saveAsDraft(2)">Save Draft</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="review-card">
+            <div class="review-header">
+                <div class="review-meta">
+                    <div class="review-avatar">EL</div>
+                    <div class="review-info">
+                        <h4>Emma Lee</h4>
+                        <div class="date">Stayed at Dome Rose - Dec 20, 2025</div>
+                    </div>
+                </div>
+                <span class="review-platform platform-direct">Direct</span>
+            </div>
+            <div class="review-rating">★★★★★</div>
+            <div class="review-content">
+                "Perfect romantic getaway! My partner and I celebrated our anniversary here and it exceeded all expectations. The dome is even more beautiful in person than in the photos. The complimentary wine and cheese platter was a lovely touch. Highly recommend!"
+            </div>
+            <div class="response-section">
+                <h5>Your Response</h5>
+                <div class="existing-response">
+                    <p>Thank you for choosing Lakeside Retreat for your anniversary celebration, Emma! We're so happy we could be part of such a special occasion. The Dome Rose is perfect for romantic getaways, and we're delighted you enjoyed the wine and cheese platter. Congratulations on your anniversary, and we hope to see you again for another celebration!</p>
+                    <div class="response-date">Responded on Dec 22, 2025</div>
+                </div>
+                <button class="btn btn-secondary" onclick="editResponse(3)">Edit Response</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/admin-shell.js?v=2"></script>
+    <script>
+        // Check authentication
+        const token = localStorage.getItem('adminToken');
+        if (!token) {
+            window.location.href = '/admin.html';
+        }
+
+        const templates = {
+            thank: "Thank you so much for your wonderful review! We're thrilled that you enjoyed your stay with us. ",
+            welcome: "We'd love to welcome you back anytime! ",
+            highlight: "We're so glad you appreciated the unique features of our property. ",
+            feedback: "Thank you for your feedback. We're always looking to improve and will take your comments on board. "
+        };
+
+        function showAlert(message) {
+            const alertBox = document.getElementById('alertBox');
+            alertBox.innerHTML = `<div class="alert alert-success">${message}</div>`;
+            setTimeout(() => {
+                alertBox.innerHTML = '';
+            }, 3000);
+        }
+
+        function useTemplate(type) {
+            const activeTextarea = document.querySelector('.response-textarea:focus') || document.querySelector('.response-textarea');
+            if (activeTextarea && templates[type]) {
+                activeTextarea.value += templates[type];
+                activeTextarea.focus();
+            }
+        }
+
+        function submitResponse(id) {
+            const response = document.getElementById(`response-${id}`).value;
+            if (response.trim()) {
+                showAlert('Response posted successfully!');
+            } else {
+                alert('Please write a response before posting.');
+            }
+        }
+
+        function saveAsDraft(id) {
+            showAlert('Draft saved!');
+        }
+
+        function editResponse(id) {
+            showAlert('Opening response editor...');
+        }
+
+        document.getElementById('filterStatus').addEventListener('change', function() {
+            showAlert(`Filtering by: ${this.value}`);
+        });
+
+        document.getElementById('filterPlatform').addEventListener('change', function() {
+            showAlert(`Filtering by platform: ${this.value || 'All'}`);
+        });
+    </script>
+</body>
+</html>

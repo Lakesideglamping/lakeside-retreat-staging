@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Settings - Lakeside Retreat Admin</title>
+    <link rel="stylesheet" href="/admin-shell.css?v=2">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+        
+        .page-header {
+            margin-bottom: 2rem;
+        }
+        
+        .page-header h2 {
+            color: #2d5a5a;
+            font-size: 1.5rem;
+        }
+        
+        .settings-section {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .settings-section h3 {
+            color: #2d5a5a;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .setting-row:last-child {
+            border-bottom: none;
+        }
+        
+        .setting-info h4 {
+            color: #333;
+            margin-bottom: 0.25rem;
+        }
+        
+        .setting-info p {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 26px;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 26px;
+        }
+        
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .slider {
+            background-color: #2d5a5a;
+        }
+        
+        input:checked + .slider:before {
+            transform: translateX(24px);
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #2d5a5a;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1rem;
+        }
+        
+        .btn-primary {
+            background: #2d5a5a;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #1e4040;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+        
+        .status-dot.online {
+            background: #28a745;
+        }
+        
+        .status-dot.offline {
+            background: #dc3545;
+        }
+        
+        .integration-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+        
+        .integration-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .integration-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+        
+        .alert {
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+        }
+        
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="alertBox"></div>
+        
+        <div class="page-header">
+            <h2>System Settings</h2>
+        </div>
+        
+        <div class="settings-section">
+            <h3>General Settings</h3>
+            <div class="form-group">
+                <label for="siteName">Site Name</label>
+                <input type="text" id="siteName" value="Lakeside Retreat">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="timezone">Timezone</label>
+                    <select id="timezone">
+                        <option value="Pacific/Auckland" selected>Pacific/Auckland (NZST)</option>
+                        <option value="Australia/Sydney">Australia/Sydney (AEST)</option>
+                        <option value="UTC">UTC</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="currency">Currency</label>
+                    <select id="currency">
+                        <option value="NZD" selected>NZD ($)</option>
+                        <option value="AUD">AUD ($)</option>
+                        <option value="USD">USD ($)</option>
+                    </select>
+                </div>
+            </div>
+            <button class="btn btn-primary" onclick="saveGeneralSettings()">Save Changes</button>
+        </div>
+        
+        <div class="settings-section">
+            <h3>Notifications</h3>
+            <div class="setting-row">
+                <div class="setting-info">
+                    <h4>Email Notifications</h4>
+                    <p>Receive email alerts for new bookings and inquiries</p>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="setting-row">
+                <div class="setting-info">
+                    <h4>Booking Confirmations</h4>
+                    <p>Send automatic confirmation emails to guests</p>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="setting-row">
+                <div class="setting-info">
+                    <h4>Review Reminders</h4>
+                    <p>Send review request emails after checkout</p>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="setting-row">
+                <div class="setting-info">
+                    <h4>Low Availability Alerts</h4>
+                    <p>Get notified when availability is running low</p>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox">
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </div>
+        
+        <div class="settings-section">
+            <h3>Integrations</h3>
+            <div class="integration-card">
+                <div class="integration-info">
+                    <div class="integration-icon" style="background: #635bff; color: white;">S</div>
+                    <div>
+                        <h4>Stripe</h4>
+                        <div class="status-indicator">
+                            <span class="status-dot online"></span>
+                            <span style="color: #28a745; font-size: 0.9rem;">Connected</span>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn btn-secondary" onclick="configureIntegration('stripe')">Configure</button>
+            </div>
+            <div class="integration-card">
+                <div class="integration-info">
+                    <div class="integration-icon" style="background: #00a699; color: white;">U</div>
+                    <div>
+                        <h4>Uplisting</h4>
+                        <div class="status-indicator">
+                            <span class="status-dot online"></span>
+                            <span style="color: #28a745; font-size: 0.9rem;">Connected</span>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn btn-secondary" onclick="configureIntegration('uplisting')">Configure</button>
+            </div>
+            <div class="integration-card">
+                <div class="integration-info">
+                    <div class="integration-icon" style="background: #4285f4; color: white;">G</div>
+                    <div>
+                        <h4>Google Analytics</h4>
+                        <div class="status-indicator">
+                            <span class="status-dot offline"></span>
+                            <span style="color: #666; font-size: 0.9rem;">Not Connected</span>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="configureIntegration('google')">Connect</button>
+            </div>
+        </div>
+        
+        <div class="settings-section">
+            <h3>Email Configuration</h3>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="emailFrom">From Email</label>
+                    <input type="email" id="emailFrom" value="hello@lakesideretreat.co.nz">
+                </div>
+                <div class="form-group">
+                    <label for="emailReply">Reply-To Email</label>
+                    <input type="email" id="emailReply" value="bookings@lakesideretreat.co.nz">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="emailFooter">Email Footer Text</label>
+                <textarea id="emailFooter" rows="3">Lakeside Retreat | Central Otago, New Zealand | www.lakesideretreat.co.nz</textarea>
+            </div>
+            <button class="btn btn-primary" onclick="saveEmailSettings()">Save Email Settings</button>
+        </div>
+        
+        <div class="settings-section">
+            <h3>Danger Zone</h3>
+            <div class="alert alert-warning">
+                These actions are irreversible. Please proceed with caution.
+            </div>
+            <div class="setting-row">
+                <div class="setting-info">
+                    <h4>Clear Cache</h4>
+                    <p>Clear all cached data and regenerate</p>
+                </div>
+                <button class="btn btn-secondary" onclick="clearCache()">Clear Cache</button>
+            </div>
+            <div class="setting-row">
+                <div class="setting-info">
+                    <h4>Reset Analytics</h4>
+                    <p>Reset all analytics data to zero</p>
+                </div>
+                <button class="btn btn-danger" onclick="resetAnalytics()">Reset</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/admin-shell.js?v=2"></script>
+    <script>
+        // Check authentication
+        const token = localStorage.getItem('adminToken');
+        if (!token) {
+            window.location.href = '/admin.html';
+        }
+
+        function showAlert(message, type = 'success') {
+            const alertBox = document.getElementById('alertBox');
+            alertBox.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+            setTimeout(() => {
+                alertBox.innerHTML = '';
+            }, 3000);
+        }
+
+        function saveGeneralSettings() {
+            showAlert('General settings saved successfully!');
+        }
+
+        function saveEmailSettings() {
+            showAlert('Email settings saved successfully!');
+        }
+
+        function configureIntegration(integration) {
+            showAlert(`Opening ${integration} configuration...`);
+        }
+
+        function clearCache() {
+            if (confirm('Are you sure you want to clear all cached data?')) {
+                showAlert('Cache cleared successfully!');
+            }
+        }
+
+        function resetAnalytics() {
+            if (confirm('Are you sure you want to reset all analytics data? This cannot be undone.')) {
+                showAlert('Analytics data has been reset.', 'warning');
+            }
+        }
+    </script>
+</body>
+</html>

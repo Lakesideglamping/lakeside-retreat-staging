@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Backup System - Lakeside Retreat Admin</title>
+    <link rel="stylesheet" href="/admin-shell.css?v=2">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+        
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        
+        .page-header h2 {
+            color: #2d5a5a;
+            font-size: 1.5rem;
+        }
+        
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1rem;
+        }
+        
+        .btn-primary {
+            background: #2d5a5a;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #1e4040;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .btn-sm {
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+        }
+        
+        .status-card {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .status-card h3 {
+            color: #2d5a5a;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .status-item {
+            text-align: center;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .status-item .number {
+            font-size: 1.75rem;
+            font-weight: bold;
+            color: #2d5a5a;
+        }
+        
+        .status-item .label {
+            color: #666;
+            font-size: 0.9rem;
+            margin-top: 0.25rem;
+        }
+        
+        .status-item.success .number {
+            color: #28a745;
+        }
+        
+        .status-item.warning .number {
+            color: #ffc107;
+        }
+        
+        .last-backup {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: #d4edda;
+            border-radius: 8px;
+            color: #155724;
+        }
+        
+        .last-backup .icon {
+            font-size: 1.5rem;
+        }
+        
+        .backup-list {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .backup-list h3 {
+            color: #2d5a5a;
+            margin-bottom: 1.5rem;
+        }
+        
+        .backup-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .backup-table th,
+        .backup-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .backup-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .backup-table tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .backup-type {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .type-full {
+            background: #cce5ff;
+            color: #004085;
+        }
+        
+        .type-incremental {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .type-database {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .backup-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        
+        .status-dot.success {
+            background: #28a745;
+        }
+        
+        .status-dot.pending {
+            background: #ffc107;
+        }
+        
+        .status-dot.failed {
+            background: #dc3545;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .settings-section {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .settings-section h3 {
+            color: #2d5a5a;
+            margin-bottom: 1.5rem;
+        }
+        
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .setting-row:last-child {
+            border-bottom: none;
+        }
+        
+        .setting-info h4 {
+            color: #333;
+            margin-bottom: 0.25rem;
+        }
+        
+        .setting-info p {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 26px;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 26px;
+        }
+        
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .slider {
+            background-color: #2d5a5a;
+        }
+        
+        input:checked + .slider:before {
+            transform: translateX(24px);
+        }
+        
+        .alert {
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+        }
+        
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .alert-info {
+            background: #cce5ff;
+            color: #004085;
+            border: 1px solid #b8daff;
+        }
+        
+        select {
+            padding: 0.5rem 1rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="alertBox"></div>
+        
+        <div class="page-header">
+            <h2>Backup System</h2>
+            <button class="btn btn-primary" onclick="createBackup()">
+                + Create Backup Now
+            </button>
+        </div>
+        
+        <div class="status-card">
+            <h3>Backup Status</h3>
+            <div class="status-grid">
+                <div class="status-item success">
+                    <div class="number">12</div>
+                    <div class="label">Total Backups</div>
+                </div>
+                <div class="status-item">
+                    <div class="number">2.4 GB</div>
+                    <div class="label">Storage Used</div>
+                </div>
+                <div class="status-item success">
+                    <div class="number">100%</div>
+                    <div class="label">Success Rate</div>
+                </div>
+                <div class="status-item">
+                    <div class="number">30</div>
+                    <div class="label">Days Retained</div>
+                </div>
+            </div>
+            <div class="last-backup">
+                <span class="icon">&#10003;</span>
+                <div>
+                    <strong>Last Backup:</strong> January 5, 2026 at 2:00 AM (Automatic)
+                    <br>
+                    <small>Full system backup completed successfully - 245 MB</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="backup-list">
+            <h3>Recent Backups</h3>
+            <table class="backup-table">
+                <thead>
+                    <tr>
+                        <th>Date & Time</th>
+                        <th>Type</th>
+                        <th>Size</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <strong>Jan 5, 2026 02:00 AM</strong>
+                            <br><small>Automatic</small>
+                        </td>
+                        <td><span class="backup-type type-full">Full</span></td>
+                        <td>245 MB</td>
+                        <td>
+                            <div class="backup-status">
+                                <span class="status-dot success"></span>
+                                Completed
+                            </div>
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="btn btn-secondary btn-sm" onclick="downloadBackup(1)">Download</button>
+                                <button class="btn btn-success btn-sm" onclick="restoreBackup(1)">Restore</button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <strong>Jan 4, 2026 02:00 AM</strong>
+                            <br><small>Automatic</small>
+                        </td>
+                        <td><span class="backup-type type-full">Full</span></td>
+                        <td>243 MB</td>
+                        <td>
+                            <div class="backup-status">
+                                <span class="status-dot success"></span>
+                                Completed
+                            </div>
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="btn btn-secondary btn-sm" onclick="downloadBackup(2)">Download</button>
+                                <button class="btn btn-success btn-sm" onclick="restoreBackup(2)">Restore</button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <strong>Jan 3, 2026 02:00 AM</strong>
+                            <br><small>Automatic</small>
+                        </td>
+                        <td><span class="backup-type type-database">Database</span></td>
+                        <td>12 MB</td>
+                        <td>
+                            <div class="backup-status">
+                                <span class="status-dot success"></span>
+                                Completed
+                            </div>
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="btn btn-secondary btn-sm" onclick="downloadBackup(3)">Download</button>
+                                <button class="btn btn-success btn-sm" onclick="restoreBackup(3)">Restore</button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <strong>Jan 2, 2026 02:00 AM</strong>
+                            <br><small>Automatic</small>
+                        </td>
+                        <td><span class="backup-type type-full">Full</span></td>
+                        <td>241 MB</td>
+                        <td>
+                            <div class="backup-status">
+                                <span class="status-dot success"></span>
+                                Completed
+                            </div>
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="btn btn-secondary btn-sm" onclick="downloadBackup(4)">Download</button>
+                                <button class="btn btn-success btn-sm" onclick="restoreBackup(4)">Restore</button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <strong>Jan 1, 2026 03:15 PM</strong>
+                            <br><small>Manual</small>
+                        </td>
+                        <td><span class="backup-type type-incremental">Incremental</span></td>
+                        <td>45 MB</td>
+                        <td>
+                            <div class="backup-status">
+                                <span class="status-dot success"></span>
+                                Completed
+                            </div>
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="btn btn-secondary btn-sm" onclick="downloadBackup(5)">Download</button>
+                                <button class="btn btn-success btn-sm" onclick="restoreBackup(5)">Restore</button>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="settings-section">
+            <h3>Backup Settings</h3>
+            <div class="setting-row">
+                <div class="setting-info">
+                    <h4>Automatic Backups</h4>
+                    <p>Run automatic backups daily at 2:00 AM</p>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="setting-row">
+                <div class="setting-info">
+                    <h4>Backup Frequency</h4>
+                    <p>How often to create automatic backups</p>
+                </div>
+                <select id="backupFrequency">
+                    <option value="daily" selected>Daily</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="hourly">Hourly</option>
+                </select>
+            </div>
+            <div class="setting-row">
+                <div class="setting-info">
+                    <h4>Retention Period</h4>
+                    <p>How long to keep backup files</p>
+                </div>
+                <select id="retentionPeriod">
+                    <option value="7">7 Days</option>
+                    <option value="14">14 Days</option>
+                    <option value="30" selected>30 Days</option>
+                    <option value="90">90 Days</option>
+                </select>
+            </div>
+            <div class="setting-row">
+                <div class="setting-info">
+                    <h4>Include Images</h4>
+                    <p>Include uploaded images in backups (increases size)</p>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="setting-row">
+                <div class="setting-info">
+                    <h4>Email Notifications</h4>
+                    <p>Send email when backup completes or fails</p>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <script src="/admin-shell.js?v=2"></script>
+    <script>
+        // Check authentication
+        const token = localStorage.getItem('adminToken');
+        if (!token) {
+            window.location.href = '/admin.html';
+        }
+
+        function showAlert(message, type = 'success') {
+            const alertBox = document.getElementById('alertBox');
+            alertBox.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+            setTimeout(() => {
+                alertBox.innerHTML = '';
+            }, 3000);
+        }
+
+        function createBackup() {
+            showAlert('Creating backup... This may take a few minutes.', 'info');
+            setTimeout(() => {
+                showAlert('Backup created successfully!');
+            }, 2000);
+        }
+
+        function downloadBackup(id) {
+            showAlert(`Preparing backup #${id} for download...`, 'info');
+        }
+
+        function restoreBackup(id) {
+            if (confirm('Are you sure you want to restore this backup? Current data will be replaced.')) {
+                showAlert(`Restoring backup #${id}...`, 'info');
+                setTimeout(() => {
+                    showAlert('Backup restored successfully!');
+                }, 2000);
+            }
+        }
+    </script>
+</body>
+</html>
