@@ -364,9 +364,10 @@
                 updateStats(bookings);
             } catch (error) {
                 console.error('Error loading bookings:', error);
-                // Load Uplisting properties and display mock data
+                // Load Uplisting properties and show empty state
                 await loadUplistingProperties();
-                displayMockBookings();
+                displayBookings([]);
+                updateStats([]);
             }
         }
 
@@ -398,47 +399,6 @@
             } catch (error) {
                 console.log('Could not load Uplisting properties:', error);
             }
-        }
-
-        function displayMockBookings() {
-            const mockBookings = [
-                {
-                    id: 1,
-                    guest_name: 'John Smith',
-                    guest_email: 'john@example.com',
-                    accommodation: 'Lakeside Glamping - Dome Pinot',
-                    check_in: '2025-09-10',
-                    check_out: '2025-09-12',
-                    guests: 2,
-                    total_price: 590,
-                    status: 'confirmed'
-                },
-                {
-                    id: 2,
-                    guest_name: 'Sarah Johnson',
-                    guest_email: 'sarah@example.com',
-                    accommodation: 'Lakeside Retreat in a Vineyard By Lake Dunstan',
-                    check_in: '2025-09-15',
-                    check_out: '2025-09-18',
-                    guests: 4,
-                    total_price: 735,
-                    status: 'pending'
-                },
-                {
-                    id: 3,
-                    guest_name: 'Mike Wilson',
-                    guest_email: 'mike@example.com',
-                    accommodation: 'Lakeside Glamping - Dome Rosé',
-                    check_in: '2025-09-20',
-                    check_out: '2025-09-22',
-                    guests: 2,
-                    total_price: 590,
-                    status: 'confirmed'
-                }
-            ];
-            
-            displayBookings(mockBookings);
-            updateStats(mockBookings);
         }
 
         function displayBookings(bookings) {
@@ -599,11 +559,13 @@ ${booking.special_requests ? `\nSpecial Requests: ${booking.special_requests}` :
                     displayBookings(data.bookings);
                     updateStats(data.bookings);
                 } else {
-                    displayMockBookings();
+                    displayBookings([]);
+                    updateStats([]);
                 }
             } catch (error) {
                 console.error('Error loading filtered bookings:', error);
-                displayMockBookings();
+                displayBookings([]);
+                updateStats([]);
             }
         }
 
