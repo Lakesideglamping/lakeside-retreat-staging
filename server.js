@@ -3867,15 +3867,26 @@ app.get('/api/admin/pricing', verifyAdmin, (req, res) => {
 
 // Helper function to ensure system_settings table exists with proper schema
 function ensureSystemSettingsTable(callback) {
-    const createTableSql = `
-        CREATE TABLE IF NOT EXISTS system_settings (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            setting_key TEXT UNIQUE NOT NULL,
-            setting_value TEXT,
-            setting_type TEXT DEFAULT 'string',
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-    `;
+    // Use PostgreSQL-compatible syntax if using PostgreSQL, otherwise SQLite syntax
+    const createTableSql = database.isUsingPostgres() 
+        ? `
+            CREATE TABLE IF NOT EXISTS system_settings (
+                id SERIAL PRIMARY KEY,
+                setting_key TEXT UNIQUE NOT NULL,
+                setting_value TEXT,
+                setting_type TEXT DEFAULT 'string',
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `
+        : `
+            CREATE TABLE IF NOT EXISTS system_settings (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                setting_key TEXT UNIQUE NOT NULL,
+                setting_value TEXT,
+                setting_type TEXT DEFAULT 'string',
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `;
     db.run(createTableSql, [], function(err) {
         if (err) {
             console.error('Error ensuring system_settings table:', err);
@@ -3908,12 +3919,14 @@ app.post('/api/admin/pricing', verifyAdmin, (req, res) => {
             return res.status(500).json({ success: false, error: 'Database initialization failed: ' + tableErr.message });
         }
         
+        // Use PostgreSQL-compatible NOW() or SQLite datetime('now')
+        const nowFunc = database.isUsingPostgres() ? 'NOW()' : "datetime('now')";
         const sql = `
             INSERT INTO system_settings (setting_key, setting_value, setting_type, updated_at)
-            VALUES (?, ?, 'json', datetime('now'))
+            VALUES (?, ?, 'json', ${nowFunc})
             ON CONFLICT(setting_key) DO UPDATE SET
             setting_value = excluded.setting_value,
-            updated_at = datetime('now')
+            updated_at = ${nowFunc}
         `;
         
         db.run(sql, [settingKey, pricingData], function(err) {
@@ -3981,13 +3994,15 @@ app.put('/api/admin/settings', verifyAdmin, (req, res) => {
             settingValue = JSON.stringify(value);
         }
         
+        // Use PostgreSQL-compatible NOW() or SQLite datetime('now')
+        const nowFunc = database.isUsingPostgres() ? 'NOW()' : "datetime('now')";
         const sql = `
             INSERT INTO system_settings (setting_key, setting_value, setting_type, updated_at)
-            VALUES (?, ?, ?, datetime('now'))
+            VALUES (?, ?, ?, ${nowFunc})
             ON CONFLICT(setting_key) DO UPDATE SET
             setting_value = excluded.setting_value,
             setting_type = excluded.setting_type,
-            updated_at = datetime('now')
+            updated_at = ${nowFunc}
         `;
         
         db.run(sql, [key, settingValue, settingType], function(err) {
