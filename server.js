@@ -3813,7 +3813,37 @@ app.delete('/api/admin/reviews/:id', verifyAdmin, (req, res) => {
 // PRICING MANAGEMENT
 // ==========================================
 
-// Get all pricing data
+// Public endpoint to get pricing for website display (no auth required)
+app.get('/api/pricing', (req, res) => {
+    res.set('Cache-Control', 'no-store, max-age=0');
+    const sql = "SELECT * FROM system_settings WHERE setting_key LIKE 'pricing_%'";
+    db.all(sql, [], (err, rows) => {
+        if (err) {
+            console.error('Error fetching public pricing:', err);
+            return res.status(500).json({ success: false, error: 'Failed to fetch pricing' });
+        }
+        
+        const defaultPricing = {
+            'dome_pinot': { base: 450, weekend: 450, peak: 550, cleaning: 50, minNights: 2 },
+            'dome_rose': { base: 380, weekend: 380, peak: 480, cleaning: 50, minNights: 2 },
+            'lakeside_cottage': { base: 580, weekend: 580, peak: 680, cleaning: 50, minNights: 2 }
+        };
+        
+        const pricing = { ...defaultPricing };
+        (rows || []).forEach(row => {
+            try {
+                const key = row.setting_key.replace('pricing_', '');
+                pricing[key] = JSON.parse(row.setting_value);
+            } catch (e) {
+                console.error('Error parsing pricing:', e);
+            }
+        });
+        
+        res.json({ success: true, pricing });
+    });
+});
+
+// Get all pricing data (admin)
 app.get('/api/admin/pricing', verifyAdmin, (req, res) => {
     const sql = "SELECT * FROM system_settings WHERE setting_key LIKE 'pricing_%'";
     db.all(sql, [], (err, rows) => {
