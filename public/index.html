@@ -5285,6 +5285,86 @@ Select accommodation and dates to see pricing
             });
         }
 
+        // Robust date parsing helper function
+        // Handles various date formats: YYYY-MM-DD, DD/MM/YYYY, MM/DD/YYYY, Date objects
+        function parseDate(dateInput) {
+            if (!dateInput) {
+                return null;
+            }
+            
+            // If it's already a valid Date object, return it
+            if (dateInput instanceof Date && !isNaN(dateInput.getTime())) {
+                return dateInput;
+            }
+            
+            // If it's a string, try to parse it
+            if (typeof dateInput === 'string') {
+                const trimmed = dateInput.trim();
+                
+                // Try ISO format first (YYYY-MM-DD) - this is what Flatpickr uses
+                const isoMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                if (isoMatch) {
+                    const year = parseInt(isoMatch[1], 10);
+                    const month = parseInt(isoMatch[2], 10) - 1;
+                    const day = parseInt(isoMatch[3], 10);
+                    return new Date(year, month, day);
+                }
+                
+                // Try DD/MM/YYYY format (common in NZ/AU)
+                const ddmmyyyyMatch = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+                if (ddmmyyyyMatch) {
+                    const day = parseInt(ddmmyyyyMatch[1], 10);
+                    const month = parseInt(ddmmyyyyMatch[2], 10) - 1;
+                    const year = parseInt(ddmmyyyyMatch[3], 10);
+                    // Validate that day/month are reasonable
+                    if (day >= 1 && day <= 31 && month >= 0 && month <= 11) {
+                        return new Date(year, month, day);
+                    }
+                }
+                
+                // Try MM/DD/YYYY format (US format, also used by Flatpickr altFormat)
+                const mmddyyyyMatch = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+                if (mmddyyyyMatch) {
+                    const month = parseInt(mmddyyyyMatch[1], 10) - 1;
+                    const day = parseInt(mmddyyyyMatch[2], 10);
+                    const year = parseInt(mmddyyyyMatch[3], 10);
+                    if (day >= 1 && day <= 31 && month >= 0 && month <= 11) {
+                        return new Date(year, month, day);
+                    }
+                }
+                
+                // Fallback: try native Date parsing
+                const fallbackDate = new Date(trimmed);
+                if (!isNaN(fallbackDate.getTime())) {
+                    return fallbackDate;
+                }
+            }
+            
+            // If all parsing fails, return null
+            return null;
+        }
+        
+        // Helper to format date for display
+        function formatDateForDisplay(dateInput) {
+            const date = parseDate(dateInput);
+            if (!date) {
+                return 'Invalid date';
+            }
+            return date.toLocaleDateString();
+        }
+        
+        // Helper to format date as ISO string (YYYY-MM-DD)
+        function formatDateISO(dateInput) {
+            const date = parseDate(dateInput);
+            if (!date) {
+                return '';
+            }
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
         // Global variables
         let currentPage = 'home';
         let currentImageIndex = 0;
@@ -5727,8 +5807,9 @@ Select accommodation and dates to see pricing
                 pricePreviewSection.style.display = 'block';
                 
                 if (checkin && checkout) {
-                    const checkinDate = new Date(checkin);
-                    const checkoutDate = new Date(checkout);
+                    const checkinDate = parseDate(checkin);
+                    const checkoutDate = parseDate(checkout);
+                    if (!checkinDate || !checkoutDate) return;
                     const nights = Math.ceil((checkoutDate - checkinDate) / (1000 * 60 * 60 * 24));
                     
                     if (nights > 0) {
@@ -5844,14 +5925,16 @@ Select accommodation and dates to see pricing
         }
 
         function updateCheckoutMinDate() {
-            const checkinDate = new Date(document.getElementById('bookingCheckin').value);
+            const checkinDate = parseDate(document.getElementById('bookingCheckin').value);
             if (checkinDate) {
-                checkinDate.setDate(checkinDate.getDate() + 1);
-                document.getElementById('bookingCheckout').min = checkinDate.toISOString().split('T')[0];
+                const minCheckout = new Date(checkinDate);
+                minCheckout.setDate(minCheckout.getDate() + 1);
+                document.getElementById('bookingCheckout').min = formatDateISO(minCheckout);
                 
                 // Clear checkout if it's before new minimum
                 const checkoutInput = document.getElementById('bookingCheckout');
-                if (checkoutInput.value && new Date(checkoutInput.value) <= new Date(document.getElementById('bookingCheckin').value)) {
+                const checkoutDate = parseDate(checkoutInput.value);
+                if (checkoutDate && checkoutDate <= checkinDate) {
                     checkoutInput.value = '';
                 }
                 
@@ -5862,14 +5945,17 @@ Select accommodation and dates to see pricing
 
         function calculateNightsFrontend(checkIn, checkOut) {
             if (!checkIn || !checkOut) return 0;
-            const checkInDate = new Date(checkIn);
-            const checkOutDate = new Date(checkOut);
+            const checkInDate = parseDate(checkIn);
+            const checkOutDate = parseDate(checkOut);
+            if (!checkInDate || !checkOutDate) return 0;
             const timeDifference = checkOutDate.getTime() - checkInDate.getTime();
             return Math.ceil(timeDifference / (1000 * 3600 * 24));
         }
 
         function isPeakSeason(date) {
-            const month = new Date(date).getMonth() + 1; // JS months are 0-based
+            const parsedDate = parseDate(date);
+            if (!parsedDate) return false;
+            const month = parsedDate.getMonth() + 1; // JS months are 0-based
             return month >= 10 || month <= 5; // Oct (10) through May (5)
         }
 
@@ -6065,8 +6151,13 @@ Select accommodation and dates to see pricing
             
             if (hasErrors) return;
 
-            const checkinDate = new Date(checkin);
-            const checkoutDate = new Date(checkout);
+            const checkinDate = parseDate(checkin);
+            const checkoutDate = parseDate(checkout);
+            
+            if (!checkinDate || !checkoutDate) {
+                showInlineError('bookingCheckout', 'Invalid date format. Please select valid dates.');
+                return;
+            }
             
             if (checkoutDate <= checkinDate) {
                 showInlineError('bookingCheckout', 'Check-out date must be after check-in date');
@@ -6079,11 +6170,11 @@ Select accommodation and dates to see pricing
                 return;
             }
 
-            // Store booking data
+            // Store booking data - normalize dates to ISO format for consistency
             bookingData = {
                 accommodation: selectedAccommodation,
-                checkin: checkin,
-                checkout: checkout,
+                checkin: formatDateISO(checkinDate),
+                checkout: formatDateISO(checkoutDate),
                 adults: parseInt(adults),
                 children: parseInt(children),
                 pets: parseInt(pets),
@@ -6174,7 +6265,8 @@ Select accommodation and dates to see pricing
             const rates = accommodationRates[selectedAccommodation];
             
             // Determine rate type based on season (mock logic)
-            const checkinDate = new Date(bookingData.checkin);
+            const checkinDate = parseDate(bookingData.checkin);
+            if (!checkinDate) return;
             const month = checkinDate.getMonth();
             let rateType = 'base';
             if (month >= 11 || month <= 2) rateType = 'peak'; // Summer
@@ -6647,13 +6739,16 @@ Select accommodation and dates to see pricing
         }
 
         function updateSelectedDetails() {
-            const checkinDate = new Date(bookingData.checkin);
-            const checkoutDate = new Date(bookingData.checkout);
+            const checkinDate = parseDate(bookingData.checkin);
+            const checkoutDate = parseDate(bookingData.checkout);
+            
+            const checkinDisplay = checkinDate ? formatDateForDisplay(checkinDate) : 'Invalid date';
+            const checkoutDisplay = checkoutDate ? formatDateForDisplay(checkoutDate) : 'Invalid date';
             
             document.getElementById('selectedDetailsDisplay').innerHTML = `
                 <h4 style="color: var(--brand-teal); margin-bottom: 0.5rem;">Selected Energy-Positive Experience</h4>
                 <p><strong>Accommodation:</strong> ${accommodationNames[selectedAccommodation]}</p>
-                <p><strong>Check-in:</strong> ${checkinDate.toLocaleDateString()} | <strong>Check-out:</strong> ${checkoutDate.toLocaleDateString()}</p>
+                <p><strong>Check-in:</strong> ${checkinDisplay} | <strong>Check-out:</strong> ${checkoutDisplay}</p>
                 <p><strong>Guests:</strong> ${bookingData.adults} Adults${bookingData.children > 0 ? `, ${bookingData.children} Children` : ''}${bookingData.pets > 0 ? `, ${bookingData.pets} Pet${bookingData.pets > 1 ? 's' : ''}` : ''}</p>
                 <p><strong>Duration:</strong> ${bookingData.nights} night${bookingData.nights > 1 ? 's' : ''}</p>
                 <p style="color: #10b981; font-weight: 600;">✓ Powered by 16.72kW commercial-grade solar system</p>
@@ -6701,12 +6796,15 @@ Select accommodation and dates to see pricing
         }
 
         function updateFinalSummary() {
-            const checkinDate = new Date(bookingData.checkin);
-            const checkoutDate = new Date(bookingData.checkout);
+            const checkinDate = parseDate(bookingData.checkin);
+            const checkoutDate = parseDate(bookingData.checkout);
+            
+            const checkinDisplay = checkinDate ? formatDateForDisplay(checkinDate) : 'Invalid date';
+            const checkoutDisplay = checkoutDate ? formatDateForDisplay(checkoutDate) : 'Invalid date';
             
             // Update booking summary
             document.getElementById('finalAccommodationName').textContent = accommodationNames[selectedAccommodation];
-            document.getElementById('finalDates').textContent = `${checkinDate.toLocaleDateString()} - ${checkoutDate.toLocaleDateString()}`;
+            document.getElementById('finalDates').textContent = `${checkinDisplay} - ${checkoutDisplay}`;
             document.getElementById('finalGuests').textContent = `${bookingData.adults} Adults${bookingData.children > 0 ? `, ${bookingData.children} Children` : ''}`;
             document.getElementById('finalNights').textContent = `${bookingData.nights} night${bookingData.nights > 1 ? 's' : ''}`;
             
