@@ -526,6 +526,15 @@
                 .replace(/\s+/g, '-');
             return propertyClasses[normalized] || 'dome-pinot';
         }
+        
+        // Helper function to normalize date strings to YYYY-MM-DD format
+        // This handles both date-only strings and ISO timestamps from Uplisting
+        function normalizeDate(dateStr) {
+            if (!dateStr) return '';
+            // If it contains 'T' (ISO timestamp), split and take date part
+            // Also handle space-separated datetime formats
+            return dateStr.split('T')[0].split(' ')[0];
+        }
 
         // Load bookings from API
         async function loadBookings() {
@@ -684,8 +693,8 @@
                     
                     if (booking) {
                         const propClass = getPropertyClass(booking.accommodation);
-                        const isCheckin = booking.check_in === dateStr;
-                        const isCheckout = booking.check_out === dateStr;
+                        const isCheckin = normalizeDate(booking.check_in) === dateStr;
+                        const isCheckout = normalizeDate(booking.check_out) === dateStr;
                         let indicatorClass = `booking-indicator ${propClass}`;
                         if (isCheckin) indicatorClass += ' checkin';
                         if (isCheckout) indicatorClass += ' checkout';
@@ -706,7 +715,9 @@
         // Get bookings for a specific date
         function getBookingsForDate(dateStr) {
             return bookings.filter(b => {
-                return b.check_in <= dateStr && b.check_out > dateStr && 
+                const checkIn = normalizeDate(b.check_in);
+                const checkOut = normalizeDate(b.check_out);
+                return checkIn <= dateStr && checkOut > dateStr && 
                        (b.status === 'confirmed' || b.payment_status === 'completed');
             });
         }
@@ -716,8 +727,10 @@
             const propertyLower = property.toLowerCase().replace(' ', '-');
             return bookings.find(b => {
                 const bookingProp = (b.accommodation || '').toLowerCase().replace(' ', '-');
+                const checkIn = normalizeDate(b.check_in);
+                const checkOut = normalizeDate(b.check_out);
                 return (bookingProp === propertyLower || b.accommodation === property) &&
-                       b.check_in <= dateStr && b.check_out > dateStr &&
+                       checkIn <= dateStr && checkOut > dateStr &&
                        (b.status === 'confirmed' || b.payment_status === 'completed');
             });
         }
