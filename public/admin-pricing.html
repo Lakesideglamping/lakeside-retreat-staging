@@ -532,17 +532,35 @@
             }, 3000);
         }
 
+        // Helper function to handle authentication errors
+        function handleAuthError() {
+            localStorage.removeItem('adminToken');
+            window.location.href = '/admin.html?reason=session_expired';
+        }
+
         // Load saved pricing on page load
         async function loadPricing() {
             try {
+                const currentToken = localStorage.getItem('adminToken');
+                if (!currentToken) {
+                    handleAuthError();
+                    return;
+                }
+                
                 const response = await fetch('/api/admin/pricing', {
                     headers: {
-                        'Authorization': `Bearer ${token}`
+                        'Authorization': `Bearer ${currentToken}`
                     }
                 });
                 
+                if (response.status === 401) {
+                    handleAuthError();
+                    return;
+                }
+                
                 if (!response.ok) {
                     console.error('Failed to load pricing');
+                    showAlert('Failed to load pricing data', 'error');
                     return;
                 }
                 
@@ -624,17 +642,28 @@
             }
             
             try {
+                const currentToken = localStorage.getItem('adminToken');
+                if (!currentToken) {
+                    handleAuthError();
+                    return;
+                }
+                
                 const response = await fetch('/api/admin/pricing', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
+                        'Authorization': `Bearer ${currentToken}`
                     },
                     body: JSON.stringify({
                         accommodation: accommodationName,
                         ...data
                     })
                 });
+                
+                if (response.status === 401) {
+                    handleAuthError();
+                    return;
+                }
                 
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => ({}));
