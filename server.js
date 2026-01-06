@@ -727,9 +727,9 @@ async function checkUplistingAvailability(accommodation, checkIn, checkOut) {
     try {
         // Map accommodation names to Uplisting property IDs
         const propertyMapping = {
-            'dome-pinot': process.env.UPLISTING_PROPERTY_PINOT_ID,
-            'dome-rose': process.env.UPLISTING_PROPERTY_ROSE_ID,
-            'lakeside-cottage': process.env.UPLISTING_PROPERTY_COTTAGE_ID
+            'dome-pinot': process.env.UPLISTING_PINOT_ID,
+            'dome-rose': process.env.UPLISTING_ROSE_ID,
+            'lakeside-cottage': process.env.UPLISTING_COTTAGE_ID
         };
         
         const propertyId = propertyMapping[accommodation];
@@ -822,9 +822,9 @@ async function syncBookingToUplisting(bookingData) {
     
     try {
         const propertyMapping = {
-            'dome-pinot': process.env.UPLISTING_PROPERTY_PINOT_ID,
-            'dome-rose': process.env.UPLISTING_PROPERTY_ROSE_ID,
-            'lakeside-cottage': process.env.UPLISTING_PROPERTY_COTTAGE_ID
+            'dome-pinot': process.env.UPLISTING_PINOT_ID,
+            'dome-rose': process.env.UPLISTING_ROSE_ID,
+            'lakeside-cottage': process.env.UPLISTING_COTTAGE_ID
         };
         
         const propertyId = propertyMapping[bookingData.accommodation];
@@ -955,9 +955,9 @@ function handleUplistingWebhook(parsedBody, res) {
 // Helper function to map Uplisting property IDs back to accommodation names
 function getAccommodationFromPropertyId(propertyId) {
     const propertyMapping = {
-        [process.env.UPLISTING_PROPERTY_PINOT_ID]: 'dome-pinot',
-        [process.env.UPLISTING_PROPERTY_ROSE_ID]: 'dome-rose',
-        [process.env.UPLISTING_PROPERTY_COTTAGE_ID]: 'lakeside-cottage'
+        [process.env.UPLISTING_PINOT_ID]: 'dome-pinot',
+        [process.env.UPLISTING_ROSE_ID]: 'dome-rose',
+        [process.env.UPLISTING_COTTAGE_ID]: 'lakeside-cottage'
     };
     
     return propertyMapping[propertyId] || 'unknown';
