@@ -3865,6 +3865,25 @@ app.get('/api/admin/pricing', verifyAdmin, (req, res) => {
     });
 });
 
+// Helper function to ensure system_settings table exists with proper schema
+function ensureSystemSettingsTable(callback) {
+    const createTableSql = `
+        CREATE TABLE IF NOT EXISTS system_settings (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            setting_key TEXT UNIQUE NOT NULL,
+            setting_value TEXT,
+            setting_type TEXT DEFAULT 'string',
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    `;
+    db.run(createTableSql, [], function(err) {
+        if (err) {
+            console.error('Error ensuring system_settings table:', err);
+        }
+        callback(err);
+    });
+}
+
 // Save pricing for an accommodation
 app.post('/api/admin/pricing', verifyAdmin, (req, res) => {
     const { accommodation, base, weekend, peak, cleaning, minNights } = req.body;
@@ -3882,20 +3901,28 @@ app.post('/api/admin/pricing', verifyAdmin, (req, res) => {
         minNights: parseInt(minNights) || 2
     });
     
-    const sql = `
-        INSERT INTO system_settings (setting_key, setting_value, setting_type, updated_at)
-        VALUES (?, ?, 'json', datetime('now'))
-        ON CONFLICT(setting_key) DO UPDATE SET
-        setting_value = excluded.setting_value,
-        updated_at = datetime('now')
-    `;
-    
-    db.run(sql, [settingKey, pricingData], function(err) {
-        if (err) {
-            console.error('Error saving pricing:', err);
-            return res.status(500).json({ success: false, error: 'Failed to save pricing' });
+    // Ensure the table exists before attempting to save
+    ensureSystemSettingsTable((tableErr) => {
+        if (tableErr) {
+            console.error('Failed to ensure system_settings table:', tableErr);
+            return res.status(500).json({ success: false, error: 'Database initialization failed: ' + tableErr.message });
         }
-        res.json({ success: true, message: 'Pricing saved successfully' });
+        
+        const sql = `
+            INSERT INTO system_settings (setting_key, setting_value, setting_type, updated_at)
+            VALUES (?, ?, 'json', datetime('now'))
+            ON CONFLICT(setting_key) DO UPDATE SET
+            setting_value = excluded.setting_value,
+            updated_at = datetime('now')
+        `;
+        
+        db.run(sql, [settingKey, pricingData], function(err) {
+            if (err) {
+                console.error('Error saving pricing:', err);
+                return res.status(500).json({ success: false, error: 'Failed to save pricing: ' + err.message });
+            }
+            res.json({ success: true, message: 'Pricing saved successfully' });
+        });
     });
 });
 
