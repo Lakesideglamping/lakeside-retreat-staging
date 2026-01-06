@@ -209,7 +209,9 @@
                     localStorage.setItem('adminToken', data.token);
                     window.location.href = '/admin-dashboard.html';
                 } else {
-                    errorMessage.textContent = data.error || 'Invalid credentials';
+                    // Handle both old format (data.error as string) and new format (data.error.message)
+                    const errorMsg = data.error?.message || (typeof data.error === 'string' ? data.error : 'Invalid credentials');
+                    errorMessage.textContent = errorMsg;
                     errorMessage.style.display = 'block';
                 }
             } catch (error) {
