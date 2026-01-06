@@ -337,8 +337,12 @@
                 ]);
 
                 if (statsResponse.ok && bookingStatsResponse.ok) {
-                    const stats = await statsResponse.json();
-                    const bookingStats = await bookingStatsResponse.json();
+                    const statsData = await statsResponse.json();
+                    const bookingStatsData = await bookingStatsResponse.json();
+                    
+                    // Extract the nested stats objects
+                    const stats = statsData.stats || statsData;
+                    const bookingStats = bookingStatsData.stats || bookingStatsData;
                     
                     // Get Uplisting data if available
                     let uplistingData = null;
