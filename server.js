@@ -3849,9 +3849,9 @@ app.get('/api/pricing', (req, res) => {
         }
         
         const defaultPricing = {
-            'dome_pinot': { base: 450, weekend: 450, peak: 550, cleaning: 50, minNights: 2 },
-            'dome_rose': { base: 380, weekend: 380, peak: 480, cleaning: 50, minNights: 2 },
-            'lakeside_cottage': { base: 580, weekend: 580, peak: 680, cleaning: 50, minNights: 2 }
+            'dome_pinot': { base: 500, weekend: 530, peak: 600, cleaning: 50, minNights: 2 },
+            'dome_rose': { base: 500, weekend: 530, peak: 600, cleaning: 50, minNights: 2 },
+            'lakeside_cottage': { base: 305, weekend: 325, peak: 365, cleaning: 50, minNights: 2 }
         };
         
         const pricing = { ...defaultPricing };
