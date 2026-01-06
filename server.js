@@ -12,19 +12,31 @@ const nodemailer = require('nodemailer');
 // Import database abstraction layer (supports both SQLite and PostgreSQL)
 const database = require('./database');
 
+// Development mode for local testing without Stripe
+const DEV_MODE = process.env.NODE_ENV !== 'production' && !process.env.STRIPE_SECRET_KEY;
+
 // Initialize Stripe with error handling
 if (!process.env.STRIPE_SECRET_KEY) {
-    console.error('❌ STRIPE_SECRET_KEY environment variable is missing!');
-    process.exit(1);
+    if (process.env.NODE_ENV === 'production') {
+        console.error('❌ STRIPE_SECRET_KEY environment variable is missing!');
+        process.exit(1);
+    } else {
+        console.warn('⚠️ STRIPE_SECRET_KEY not set - running in DEV_MODE (payments disabled)');
+    }
 }
 if (!process.env.JWT_SECRET) {
-    console.error('❌ JWT_SECRET environment variable is missing!');
-    process.exit(1);
+    if (process.env.NODE_ENV === 'production') {
+        console.error('❌ JWT_SECRET environment variable is missing!');
+        process.exit(1);
+    } else {
+        process.env.JWT_SECRET = 'dev-secret-key-for-local-testing-only';
+        console.warn('⚠️ JWT_SECRET not set - using development default');
+    }
 }
 if (!process.env.PUBLIC_BASE_URL) {
     console.warn('⚠️ PUBLIC_BASE_URL not set, using default. Set this for production security.');
 }
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const stripe = process.env.STRIPE_SECRET_KEY ? require('stripe')(process.env.STRIPE_SECRET_KEY) : null;
 const { v4: uuidv4 } = require('uuid');
 const crypto = require('crypto');
 
@@ -221,6 +233,12 @@ app.use((req, res, next) => {
 // CRITICAL: Stripe webhook MUST be defined BEFORE express.json() middleware
 // because Stripe signature verification requires the raw request body
 app.post('/api/stripe/webhook', express.raw({type: 'application/json'}), async (req, res) => {
+    // Dev mode: skip webhook processing when Stripe is not configured
+    if (DEV_MODE || !stripe) {
+        console.log('⚠️ DEV_MODE: Stripe webhook received but Stripe not configured');
+        return res.status(200).json({ received: true, devMode: true });
+    }
+    
     const sig = req.headers['stripe-signature'];
     let event;
 
@@ -1296,6 +1314,17 @@ app.post('/api/payments/create-session',
         
         if (!bookingId) {
             return sendError(res, 400, ERROR_CODES.VALIDATION_ERROR, 'Booking ID is required');
+        }
+        
+        // Dev mode: return mock payment session when Stripe is not configured
+        if (DEV_MODE || !stripe) {
+            console.log('⚠️ DEV_MODE: Returning mock payment session for booking', bookingId);
+            return res.json({
+                sessionId: 'dev_mock_session_' + bookingId,
+                url: '/booking-success?session_id=dev_mock_session_' + bookingId,
+                devMode: true,
+                message: 'Development mode - payments disabled. In production, this would redirect to Stripe checkout.'
+            });
         }
         
         // Get booking details from database
@@ -4204,6 +4233,9 @@ app.get('*', (req, res) => {
 app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`📁 Serving from: ${__dirname}`);
+    if (DEV_MODE) {
+        console.log(`⚠️  DEV_MODE: Running without Stripe - payments will return mock responses`);
+    }
     console.log(`🔑 Stripe configured:`, process.env.STRIPE_SECRET_KEY ? 'YES' : 'NO');
     console.log(`📧 Email configured:`, process.env.EMAIL_USER ? 'YES' : 'NO');
     console.log(`🏨 Uplisting configured:`, process.env.UPLISTING_API_KEY ? 'YES' : 'NO');
