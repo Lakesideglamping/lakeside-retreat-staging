@@ -669,6 +669,46 @@ document.addEventListener('DOMContentLoaded', () => {
             box-sizing: border-box;
         }
 
+        /* CSP-Compatible Booking Button States */
+        .btn-loading {
+            opacity: 0.7 !important;
+            cursor: wait !important;
+        }
+        
+        .availability-error {
+            background: #fee2e2 !important;
+            border: 2px solid #ef4444 !important;
+            padding: 1rem !important;
+            border-radius: 8px !important;
+            color: #dc2626 !important;
+            font-weight: 600 !important;
+            text-align: center !important;
+            margin: 1rem 0 !important;
+            font-size: 1.1rem !important;
+            display: block !important;
+        }
+        
+        .availability-success {
+            background: #dcfce7 !important;
+            border: 2px solid #22c55e !important;
+            padding: 1rem !important;
+            border-radius: 8px !important;
+            color: #16a34a !important;
+            font-weight: 600 !important;
+            text-align: center !important;
+            margin: 1rem 0 !important;
+            font-size: 1.1rem !important;
+            display: block !important;
+        }
+        
+        .section-hidden {
+            display: none !important;
+        }
+        
+        .section-visible {
+            display: block !important;
+        }
+
         /* Typography System */
         .text-xs { font-size: var(--font-size-xs); }
         .text-sm { font-size: var(--font-size-sm); }
@@ -6128,19 +6168,19 @@ Select accommodation and dates to see pricing
                                   document.querySelector('.instant-book-btn');
             const originalButtonText = bookingButton ? bookingButton.innerHTML : '';
             
-            // Show loading state on button
+            // Show loading state on button (using classList for CSP compatibility)
             if (bookingButton) {
                 bookingButton.disabled = true;
                 bookingButton.innerHTML = '<span class="loading-spinner"></span> Checking Availability...';
-                bookingButton.style.opacity = '0.7';
+                bookingButton.classList.add('btn-loading');
             }
             
-            // Helper function to restore button state
+            // Helper function to restore button state (using classList for CSP compatibility)
             function restoreButton() {
                 if (bookingButton) {
                     bookingButton.disabled = false;
                     bookingButton.innerHTML = originalButtonText;
-                    bookingButton.style.opacity = '1';
+                    bookingButton.classList.remove('btn-loading');
                 }
             }
             
@@ -6269,9 +6309,12 @@ Select accommodation and dates to see pricing
         } else {
           availabilityResult.textContent = '✅ Available for Instant Booking! Your selected dates are available. Complete your booking below.';
         }
-                document.getElementById('pricingBreakdown').style.display = 'block';
-                document.getElementById('guestDetailsSection').style.display = 'block';
-                document.getElementById('instantPaymentSection').style.display = 'block';
+                // Show sections using CSS classes (CSP-compatible)
+                availabilityResult.classList.remove('availability-error', 'section-hidden');
+                availabilityResult.classList.add('availability-success');
+                document.getElementById('pricingBreakdown').classList.remove('section-hidden');
+                document.getElementById('guestDetailsSection').classList.remove('section-hidden');
+                document.getElementById('instantPaymentSection').classList.remove('section-hidden');
                 
                 // Move to step 2 to show the booking details
                 goToBookingStep(2);
@@ -6282,7 +6325,7 @@ Select accommodation and dates to see pricing
                 // Console statement removed for production
                 // Console statement removed for production
             } else {
-                // Show prominent "Not Available" message with styling
+                // Show prominent "Not Available" message with styling (using classList for CSP compatibility)
                 const notAvailableMessage = 'Not Available. These dates are not available. Please try different dates.';
                 if (window.SecureFrontend) {
                     window.SecureFrontend.updateAvailabilityResult(notAvailableMessage, false);
@@ -6290,16 +6333,17 @@ Select accommodation and dates to see pricing
                     availabilityResult.textContent = notAvailableMessage;
                 }
                 
-                // Apply prominent styling to make the message highly visible
-                availabilityResult.style.cssText = 'background: #fee2e2; border: 2px solid #ef4444; padding: 1rem; border-radius: 8px; color: #dc2626; font-weight: 600; text-align: center; margin: 1rem 0; font-size: 1.1rem;';
-                availabilityResult.style.display = 'block';
+                // Apply prominent styling using CSS classes (CSP-compatible)
+                availabilityResult.classList.remove('availability-success', 'section-hidden');
+                availabilityResult.classList.add('availability-error');
                 
                 // Auto-scroll to make the result visible to the user
                 availabilityResult.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 
-                document.getElementById('pricingBreakdown').style.display = 'none';
-                document.getElementById('guestDetailsSection').style.display = 'none';
-                document.getElementById('instantPaymentSection').style.display = 'none';
+                // Hide other sections using CSS classes (CSP-compatible)
+                document.getElementById('pricingBreakdown').classList.add('section-hidden');
+                document.getElementById('guestDetailsSection').classList.add('section-hidden');
+                document.getElementById('instantPaymentSection').classList.add('section-hidden');
                 
                 // Restore button state so user can try different dates
                 restoreButton();
