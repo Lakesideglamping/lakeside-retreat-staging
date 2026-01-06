@@ -6122,12 +6122,35 @@ Select accommodation and dates to see pricing
             // Console statement removed for production
             // Console statement removed for production
             
+            // Get the button and store original text for loading state
+            const bookingButton = document.querySelector('.booking-step[data-step="1"] .instant-book-btn') || 
+                                  document.querySelector('button[onclick*="instantBookingWithPayment"]') ||
+                                  document.querySelector('.instant-book-btn');
+            const originalButtonText = bookingButton ? bookingButton.innerHTML : '';
+            
+            // Show loading state on button
+            if (bookingButton) {
+                bookingButton.disabled = true;
+                bookingButton.innerHTML = '<span class="loading-spinner"></span> Checking Availability...';
+                bookingButton.style.opacity = '0.7';
+            }
+            
+            // Helper function to restore button state
+            function restoreButton() {
+                if (bookingButton) {
+                    bookingButton.disabled = false;
+                    bookingButton.innerHTML = originalButtonText;
+                    bookingButton.style.opacity = '1';
+                }
+            }
+            
             // Clear previous inline errors
             clearAllInlineErrors();
             
             if (!selectedAccommodation) {
                 // Show inline error for accommodation selection
                 showAccommodationSelectionError('Please select an accommodation type');
+                restoreButton();
                 return;
             }
 
@@ -6149,24 +6172,30 @@ Select accommodation and dates to see pricing
                 hasErrors = true;
             }
             
-            if (hasErrors) return;
+            if (hasErrors) {
+                restoreButton();
+                return;
+            }
 
             const checkinDate = parseDate(checkin);
             const checkoutDate = parseDate(checkout);
             
             if (!checkinDate || !checkoutDate) {
                 showInlineError('bookingCheckout', 'Invalid date format. Please select valid dates.');
+                restoreButton();
                 return;
             }
             
             if (checkoutDate <= checkinDate) {
                 showInlineError('bookingCheckout', 'Check-out date must be after check-in date');
+                restoreButton();
                 return;
             }
 
             // Validate cottage minimum stay requirements
             if (!validateCottageMinimumStay()) {
                 showDateValidationError('Minimum 2-night stay required for Lakeside Cottage during peak season (October to May)');
+                restoreButton();
                 return;
             }
 
@@ -6227,6 +6256,7 @@ Select accommodation and dates to see pricing
             // Handle availability check error - fail safe, don't assume available
             if (availabilityError) {
                 showAvailabilityError();
+                restoreButton();
                 return;
             }
             
@@ -6246,17 +6276,33 @@ Select accommodation and dates to see pricing
                 // Move to step 2 to show the booking details
                 goToBookingStep(2);
                 
+                // Restore button state for when user goes back to step 1
+                restoreButton();
+                
                 // Console statement removed for production
                 // Console statement removed for production
             } else {
+                // Show prominent "Not Available" message with styling
+                const notAvailableMessage = 'Not Available. These dates are not available. Please try different dates.';
                 if (window.SecureFrontend) {
-          window.SecureFrontend.updateAvailabilityResult('Not Available. These dates are not available. Please try different dates.', false);
-        } else {
-          availabilityResult.textContent = '❌ Not Available. These dates are not available. Please try different dates.';
-        }
+                    window.SecureFrontend.updateAvailabilityResult(notAvailableMessage, false);
+                } else {
+                    availabilityResult.textContent = notAvailableMessage;
+                }
+                
+                // Apply prominent styling to make the message highly visible
+                availabilityResult.style.cssText = 'background: #fee2e2; border: 2px solid #ef4444; padding: 1rem; border-radius: 8px; color: #dc2626; font-weight: 600; text-align: center; margin: 1rem 0; font-size: 1.1rem;';
+                availabilityResult.style.display = 'block';
+                
+                // Auto-scroll to make the result visible to the user
+                availabilityResult.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                
                 document.getElementById('pricingBreakdown').style.display = 'none';
                 document.getElementById('guestDetailsSection').style.display = 'none';
                 document.getElementById('instantPaymentSection').style.display = 'none';
+                
+                // Restore button state so user can try different dates
+                restoreButton();
             }
         }
 
