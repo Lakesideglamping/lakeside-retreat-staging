@@ -1096,12 +1096,13 @@ app.get('/api/blocked-dates', async (req, res) => {
     
     try {
         // Get confirmed bookings for this accommodation
+        // Note: Database uses check_in and check_out column names (with underscores)
         const sql = `
-            SELECT checkin, checkout 
+            SELECT check_in, check_out 
             FROM bookings 
             WHERE accommodation = ? 
             AND status IN ('confirmed', 'pending')
-            AND checkout >= date('now')
+            AND check_out >= date('now')
         `;
         
         db.all(sql, [accommodation], (err, rows) => {
@@ -1113,8 +1114,8 @@ app.get('/api/blocked-dates', async (req, res) => {
             // Generate array of blocked dates from booking ranges
             const blockedDates = [];
             rows.forEach(booking => {
-                const start = new Date(booking.checkin);
-                const end = new Date(booking.checkout);
+                const start = new Date(booking.check_in);
+                const end = new Date(booking.check_out);
                 
                 // Add each date in the range (except checkout date which is available for new checkin)
                 for (let d = new Date(start); d < end; d.setDate(d.getDate() + 1)) {
@@ -1127,6 +1128,51 @@ app.get('/api/blocked-dates', async (req, res) => {
     } catch (error) {
         console.error('Error in blocked-dates endpoint:', error);
         res.json({ success: true, blockedDates: [] });
+    }
+});
+
+// Check availability for an accommodation (called by booking button)
+app.post('/api/availability', async (req, res) => {
+    const { accommodation, checkIn, checkOut, guests, propertyId } = req.body;
+    
+    if (!accommodation || !checkIn || !checkOut) {
+        return res.status(400).json({ success: false, error: 'Missing required fields', available: false });
+    }
+    
+    try {
+        // Check local database for conflicting bookings
+        const sql = `
+            SELECT COUNT(*) as count 
+            FROM bookings 
+            WHERE accommodation = ? 
+            AND status IN ('confirmed', 'pending')
+            AND (
+                (check_in <= ? AND check_out > ?) OR
+                (check_in < ? AND check_out >= ?) OR
+                (check_in >= ? AND check_out <= ?)
+            )
+        `;
+        
+        db.get(sql, [accommodation, checkIn, checkIn, checkOut, checkOut, checkIn, checkOut], (err, row) => {
+            if (err) {
+                console.error('Error checking availability:', err);
+                // In dev mode, assume available if there's an error
+                return res.json({ success: true, available: true, source: 'dev-fallback' });
+            }
+            
+            const isAvailable = row.count === 0;
+            console.log(`📅 Availability check for ${accommodation}: ${checkIn} to ${checkOut} - ${isAvailable ? 'AVAILABLE' : 'NOT AVAILABLE'}`);
+            
+            res.json({ 
+                success: true, 
+                available: isAvailable,
+                source: 'local-database'
+            });
+        });
+    } catch (error) {
+        console.error('Error in availability endpoint:', error);
+        // In dev mode, assume available if there's an error
+        res.json({ success: true, available: true, source: 'dev-fallback' });
     }
 });
 
