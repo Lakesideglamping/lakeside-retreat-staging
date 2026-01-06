@@ -492,17 +492,75 @@
             return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
         }
 
-        function viewBooking(id) {
-            alert(`View booking ${id} - Feature coming soon!`);
+        async function viewBooking(id) {
+            try {
+                const response = await fetch(`/api/admin/booking/${id}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to load booking details');
+                }
+                
+                const data = await response.json();
+                const booking = data.booking || data;
+                
+                const details = `
+Booking #${booking.id}
+━━━━━━━━━━━━━━━━━━━━━━
+Guest: ${booking.guest_name || 'N/A'}
+Email: ${booking.guest_email || 'N/A'}
+Phone: ${booking.guest_phone || 'N/A'}
+
+Accommodation: ${booking.accommodation || 'N/A'}
+Check-in: ${formatDate(booking.check_in)}
+Check-out: ${formatDate(booking.check_out)}
+Guests: ${booking.guests || 'N/A'}
+
+Total: $${booking.total_price || 0}
+Status: ${booking.status || 'N/A'}
+Payment: ${booking.payment_status || 'N/A'}
+
+Created: ${booking.created_at ? formatDate(booking.created_at) : 'N/A'}
+${booking.special_requests ? `\nSpecial Requests: ${booking.special_requests}` : ''}
+                `.trim();
+                
+                alert(details);
+            } catch (error) {
+                console.error('Error viewing booking:', error);
+                alert('Failed to load booking details. Please try again.');
+            }
         }
 
         function editBooking(id) {
             window.location.href = `/edit-booking.html?id=${id}`;
         }
 
-        function cancelBooking(id) {
-            if (confirm('Are you sure you want to cancel this booking?')) {
-                alert(`Booking ${id} cancelled - Feature coming soon!`);
+        async function cancelBooking(id) {
+            if (!confirm('Are you sure you want to cancel this booking? This action cannot be undone.')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/admin/booking/${id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    const data = await response.json();
+                    throw new Error(data.error?.message || 'Failed to cancel booking');
+                }
+                
+                alert('Booking cancelled successfully!');
+                loadBookings();
+            } catch (error) {
+                console.error('Error cancelling booking:', error);
+                alert(`Failed to cancel booking: ${error.message}`);
             }
         }
 
