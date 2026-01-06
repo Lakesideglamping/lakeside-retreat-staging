@@ -492,7 +492,7 @@ app.post('/api/contact', contactLimiter, [
         // Store in database (optional)
         const sql = `
             INSERT INTO contact_messages (name, email, message, created_at)
-            VALUES (?, ?, ?, datetime('now'))
+            VALUES (?, ?, ?, CURRENT_TIMESTAMP)
         `;
 
         db.run(sql, [sanitizedData.name, sanitizedData.email, sanitizedData.message], function(err) {
@@ -904,13 +904,26 @@ function handleUplistingWebhook(parsedBody, res) {
             uplisting_id: data.id
         };
         
-        // Insert or update booking
+        // Insert or update booking (use ON CONFLICT for PostgreSQL compatibility)
         const sql = `
-            INSERT OR REPLACE INTO bookings (
+            INSERT INTO bookings (
                 id, guest_name, guest_email, guest_phone, accommodation,
                 check_in, check_out, guests, total_price, status,
                 payment_status, notes, uplisting_id, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT (id) DO UPDATE SET
+                guest_name = EXCLUDED.guest_name,
+                guest_email = EXCLUDED.guest_email,
+                guest_phone = EXCLUDED.guest_phone,
+                accommodation = EXCLUDED.accommodation,
+                check_in = EXCLUDED.check_in,
+                check_out = EXCLUDED.check_out,
+                guests = EXCLUDED.guests,
+                total_price = EXCLUDED.total_price,
+                status = EXCLUDED.status,
+                payment_status = EXCLUDED.payment_status,
+                notes = EXCLUDED.notes,
+                uplisting_id = EXCLUDED.uplisting_id
         `;
         
         db.run(sql, [
@@ -1191,7 +1204,7 @@ app.post('/api/bookings',
                 id, guest_name, guest_email, guest_phone, 
                 accommodation, check_in, check_out, guests, 
                 total_price, status, payment_status, notes, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'pending', ?, datetime('now'))
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'pending', ?, CURRENT_TIMESTAMP)
         `;
 
         const booking = await executeDbOperation(
@@ -2247,7 +2260,7 @@ app.put('/api/admin/booking/:id/status', verifyAdmin, [
     const bookingId = req.params.id;
     const { status, notes } = req.body;
     
-    let sql = 'UPDATE bookings SET status = ?, updated_at = datetime("now")';
+    let sql = 'UPDATE bookings SET status = ?, updated_at = CURRENT_TIMESTAMP';
     let params = [status];
     
     if (notes) {
@@ -2518,7 +2531,7 @@ app.post('/api/admin/refund/:bookingId', verifyAdmin, async (req, res) => {
                     const newStatus = refund.amount === booking.total_price * 100 ? 'cancelled' : 'partially_refunded';
                     
                     db.run(
-                        'UPDATE bookings SET status = ?, payment_status = ?, updated_at = datetime("now") WHERE id = ?',
+                        'UPDATE bookings SET status = ?, payment_status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
                         [newStatus, 'refunded', bookingId],
                         (updateErr) => {
                             if (updateErr) {
@@ -2695,6 +2708,8 @@ app.get('/api/admin/booking-stats', verifyAdmin, (req, res) => {
 // Notifications summary endpoint for admin dashboard
 app.get('/api/admin/notifications', verifyAdmin, (req, res) => {
     const today = new Date().toISOString().split('T')[0];
+    // Calculate yesterday's date for "last 24 hours" query (works in both SQLite and PostgreSQL)
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     
     const queries = {
         // Critical: Failed payments
@@ -2710,7 +2725,7 @@ app.get('/api/admin/notifications', verifyAdmin, (req, res) => {
         // Pending: Today's check-outs
         todayCheckouts: `SELECT COUNT(*) as count FROM bookings WHERE check_out = ? AND status = 'confirmed'`,
         // Resolved: Recent confirmed bookings (last 24 hours)
-        recentConfirmed: `SELECT COUNT(*) as count FROM bookings WHERE status = 'confirmed' AND payment_status = 'completed' AND created_at >= datetime('now', '-1 day')`
+        recentConfirmed: `SELECT COUNT(*) as count FROM bookings WHERE status = 'confirmed' AND payment_status = 'completed' AND created_at >= ?`
     };
     
     const results = {};
@@ -2753,13 +2768,12 @@ app.get('/api/admin/notifications', verifyAdmin, (req, res) => {
     runQuery('pendingBookings', queries.pendingBookings);
     runQuery('todayCheckins', queries.todayCheckins, [today]);
     runQuery('todayCheckouts', queries.todayCheckouts, [today]);
-    runQuery('recentConfirmed', queries.recentConfirmed);
+    runQuery('recentConfirmed', queries.recentConfirmed, [yesterday]);
 });
 
 // Analytics endpoint for admin dashboard
 app.get('/api/admin/analytics', verifyAdmin, (req, res) => {
     const dateRange = req.query.dateRange || 'month';
-    let dateCondition = '';
     
     // Calculate date range
     const now = new Date();
@@ -2782,7 +2796,15 @@ app.get('/api/admin/analytics', verifyAdmin, (req, res) => {
             startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     }
     
-    dateCondition = `WHERE created_at >= datetime('${startDate.toISOString()}')`;
+    // Use parameterized query with ISO string (works in both SQLite and PostgreSQL)
+    const startDateISO = startDate.toISOString();
+    const dateCondition = 'WHERE created_at >= ?';
+    
+    // Use database-specific date formatting for grouping
+    const isPostgres = database.isUsingPostgres();
+    const monthFormat = isPostgres 
+        ? "TO_CHAR(created_at, 'YYYY-MM')" 
+        : "strftime('%Y-%m', created_at)";
     
     const analytics = {};
     
@@ -2795,6 +2817,7 @@ app.get('/api/admin/analytics', verifyAdmin, (req, res) => {
             AVG(CASE WHEN payment_status = 'completed' THEN total_price END) as avg_booking_value,
             COUNT(DISTINCT accommodation) as accommodations_booked
         FROM bookings ${dateCondition}`,
+        [startDateISO],
         (err, row) => {
             if (err) {
                 return res.status(500).json({ success: false, error: err.message });
@@ -2805,12 +2828,13 @@ app.get('/api/admin/analytics', verifyAdmin, (req, res) => {
             // Get booking trends by month
             db.all(
                 `SELECT 
-                    strftime('%Y-%m', created_at) as month,
+                    ${monthFormat} as month,
                     COUNT(*) as bookings,
                     SUM(CASE WHEN payment_status = 'completed' THEN total_price ELSE 0 END) as revenue
                 FROM bookings ${dateCondition}
-                GROUP BY strftime('%Y-%m', created_at)
+                GROUP BY ${monthFormat}
                 ORDER BY month DESC`,
+                [startDateISO],
                 (err, trends) => {
                     if (err) {
                         return res.status(500).json({ success: false, error: err.message });
@@ -2828,6 +2852,7 @@ app.get('/api/admin/analytics', verifyAdmin, (req, res) => {
                         FROM bookings ${dateCondition}
                         GROUP BY accommodation
                         ORDER BY revenue DESC`,
+                        [startDateISO],
                         (err, accommodations) => {
                             if (err) {
                                 return res.status(500).json({ success: false, error: err.message });
@@ -3432,7 +3457,7 @@ app.post('/api/admin/bookings', verifyAdmin, async (req, res) => {
                 id, guest_name, guest_email, guest_phone, accommodation,
                 check_in, check_out, guests, total_price, status,
                 payment_status, notes, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         `;
 
         db.run(sql, [
@@ -3503,7 +3528,7 @@ app.post('/api/admin/seasonal-rates', verifyAdmin, (req, res) => {
 
     const sql = `
         INSERT INTO seasonal_rates (name, start_date, end_date, multiplier, is_active, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
     `;
     
     db.run(sql, [
@@ -3537,7 +3562,7 @@ app.put('/api/admin/seasonal-rates/:id', verifyAdmin, (req, res) => {
     
     const sql = `
         UPDATE seasonal_rates 
-        SET name = ?, start_date = ?, end_date = ?, multiplier = ?, is_active = ?, updated_at = datetime('now')
+        SET name = ?, start_date = ?, end_date = ?, multiplier = ?, is_active = ?, updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
     `;
     
@@ -3640,7 +3665,7 @@ app.put('/api/admin/gallery/:filename', verifyAdmin, (req, res) => {
         if (existing) {
             const updateSql = `
                 UPDATE gallery_images 
-                SET title = ?, description = ?, property = ?, is_hero = ?, is_featured = ?, display_order = ?, updated_at = datetime('now')
+                SET title = ?, description = ?, property = ?, is_hero = ?, is_featured = ?, display_order = ?, updated_at = CURRENT_TIMESTAMP
                 WHERE filename = ?
             `;
             db.run(updateSql, [
@@ -3661,7 +3686,7 @@ app.put('/api/admin/gallery/:filename', verifyAdmin, (req, res) => {
         } else {
             const insertSql = `
                 INSERT INTO gallery_images (filename, title, description, property, is_hero, is_featured, display_order, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+                VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
             `;
             db.run(insertSql, [
                 filename,
@@ -3736,7 +3761,7 @@ app.post('/api/admin/reviews', verifyAdmin, (req, res) => {
     
     const sql = `
         INSERT INTO reviews (guest_name, platform, rating, review_text, stay_date, property, status, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, 'pending', datetime('now'), datetime('now'))
+        VALUES (?, ?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
     `;
     
     db.run(sql, [
@@ -3759,7 +3784,7 @@ app.put('/api/admin/reviews/:id', verifyAdmin, (req, res) => {
     const { id } = req.params;
     const { status, is_featured, admin_notes, admin_response } = req.body;
     
-    let sql = 'UPDATE reviews SET updated_at = datetime(\'now\')';
+    let sql = 'UPDATE reviews SET updated_at = CURRENT_TIMESTAMP';
     const params = [];
     
     if (status !== undefined) {
@@ -3775,7 +3800,7 @@ app.put('/api/admin/reviews/:id', verifyAdmin, (req, res) => {
         params.push(sanitizeInput(admin_notes));
     }
     if (admin_response !== undefined) {
-        sql += ', admin_response = ?, response_date = datetime(\'now\')';
+        sql += ', admin_response = ?, response_date = CURRENT_TIMESTAMP';
         params.push(sanitizeInput(admin_response));
     }
     

@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const database = require('./database');
 
 class MarketingAutomation {
     constructor(db, emailTransporter) {
@@ -25,10 +26,14 @@ class MarketingAutomation {
     // Create database tables for marketing features
     async createTables() {
         return new Promise((resolve, reject) => {
+            // Use PostgreSQL-compatible syntax if using PostgreSQL
+            const isPostgres = database.isUsingPostgres();
+            const idType = isPostgres ? 'SERIAL PRIMARY KEY' : 'INTEGER PRIMARY KEY AUTOINCREMENT';
+            
             // Create abandoned_checkout_reminders table to track sent reminders
             const createRemindersTable = `
                 CREATE TABLE IF NOT EXISTS abandoned_checkout_reminders (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    id ${idType},
                     booking_id TEXT NOT NULL,
                     guest_email TEXT NOT NULL,
                     guest_name TEXT,
@@ -46,7 +51,7 @@ class MarketingAutomation {
             // Create review_requests table
             const createReviewRequestsTable = `
                 CREATE TABLE IF NOT EXISTS review_requests (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    id ${idType},
                     booking_id TEXT NOT NULL,
                     guest_email TEXT NOT NULL,
                     guest_name TEXT,
@@ -64,7 +69,7 @@ class MarketingAutomation {
             // Create social_content_drafts table
             const createSocialDraftsTable = `
                 CREATE TABLE IF NOT EXISTS social_content_drafts (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    id ${idType},
                     platform TEXT NOT NULL,
                     source_type TEXT,
                     source_text TEXT,
