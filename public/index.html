@@ -2802,17 +2802,17 @@ document.addEventListener('DOMContentLoaded', () => {
 <div class="accommodation-option" data-accommodation="dome-pinot" onclick="selectAccommodation('dome-pinot')">
 <h4>Dome Pinot</h4>
 <p>Flagship 50sqm luxury dome with panoramic views and private spa</p>
-<div class="accommodation-price">From $450/night <span style="font-size: 0.8em; color: #666;">(GST incl.)</span></div>
+<div class="accommodation-price">From <span data-price="dome_pinot">$450</span>/night <span style="font-size: 0.8em; color: #666;">(GST incl.)</span></div>
 </div>
 <div class="accommodation-option" data-accommodation="dome-rose" onclick="selectAccommodation('dome-rose')">
 <h4>Dome Rosé</h4>
 <p>Romantic 40sqm retreat perfect for couples</p>
-<div class="accommodation-price">From $380/night <span style="font-size: 0.8em; color: #666;">(GST incl.)</span></div>
+<div class="accommodation-price">From <span data-price="dome_rose">$380</span>/night <span style="font-size: 0.8em; color: #666;">(GST incl.)</span></div>
 </div>
 <div class="accommodation-option" data-accommodation="lakeside-cottage" onclick="selectAccommodation('lakeside-cottage')">
 <h4>Lakeside Cottage</h4>
 <p>Family-friendly cottage with direct lake access</p>
-<div class="accommodation-price">From $580/night <span style="font-size: 0.8em; color: #666;">(GST incl.)</span></div>
+<div class="accommodation-price">From <span data-price="lakeside_cottage">$580</span>/night <span style="font-size: 0.8em; color: #666;">(GST incl.)</span></div>
 </div>
 </div>
 <div class="booking-date-row">
@@ -3203,7 +3203,7 @@ Select accommodation and dates to see pricing
 <span>• Reliable Power</span>
 </div>
 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem;">
-<span style="font-weight: 600; color: var(--dark); font-size: 1.1rem;">From $450/night <span style="font-size: 0.75rem; color: #666;">(GST incl.)</span></span>
+<span style="font-weight: 600; color: var(--dark); font-size: 1.1rem;">From <span data-price="dome_pinot">$450</span>/night <span style="font-size: 0.75rem; color: #666;">(GST incl.)</span></span>
 <div style="display: flex; gap: 0.5rem;">
 <a class="btn btn-outline" href="#" onclick="showPage('stay'); return false;">View Details</a>
 <a class="btn btn-primary" href="#" onclick="openBookingModal('dome-pinot')">Book Now</a>
@@ -3223,7 +3223,7 @@ Select accommodation and dates to see pricing
 <span>• Always Powered</span>
 </div>
 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem;">
-<span style="font-weight: 600; color: var(--dark); font-size: 1.1rem;">From $380/night <span style="font-size: 0.75rem; color: #666;">(GST incl.)</span></span>
+<span style="font-weight: 600; color: var(--dark); font-size: 1.1rem;">From <span data-price="dome_rose">$380</span>/night <span style="font-size: 0.75rem; color: #666;">(GST incl.)</span></span>
 <div style="display: flex; gap: 0.5rem;">
 <a class="btn btn-outline" href="#" onclick="showPage('stay'); return false;">View Details</a>
 <a class="btn btn-primary" href="#" onclick="openBookingModal('dome-rose')">Book Now</a>
@@ -3243,7 +3243,7 @@ Select accommodation and dates to see pricing
 <span>• Reliable Power</span>
 </div>
 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem;">
-<span style="font-weight: 600; color: var(--dark); font-size: 1.1rem;">From $580/night <span style="font-size: 0.75rem; color: #666;">(GST incl.)</span></span>
+<span style="font-weight: 600; color: var(--dark); font-size: 1.1rem;">From <span data-price="lakeside_cottage">$580</span>/night <span style="font-size: 0.75rem; color: #666;">(GST incl.)</span></span>
 <div style="display: flex; gap: 0.5rem;">
 <a class="btn btn-outline" href="#" onclick="showPage('stay'); return false;">View Details</a>
 <a class="btn btn-primary" href="#" onclick="openBookingModal('lakeside-cottage')">Book Now</a>
@@ -3597,9 +3597,9 @@ Select accommodation and dates to see pricing
 </tr>
 <tr style="background: rgba(0,0,0,0.02);">
 <td style="padding: 1rem; font-weight: 600; color: var(--dark); border-bottom: 1px solid #f0f0f0;">Price from</td>
-<td style="padding: 1rem; text-align: center; font-weight: 600; color: var(--brand-teal); border-bottom: 1px solid #f0f0f0;">$450/night</td>
-<td style="padding: 1rem; text-align: center; font-weight: 600; color: #be185d; border-bottom: 1px solid #f0f0f0;">$380/night</td>
-<td style="padding: 1rem; text-align: center; font-weight: 600; color: var(--brand-teal); border-bottom: 1px solid #f0f0f0;">$580/night</td>
+<td style="padding: 1rem; text-align: center; font-weight: 600; color: var(--brand-teal); border-bottom: 1px solid #f0f0f0;"><span data-price="dome_pinot">$450</span>/night</td>
+<td style="padding: 1rem; text-align: center; font-weight: 600; color: #be185d; border-bottom: 1px solid #f0f0f0;"><span data-price="dome_rose">$380</span>/night</td>
+<td style="padding: 1rem; text-align: center; font-weight: 600; color: var(--brand-teal); border-bottom: 1px solid #f0f0f0;"><span data-price="lakeside_cottage">$580</span>/night</td>
 </tr>
 <tr>
 <td style="padding: 1.5rem 1rem; font-weight: 600; color: var(--dark);"></td>
@@ -3657,7 +3657,7 @@ Select accommodation and dates to see pricing
 </div>
 </div>
 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem;">
-<span style="font-weight: 600; color: var(--dark); font-size: 1.1rem;">From $450/night <span style="font-size: 0.75rem; color: #666;">(GST incl.)</span></span>
+<span style="font-weight: 600; color: var(--dark); font-size: 1.1rem;">From <span data-price="dome_pinot">$450</span>/night <span style="font-size: 0.75rem; color: #666;">(GST incl.)</span></span>
 <a class="btn btn-primary" href="#" onclick="openBookingModal('dome-pinot')">Book Now</a>
 </div>
 </div>
@@ -3700,7 +3700,7 @@ Select accommodation and dates to see pricing
 </div>
 </div>
 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem;">
-<span style="font-weight: 600; color: var(--dark); font-size: 1.1rem;">From $380/night <span style="font-size: 0.75rem; color: #666;">(GST incl.)</span></span>
+<span style="font-weight: 600; color: var(--dark); font-size: 1.1rem;">From <span data-price="dome_rose">$380</span>/night <span style="font-size: 0.75rem; color: #666;">(GST incl.)</span></span>
 <a class="btn btn-primary" href="#" onclick="openBookingModal('dome-rose')">Book Now</a>
 </div>
 </div>
@@ -3745,7 +3745,7 @@ Select accommodation and dates to see pricing
 </div>
 </div>
 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem;">
-<span style="font-weight: 600; color: var(--dark); font-size: 1.1rem;">From $580/night <span style="font-size: 0.75rem; color: #666;">(GST incl.)</span></span>
+<span style="font-weight: 600; color: var(--dark); font-size: 1.1rem;">From <span data-price="lakeside_cottage">$580</span>/night <span style="font-size: 0.75rem; color: #666;">(GST incl.)</span></span>
 <a class="btn btn-primary" href="#" onclick="openBookingModal('lakeside-cottage')">Book Now</a>
 </div>
 </div>
@@ -8586,5 +8586,35 @@ Select accommodation and dates to see pricing
         border: 1px solid #c62828;
     }
 </style>
+<script>
+(function() {
+    function loadPricing() {
+        fetch('/api/pricing')
+            .then(function(response) { return response.json(); })
+            .then(function(data) {
+                if (data.success && data.pricing) {
+                    var priceElements = document.querySelectorAll('[data-price]');
+                    priceElements.forEach(function(el) {
+                        var key = el.getAttribute('data-price');
+                        if (data.pricing[key] && data.pricing[key].base) {
+                            el.textContent = '$' + data.pricing[key].base;
+                        }
+                    });
+                    if (window.accommodationPrices) {
+                        window.accommodationPrices = data.pricing;
+                    }
+                }
+            })
+            .catch(function(err) {
+                console.log('Using default prices');
+            });
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', loadPricing);
+    } else {
+        loadPricing();
+    }
+})();
+</script>
 </body>
 </html>
