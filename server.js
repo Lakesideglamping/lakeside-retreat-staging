@@ -1086,6 +1086,50 @@ async function sendPaymentConfirmation(bookingData) {
 
 // BOOKING ENDPOINTS
 
+// Get blocked dates for an accommodation (for date picker)
+app.get('/api/blocked-dates', async (req, res) => {
+    const { accommodation } = req.query;
+    
+    if (!accommodation) {
+        return res.status(400).json({ success: false, error: 'Accommodation parameter required' });
+    }
+    
+    try {
+        // Get confirmed bookings for this accommodation
+        const sql = `
+            SELECT checkin, checkout 
+            FROM bookings 
+            WHERE accommodation = ? 
+            AND status IN ('confirmed', 'pending')
+            AND checkout >= date('now')
+        `;
+        
+        db.all(sql, [accommodation], (err, rows) => {
+            if (err) {
+                console.error('Error fetching blocked dates:', err);
+                return res.json({ success: true, blockedDates: [] });
+            }
+            
+            // Generate array of blocked dates from booking ranges
+            const blockedDates = [];
+            rows.forEach(booking => {
+                const start = new Date(booking.checkin);
+                const end = new Date(booking.checkout);
+                
+                // Add each date in the range (except checkout date which is available for new checkin)
+                for (let d = new Date(start); d < end; d.setDate(d.getDate() + 1)) {
+                    blockedDates.push(d.toISOString().split('T')[0]);
+                }
+            });
+            
+            res.json({ success: true, blockedDates });
+        });
+    } catch (error) {
+        console.error('Error in blocked-dates endpoint:', error);
+        res.json({ success: true, blockedDates: [] });
+    }
+});
+
 // Legacy booking endpoint - redirects to main endpoint for compatibility
 app.post('/api/process-booking', bookingLimiter, async (req, res) => {
     console.log('⚠️ Legacy endpoint /api/process-booking called, redirecting to /api/bookings');
