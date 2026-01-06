@@ -504,10 +504,28 @@
             'Dome Pinot': 'dome-pinot',
             'dome-pinot': 'dome-pinot',
             'Dome Rose': 'dome-rose',
+            'Dome Rosé': 'dome-rose',
             'dome-rose': 'dome-rose',
+            'dome-rosé': 'dome-rose',
             'Lakeside Cottage': 'lakeside-cottage',
             'lakeside-cottage': 'lakeside-cottage'
         };
+        
+        // Helper function to normalize accommodation names for color mapping
+        function getPropertyClass(accommodation) {
+            if (!accommodation) return 'dome-pinot';
+            // First try direct lookup
+            if (propertyClasses[accommodation]) {
+                return propertyClasses[accommodation];
+            }
+            // Normalize: lowercase, remove accents, replace spaces with hyphens
+            const normalized = accommodation
+                .toLowerCase()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/\s+/g, '-');
+            return propertyClasses[normalized] || 'dome-pinot';
+        }
 
         // Load bookings from API
         async function loadBookings() {
@@ -613,7 +631,7 @@
             html += '<div class="bookings">';
             
             dayBookings.forEach(booking => {
-                const propClass = propertyClasses[booking.accommodation] || 'dome-pinot';
+                const propClass = getPropertyClass(booking.accommodation);
                 const guestName = booking.guest_name ? booking.guest_name.split(' ')[0] : 'Guest';
                 html += `<div class="monthly-booking ${propClass}" onclick="showBookingDetails('${booking.id}')" title="${booking.guest_name} - ${booking.accommodation}">${guestName}</div>`;
             });
@@ -665,7 +683,7 @@
                     html += `<div class="${cellClass}">`;
                     
                     if (booking) {
-                        const propClass = propertyClasses[booking.accommodation] || 'dome-pinot';
+                        const propClass = getPropertyClass(booking.accommodation);
                         const isCheckin = booking.check_in === dateStr;
                         const isCheckout = booking.check_out === dateStr;
                         let indicatorClass = `booking-indicator ${propClass}`;
