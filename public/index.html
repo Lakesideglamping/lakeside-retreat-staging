@@ -7165,6 +7165,26 @@ Select accommodation and dates to see pricing
         function initializeFromHash() {
             var hash = window.location.hash.substring(1);
             var validPages = ['home', 'stay', 'gallery', 'blog', 'reviews', 'story', 'explore', 'contact'];
+            
+            // Check for booking intent from URL parameters or hash
+            var urlParams = new URLSearchParams(window.location.search);
+            var pageParam = urlParams.get('page');
+            var accommodationParam = urlParams.get('accommodation');
+            
+            // Handle ?page=book or #booking - open booking modal
+            if (pageParam === 'book' || hash === 'booking' || hash === 'book') {
+                showPage('home', false);
+                // Small delay to ensure page is loaded before opening modal
+                setTimeout(function() {
+                    openBookingModal(accommodationParam || null);
+                    // Clean up URL to avoid modal reopening on refresh
+                    if (window.history.replaceState) {
+                        window.history.replaceState({}, document.title, window.location.pathname);
+                    }
+                }, 300);
+                return;
+            }
+            
             if (hash && validPages.includes(hash)) {
                 showPage(hash, false);
             } else {
