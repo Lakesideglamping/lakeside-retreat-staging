@@ -142,7 +142,17 @@ const emailTransporter = nodemailer.createTransport({
 
 // Health check endpoints - MUST be before rate limiting to avoid 429 errors on health checks
 // These endpoints are used by Render to verify the service is running
+// Health check endpoints
 app.get('/health', (req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// CSRF token endpoint (used by frontend security manager)
+app.get('/api/csrf-token', (req, res) => {
+    res.json({ csrfToken: crypto.randomBytes(32).toString('hex') });
+});
+
+app.get('/api/health', (req, res) => {
     res.json({ status: 'healthy', timestamp: new Date().toISOString() });
 });
 
@@ -404,6 +414,12 @@ app.use((req, res, next) => {
 });
 
 // Enhanced static file serving with proper caching
+// First: redirect responsive image subdirectories to flat images/ directory
+// (Desktop/, MobileLarge/, MobileSmall/, Tablet/ were planned but never populated)
+app.use('/images/:subdir(Desktop|MobileLarge|MobileSmall|Tablet)/:filename', (req, res, next) => {
+    res.redirect(301, `/images/${req.params.filename}`);
+});
+
 app.use(express.static(path.join(__dirname, 'public'), {
     maxAge: '1h', // Default cache for most files
     setHeaders: (res, filePath) => {
