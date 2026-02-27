@@ -2205,7 +2205,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        function closeLegalModal() {
+        window.closeLegalModal = function() {
             const modal = document.querySelector('div[style*="position: fixed"][style*="z-index: 10000"]');
             if (modal) {
                 const scrollPosition = modal.dataset.scrollPosition || window.pageYOffset;
