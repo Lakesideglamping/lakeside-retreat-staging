@@ -156,7 +156,7 @@ class MonitoringAlerts {
         const integrations = {
             stripe: {
                 configured: !!process.env.STRIPE_SECRET_KEY && 
-                           process.env.STRIPE_SECRET_KEY !== 'sk_test_CONFIGURE_IN_PRODUCTION',
+                           !process.env.STRIPE_SECRET_KEY.includes('CONFIGURE'),
                 status: 'unknown'
             },
             email: {

@@ -156,10 +156,6 @@ app.get('/api/health', (req, res) => {
     res.json({ status: 'healthy', timestamp: new Date().toISOString() });
 });
 
-app.get('/api/health', (req, res) => {
-    res.json({ status: 'healthy', timestamp: new Date().toISOString() });
-});
-
 // Rate limiting middleware
 const generalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
