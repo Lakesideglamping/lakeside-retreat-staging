@@ -3,7 +3,7 @@
 // --- Script block 1 ---
 (function() {
 window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
+      window.gtag = function(){dataLayer.push(arguments);}
       gtag('js', new Date());
       gtag('config', 'G-M6TC9MB5CR', {
         'enhanced_ecommerce': true,
@@ -15,7 +15,7 @@ window.dataLayer = window.dataLayer || [];
       });
       
       // Enhanced tracking for accommodation bookings
-      function trackBookingIntent(accommodationType) {
+      window.trackBookingIntent = function(accommodationType) {
         gtag('event', 'booking_intent', {
           'accommodation_type': accommodationType,
           'page_location': window.location.href
@@ -74,7 +74,7 @@ if ('serviceWorker' in navigator && 'caches' in window) {
 }
 
 // Enhanced WebP detection and image optimization
-function detectWebPSupport() {
+window.detectWebPSupport = function() {
     const webP = new Image();
     webP.onload = webP.onerror = () => {
         document.documentElement.classList.add(webP.height === 2 ? 'webp' : 'no-webp');
@@ -728,7 +728,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // CSRF Token Management
         let csrfToken = '';
 
-        async function getCSRFToken() {
+        async window.getCSRFToken = function() {
           try {
             const response = await fetch('/api/csrf-token', {
               credentials: 'include'
@@ -1721,7 +1721,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // === EMAIL VALIDATION FUNCTIONS ===
 
-        function validateEmail(input) {
+        window.validateEmail = function(input) {
             const email = input.value.trim();
             const errorElement = document.getElementById(input.id + 'Error');
             
@@ -2649,7 +2649,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Event tracked
         }
 
-        function trackPageView(page) {
+        window.trackPageView = function(page) {
             if (typeof gtag !== 'undefined') {
                 gtag('event', 'page_view', {
                     'page_title': page,
