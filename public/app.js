@@ -908,7 +908,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // === STREAMLINED 3-BUTTON BOOKING SYSTEM ===
 
-        function openBookingModal(preSelectedAccommodation = null) {
+        window.openBookingModal = function(preSelectedAccommodation = null) {
             // Console statement removed for production
             document.getElementById('bookingModal').classList.add('active');
             document.body.style.overflow = 'hidden';
@@ -927,7 +927,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        function closeBookingModal() {
+        window.closeBookingModal = function() {
             document.getElementById('bookingModal').classList.remove('active');
             document.body.style.overflow = '';
             resetBookingModal();
@@ -970,7 +970,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (availabilityResult) availabilityResult.textContent = '';
         }
 
-        function selectAccommodation(accommodationType) {
+        window.selectAccommodation = function(accommodationType) {
             // Console statement removed for production
             selectedAccommodation = accommodationType;
             
@@ -1144,7 +1144,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // INSTANT BOOKING: Combined availability check, pricing, and immediate payment
-        async function instantBookingWithPayment() {
+        async window.instantBookingWithPayment = function() {
             // Console statement removed for production
             // Console statement removed for production
             // Console statement removed for production
@@ -1525,7 +1525,7 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
         }
 
-        function goToBookingStep(stepNumber) {
+        window.goToBookingStep = function(stepNumber) {
             currentBookingStep = stepNumber;
             
             // Hide all steps
@@ -1605,7 +1605,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Validate guest details before proceeding to step 3
-        function validateGuestDetailsAndContinue() {
+        window.validateGuestDetailsAndContinue = function() {
             // Collect guest data for validation
             const guestData = {
                 firstName: document.getElementById('guestFirstName').value.trim(),
@@ -1660,7 +1660,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // BUTTON 3: Process booking and show confirmation
-        async function processBookingAndConfirm() {
+        async window.processBookingAndConfirm = function() {
             // Collect guest data
             const guestData = {
                 firstName: document.getElementById('guestFirstName').value,
@@ -1971,7 +1971,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // === ORIGINAL WEBSITE FUNCTIONS ===
 
-        function showPage(pageName) {
+        window.showPage = function(pageName) {
             document.querySelectorAll('.page').forEach(page => {
                 page.classList.remove('active');
             });
@@ -2216,7 +2216,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
 
-        function scrollToSection(sectionId) {
+        window.scrollToSection = function(sectionId) {
             const section = document.getElementById(sectionId);
             if (section) {
                 section.scrollIntoView({ 
@@ -2237,7 +2237,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        function toggleGuide(headerElement) {
+        window.toggleGuide = function(headerElement) {
             const guideItem = headerElement.closest('.guide-item');
             const guideContent = guideItem.querySelector('.guide-content');
             const arrow = headerElement.querySelector('.guide-arrow');
@@ -2253,7 +2253,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        function toggleMobileMenu() {
+        window.toggleMobileMenu = function() {
             const mobileNav = document.getElementById('mobileNav');
             mobileNav.classList.toggle('active');
             
@@ -2294,7 +2294,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.body.style.overflow = 'hidden';
         }
 
-        function closeSearch() {
+        window.closeSearch = function() {
             document.getElementById('searchOverlay').classList.remove('active');
             document.getElementById('searchInput').value = '';
             document.getElementById('searchResults').innerHTML = '';
@@ -2340,7 +2340,7 @@ document.addEventListener('DOMContentLoaded', () => {
             'mini-gallery-pinot': { currentIndex: 0, totalImages: 8, visibleImages: 4 }
         };
 
-        function navigateCarousel(carouselId, direction) {
+        window.navigateCarousel = function(carouselId, direction) {
             const carousel = document.getElementById(carouselId);
             const counter = document.getElementById('counter-' + carouselId.split('-')[1]);
             const state = carouselStates[carouselId];
@@ -2403,7 +2403,7 @@ document.addEventListener('DOMContentLoaded', () => {
             gallery.style.transform = `translateX(${translateX}%)`;
         }
 
-        function openLightbox(imageSrc, imageTitle = '') {
+        window.openLightbox = function(imageSrc, imageTitle = '') {
             const lightbox = document.getElementById('lightbox');
             const lightboxImage = document.getElementById('lightboxImage');
             const lightboxTitle = document.getElementById('lightboxTitle');
@@ -2427,7 +2427,7 @@ document.addEventListener('DOMContentLoaded', () => {
             updateThumbnailNav();
         }
 
-        function openCarouselLightbox(imageSrc, carouselType, imageTitle = '') {
+        window.openCarouselLightbox = function(imageSrc, carouselType, imageTitle = '') {
             const lightbox = document.getElementById('lightbox');
             const lightboxImage = document.getElementById('lightboxImage');
             const lightboxTitle = document.getElementById('lightboxTitle');
@@ -2462,14 +2462,14 @@ document.addEventListener('DOMContentLoaded', () => {
             };
         }
 
-        function closeLightbox() {
+        window.closeLightbox = function() {
             document.getElementById('lightbox').classList.remove('active');
             document.body.style.overflow = '';
             // Reset carousel context when lightbox is closed
             currentCarouselContext = null;
         }
 
-        function nextImage() {
+        window.nextImage = function() {
             const imageArray = currentCarouselContext ? carouselImages[currentCarouselContext] : galleryImages;
             currentImageIndex = (currentImageIndex + 1) % imageArray.length;
             const lightboxImage = document.getElementById('lightboxImage');
@@ -2486,7 +2486,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        function prevImage() {
+        window.prevImage = function() {
             const imageArray = currentCarouselContext ? carouselImages[currentCarouselContext] : galleryImages;
             currentImageIndex = currentImageIndex === 0 ? imageArray.length - 1 : currentImageIndex - 1;
             const lightboxImage = document.getElementById('lightboxImage');
@@ -2573,18 +2573,18 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(showSocialProof, Math.random() * 30000 + 45000);
         }
 
-        function acceptCookies() {
+        window.acceptCookies = function() {
             document.getElementById('cookieButtons').style.display = 'none';
             trackEvent('cookies', 'accepted');
         }
 
-        function declineCookies() {
+        window.declineCookies = function() {
             document.getElementById('cookieButtons').style.display = 'none';
             trackEvent('cookies', 'declined');
         }
         
         // Toggle FAQ dropdown functionality
-        function toggleFAQ(element) {
+        window.toggleFAQ = function(element) {
             const answer = element.nextElementSibling;
             const arrow = element.querySelector('.faq-arrow');
             
@@ -2667,7 +2667,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('scrollIndicator').style.width = `${scrollPercentage}%`;
         }
 
-        function loadMoreReviews() {
+        window.loadMoreReviews = function() {
             alert('Loading more reviews... (This would connect to your review database or API)');
         }
 
@@ -3374,7 +3374,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Call test function in development
         window.testParallax = testParallaxSystem;
 
-        function scrollToTop() {
+        window.scrollToTop = function() {
             console.log('Scrolling to top...');
             
             // Force scroll to top immediately
