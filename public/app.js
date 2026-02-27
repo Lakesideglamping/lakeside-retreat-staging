@@ -3216,16 +3216,13 @@ document.addEventListener('DOMContentLoaded', () => {
             
             function handleScroll() {
                 const scrollY = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
-                console.log('📏 Scroll:', scrollY);
                 
                 if (scrollY > 100) {
-                    console.log('🔼 Should show button');
                     backToTopBtn.style.setProperty('opacity', '1', 'important');
                     backToTopBtn.style.setProperty('visibility', 'visible', 'important');
                     backToTopBtn.style.setProperty('display', 'block', 'important');
                     backToTopVisible = true;
                 } else {
-                    console.log('🔽 Should hide button');
                     backToTopBtn.style.setProperty('opacity', '0', 'important');
                     backToTopBtn.style.setProperty('visibility', 'hidden', 'important');
                     backToTopVisible = false;
