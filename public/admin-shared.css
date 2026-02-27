@@ -1,0 +1,143 @@
+/* Admin Shared Styles — extracted from inline <style> blocks
+ * Rules appearing in 4+ admin pages (20 selectors)
+ */
+
+* {
+    margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+}
+
+.btn {
+    background: #2d5a5a;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.875rem;
+            text-decoration: none;
+            display: inline-block;
+            transition: background 0.3s;
+}
+
+.btn-back {
+    background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            text-decoration: none;
+}
+
+.btn-outline {
+    background: transparent;
+            border: 1px solid #2d5a5a;
+            color: #2d5a5a;
+}
+
+.btn-outline:hover {
+    background: #2d5a5a;
+            color: white;
+}
+
+.btn-secondary {
+    background: #6c757d;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-left: 0.5rem;
+}
+
+.btn-secondary:hover {
+    background: #545b62;
+}
+
+.btn:hover {
+    background: #1e4040;
+}
+
+.container {
+    max-width: 1400px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+}
+
+.empty-state {
+    text-align: center;
+            padding: 3rem;
+            color: var(--text-light);
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #333;
+}
+
+.header {
+    background: linear-gradient(135deg, #2d5a5a 0%, #1e4040 100%);
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.header h1 {
+    font-size: 1.5rem;
+}
+
+.loading {
+    text-align: center;
+            padding: 3rem;
+            color: var(--text-light);
+}
+
+.logout-btn {
+    background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background-color 0.3s;
+}
+
+.nav-buttons {
+    display: flex;
+            gap: 1rem;
+}
+
+.stat-card {
+    text-align: center;
+            padding: 1rem;
+            border-radius: 8px;
+            background: linear-gradient(135deg, var(--brand-teal) 0%, var(--brand-sage) 100%);
+            color: white;
+}
+
+.stat-label {
+    color: #666;
+            font-weight: 500;
+            font-size: 0.9rem;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--background);
+            color: var(--text);
+            line-height: 1.6;
+}
+
