@@ -2201,7 +2201,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <link rel="dns-prefetch" href="//images.unsplash.com">
-    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <!-- Enhanced Performance Optimizations -->
     <link rel="preconnect" href="https://images.unsplash.com" crossorigin>
     <link rel="preconnect" href="https://www.googletagmanager.com" crossorigin>
@@ -2705,8 +2705,8 @@
             <section class="hero parallax-container hero-main" style="background-image: linear-gradient(rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.1)), url('images/golden-vineyard-autumn.jpg'); background-size: cover; background-position: top; background-repeat: no-repeat; background-attachment: fixed; min-height: 75vh;">
                 <!-- Parallax Layers - Photos will be added here -->
                 <div class="parallax-layer parallax-layer-bg" style="background-image: none;"></div>
-                <div class="parallax-layer parallax-layer-mid" style="background-image: url('PLACEHOLDER_LAYER_2_IMAGE');"></div>
-                <div class="parallax-layer parallax-layer-front" style="background-image: url('PLACEHOLDER_LAYER_3_IMAGE');"></div>
+                <div class="parallax-layer parallax-layer-mid" style="background-image: none;"></div>
+                <div class="parallax-layer parallax-layer-front" style="background-image: none;"></div>
                 <!-- Navigation inside hero -->
                 <nav class="navbar" id="navbar">
                     <div class="nav-container" style="display: flex; justify-content: center; align-items: center; width: 100%;">
@@ -8372,21 +8372,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // --- Script block 14 ---
 (function() {
-// Back to Top Button functionality - COMPLETE DEBUG VERSION
+// Back to Top Button functionality
         let backToTopVisible = false;
-        
+
         function initBackToTopButton() {
-            console.log('🔝 Starting back-to-top button initialization...');
-            
             const backToTopBtn = document.getElementById("backToTopBtn");
-            if (!backToTopBtn) {
-                console.error('❌ Back to top button element not found!');
-                return;
-            }
-            
-            console.log('✅ Back to top button element found');
-            
-            // Force initial styles - override everything
+            if (!backToTopBtn) return;
+
             backToTopBtn.style.cssText = `
                 display: block !important;
                 position: fixed !important;
@@ -8406,10 +8398,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 opacity: 0 !important;
                 visibility: hidden !important;
             `;
-            
+
             function handleScroll() {
                 const scrollY = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
-                
+
                 if (scrollY > 100) {
                     backToTopBtn.style.setProperty('opacity', '1', 'important');
                     backToTopBtn.style.setProperty('visibility', 'visible', 'important');
@@ -8421,40 +8413,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     backToTopVisible = false;
                 }
             }
-            
-            // Multiple event listeners
+
             window.addEventListener('scroll', handleScroll, { passive: true });
             document.addEventListener('scroll', handleScroll, { passive: true });
-            document.body.addEventListener('scroll', handleScroll, { passive: true });
-            
-            // Immediate test
-            setTimeout(() => {
-                console.log('🧪 Testing - forcing button visible for 3 seconds...');
-                backToTopBtn.style.setProperty('opacity', '1', 'important');
-                backToTopBtn.style.setProperty('visibility', 'visible', 'important');
-                backToTopBtn.style.setProperty('display', 'block', 'important');
-                
-                setTimeout(() => {
-                    handleScroll(); // Back to normal
-                }, 3000);
-            }, 1000);
-            
-            console.log('🎯 Initialization complete');
         }
 
         // ===== PARALLAX SCROLLING SYSTEM =====
         function initializeParallaxScrolling() {
-            console.log('🌊 Initializing Parallax Scrolling System');
-
-            // Detect if device supports smooth parallax
             const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
             const isLowPerformanceDevice = navigator.hardwareConcurrency && navigator.hardwareConcurrency < 4;
 
-            // Disable complex parallax on mobile/low-performance devices
-            if (isMobile || isLowPerformanceDevice) {
-                console.log('📱 Mobile/Low-performance device detected - using simplified parallax');
-                return;
-            }
+            if (isMobile || isLowPerformanceDevice) return;
 
             let ticking = false;
 
@@ -8508,10 +8477,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Optimized scroll listener with passive flag
             window.addEventListener('scroll', requestParallaxUpdate, { passive: true });
 
-            // Initial parallax setup
             updateParallax();
-
-            console.log('✨ Parallax scrolling system initialized');
         }
 
         // ===== PARALLAX LAYER CREATION HELPER =====
@@ -8530,61 +8496,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 container.appendChild(layer);
             });
 
-            console.log(`🎨 Created ${backgroundImages.length} parallax layers`);
         }
-
-        // ===== PARALLAX TESTING & DEBUGGING =====
-        function testParallaxSystem() {
-            console.log('🧪 Testing Parallax System...');
-
-            // Test mobile detection
-            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-            console.log('📱 Mobile detected:', isMobile);
-
-            // Test parallax elements
-            const heroSections = document.querySelectorAll('.hero.parallax-container');
-            console.log('🎯 Hero sections with parallax:', heroSections.length);
-
-            const parallaxLayers = document.querySelectorAll('.parallax-layer');
-            console.log('🌊 Total parallax layers:', parallaxLayers.length);
-
-            const sectionTransitions = document.querySelectorAll('.section-transition');
-            console.log('🔄 Section transitions:', sectionTransitions.length);
-
-            // Test performance
-            const hardwareConcurrency = navigator.hardwareConcurrency || 'unknown';
-            console.log('⚡ CPU cores:', hardwareConcurrency);
-
-            return {
-                mobile: isMobile,
-                heroSections: heroSections.length,
-                parallaxLayers: parallaxLayers.length,
-                sectionTransitions: sectionTransitions.length,
-                cpuCores: hardwareConcurrency
-            };
-        }
-
-        // Call test function in development
-        window.testParallax = testParallaxSystem;
 
         window.scrollToTop = function() {
-            console.log('Scrolling to top...');
-            
-            // Force scroll to top immediately
             document.documentElement.scrollTop = 0;
             document.body.scrollTop = 0;
-            window.scrollTo(0, 0);
-            
-            // Also try smooth scroll as backup
-            try {
-                window.scrollTo({
-                    top: 0,
-                    left: 0,
-                    behavior: 'smooth'
-                });
-            } catch (e) {
-                console.log('Smooth scroll not supported, using instant scroll');
-            }
+            window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
         }
 
         // Initialize page navigation when DOM is loaded
