@@ -13,6 +13,29 @@
 (function() {
     'use strict';
 
+    // Session timeout - 30 minutes of inactivity
+    let lastActivityTime = Date.now();
+    const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+
+    function updateActivity() {
+        lastActivityTime = Date.now();
+    }
+
+    function checkSessionTimeout() {
+        if (Date.now() - lastActivityTime > SESSION_TIMEOUT) {
+            // Call logout endpoint to clear the httpOnly cookie, then redirect
+            fetch('/api/admin/logout', { method: 'POST', credentials: 'same-origin' })
+                .finally(() => {
+                    window.location.href = '/admin.html';
+                });
+        }
+    }
+
+    document.addEventListener('click', updateActivity);
+    document.addEventListener('keypress', updateActivity);
+    document.addEventListener('scroll', updateActivity);
+    setInterval(checkSessionTimeout, 60000); // Check every minute
+
     // Navigation configuration
     const navConfig = {
         sections: [
@@ -120,7 +143,7 @@
         });
 
         return `
-            <aside class="admin-sidebar" id="adminSidebar" aria-label="Admin navigation">
+            <aside class="admin-sidebar" id="adminSidebar" aria-label="Admin sidebar">
                 <div class="admin-sidebar-header">
                     <span class="admin-sidebar-logo" aria-hidden="true">🏔️</span>
                     <div>
@@ -128,7 +151,7 @@
                         <div class="admin-sidebar-subtitle">Admin Panel</div>
                     </div>
                 </div>
-                <nav class="admin-nav" role="navigation" aria-label="Main admin navigation">
+                <nav class="admin-nav" role="navigation" aria-label="Admin navigation">
                     ${navHtml}
                 </nav>
                 <div class="admin-sidebar-footer">
@@ -161,13 +184,22 @@
 
     // Initialize the admin shell
     function initAdminShell() {
-        // Check authentication
-        const token = localStorage.getItem('adminToken');
-        if (!token) {
-            window.location.href = '/admin.html';
-            return;
-        }
+        // Verify session via httpOnly cookie by calling the verify endpoint
+        fetch('/api/admin/verify', { credentials: 'same-origin' })
+            .then(response => {
+                if (!response.ok) {
+                    window.location.href = '/admin.html';
+                    return;
+                }
+                // Session is valid, proceed to build the shell
+                buildAdminShell();
+            })
+            .catch(() => {
+                window.location.href = '/admin.html';
+            });
+    }
 
+    function buildAdminShell() {
         const currentPageId = getCurrentPageId();
         const pageTitle = getPageTitle(currentPageId);
 
@@ -319,8 +351,10 @@
         },
 
         logout: function() {
-            localStorage.removeItem('adminToken');
-            window.location.href = '/admin.html';
+            fetch('/api/admin/logout', { method: 'POST', credentials: 'same-origin' })
+                .finally(() => {
+                    window.location.href = '/admin.html';
+                });
         },
 
         // Method to update notification badge
@@ -349,10 +383,14 @@
 
             const alert = document.createElement('div');
             alert.className = `admin-alert admin-alert-${type}`;
-            alert.innerHTML = `
-                <span>${message}</span>
-                <button onclick="this.parentElement.remove()" style="float: right; background: none; border: none; cursor: pointer; font-size: 1.2rem;">&times;</button>
-            `;
+            const span = document.createElement('span');
+            span.textContent = message;
+            const closeBtn = document.createElement('button');
+            closeBtn.textContent = '\u00D7';
+            closeBtn.style.cssText = 'float: right; background: none; border: none; cursor: pointer; font-size: 1.2rem;';
+            closeBtn.addEventListener('click', function() { alert.remove(); });
+            alert.appendChild(span);
+            alert.appendChild(closeBtn);
             
             alertContainer.insertBefore(alert, alertContainer.firstChild);
             

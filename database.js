@@ -226,6 +226,25 @@ function createTablesPostgres() {
             `);
             console.log('✅ Processed webhook events table ready (PostgreSQL)');
 
+            // Create failed_webhook_events table for payment recovery
+            await db.query(`
+                CREATE TABLE IF NOT EXISTS failed_webhook_events (
+                    id SERIAL PRIMARY KEY,
+                    event_id TEXT NOT NULL,
+                    event_type TEXT NOT NULL,
+                    stripe_session_id TEXT,
+                    stripe_payment_id TEXT,
+                    booking_id TEXT,
+                    event_data TEXT,
+                    error_message TEXT,
+                    resolved BOOLEAN DEFAULT false,
+                    resolved_at TIMESTAMP,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            `);
+            await db.query(`CREATE INDEX IF NOT EXISTS idx_failed_webhook_unresolved ON failed_webhook_events(resolved) WHERE resolved = false`);
+            console.log('✅ Failed webhook events table ready (PostgreSQL)');
+
             resolve();
         } catch (err) {
             console.error('❌ Error creating PostgreSQL tables:', err.message);
@@ -338,6 +357,22 @@ function createTablesSqlite() {
             )
         `;
 
+        const createFailedWebhookEventsTable = `
+            CREATE TABLE IF NOT EXISTS failed_webhook_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                event_id TEXT NOT NULL,
+                event_type TEXT NOT NULL,
+                stripe_session_id TEXT,
+                stripe_payment_id TEXT,
+                booking_id TEXT,
+                event_data TEXT,
+                error_message TEXT,
+                resolved INTEGER DEFAULT 0,
+                resolved_at DATETIME,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `;
+
         db.serialize(() => {
             db.run(createBookingsTable, (err) => {
                 if (err) {
@@ -400,6 +435,15 @@ function createTablesSqlite() {
                     return;
                 }
                 console.log('✅ Processed webhook events table ready (SQLite)');
+            });
+
+            db.run(createFailedWebhookEventsTable, (err) => {
+                if (err) {
+                    console.error('❌ Error creating failed_webhook_events table:', err.message);
+                    reject(err);
+                    return;
+                }
+                console.log('✅ Failed webhook events table ready (SQLite)');
             });
 
             // Migration: add booking_source column to existing databases

@@ -514,47 +514,29 @@
     </div>
 
     <script>
-        // Check authentication
-        const token = localStorage.getItem('adminToken');
-        if (!token) {
-            window.location.href = '/admin.html';
-        }
+        // Authentication is handled by admin-shell.js via cookie verification
 
         function showAlert(message, type = 'success') {
             const alertBox = document.getElementById('alertBox');
             if (type === 'error') {
-                alertBox.innerHTML = `<div class="alert" style="background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb;">❌ ${message}</div>`;
+                alertBox.innerHTML = `<div class="alert" style="background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb;">&#10060; ${message}</div>`;
             } else {
-                alertBox.innerHTML = `<div class="alert alert-success">✅ ${message}</div>`;
+                alertBox.innerHTML = `<div class="alert alert-success">&#9989; ${message}</div>`;
             }
             setTimeout(() => {
                 alertBox.innerHTML = '';
             }, 3000);
         }
 
-        // Helper function to handle authentication errors
-        function handleAuthError() {
-            localStorage.removeItem('adminToken');
-            window.location.href = '/admin.html?reason=session_expired';
-        }
-
         // Load saved pricing on page load
         async function loadPricing() {
             try {
-                const currentToken = localStorage.getItem('adminToken');
-                if (!currentToken) {
-                    handleAuthError();
-                    return;
-                }
-                
                 const response = await fetch('/api/admin/pricing', {
-                    headers: {
-                        'Authorization': `Bearer ${currentToken}`
-                    }
+                    credentials: 'same-origin'
                 });
-                
+
                 if (response.status === 401) {
-                    handleAuthError();
+                    window.location.href = '/admin.html';
                     return;
                 }
                 
@@ -642,26 +624,20 @@
             }
             
             try {
-                const currentToken = localStorage.getItem('adminToken');
-                if (!currentToken) {
-                    handleAuthError();
-                    return;
-                }
-                
                 const response = await fetch('/api/admin/pricing', {
                     method: 'POST',
+                    credentials: 'same-origin',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${currentToken}`
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
                         accommodation: accommodationName,
                         ...data
                     })
                 });
-                
+
                 if (response.status === 401) {
-                    handleAuthError();
+                    window.location.href = '/admin.html';
                     return;
                 }
                 

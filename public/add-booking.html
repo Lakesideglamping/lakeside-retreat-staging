@@ -271,11 +271,7 @@
 
     <script src="/admin-shell.js?v=2"></script>
     <script>
-        // Check authentication
-        const token = localStorage.getItem('adminToken');
-        if (!token) {
-            window.location.href = '/admin.html';
-        }
+        // Authentication is handled by admin-shell.js via cookie verification
 
         // Set minimum date to today
         const today = new Date().toISOString().split('T')[0];
@@ -336,9 +332,9 @@
             try {
                 const response = await fetch('/api/admin/bookings', {
                     method: 'POST',
+                    credentials: 'same-origin',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify(bookingData)
                 });

@@ -70,4 +70,68 @@
     
   </url>
 
+  <!-- Dome Pinot accommodation page -->
+  <url>
+    <loc>https://lakesideretreat.co.nz/dome-pinot.html</loc>
+
+    <image:image>
+      <image:loc>https://lakesideretreat.co.nz/images/dome-pinot-hero.jpeg</image:loc>
+      <image:title>Dome Pinot - 50sqm Luxury Geodesic Dome</image:title>
+      <image:caption>Flagship 50sqm luxury geodesic dome with panoramic Lake Dunstan views and private outdoor spa</image:caption>
+      <image:geo_location>Cromwell, Central Otago, New Zealand</image:geo_location>
+    </image:image>
+
+    <image:image>
+      <image:loc>https://lakesideretreat.co.nz/images/PinotLakeView.jpeg</image:loc>
+      <image:title>Dome Pinot Lake Dunstan View</image:title>
+      <image:caption>Panoramic Lake Dunstan views from Dome Pinot luxury glamping dome</image:caption>
+      <image:geo_location>Cromwell, Central Otago, New Zealand</image:geo_location>
+    </image:image>
+
+    <image:image>
+      <image:loc>https://lakesideretreat.co.nz/images/pinotinternal.jpeg</image:loc>
+      <image:title>Dome Pinot Interior - King Bed Suite</image:title>
+      <image:caption>Luxurious interior of Dome Pinot featuring king bed and stargazing skylight</image:caption>
+      <image:geo_location>Cromwell, Central Otago, New Zealand</image:geo_location>
+    </image:image>
+  </url>
+
+  <!-- Dome Rose accommodation page -->
+  <url>
+    <loc>https://lakesideretreat.co.nz/dome-rose.html</loc>
+
+    <image:image>
+      <image:loc>https://lakesideretreat.co.nz/images/dome-rose-spa1.jpeg</image:loc>
+      <image:title>Dome Rose - Romantic 40sqm Glamping Dome with Spa</image:title>
+      <image:caption>Romantic 40sqm geodesic dome with private outdoor spa and vineyard views</image:caption>
+      <image:geo_location>Cromwell, Central Otago, New Zealand</image:geo_location>
+    </image:image>
+
+    <image:image>
+      <image:loc>https://lakesideretreat.co.nz/images/domesmountainview.jpeg</image:loc>
+      <image:title>Dome Rose Mountain and Vineyard Views</image:title>
+      <image:caption>Stunning mountain and vineyard views from Dome Rose glamping dome in Central Otago</image:caption>
+      <image:geo_location>Cromwell, Central Otago, New Zealand</image:geo_location>
+    </image:image>
+  </url>
+
+  <!-- Lakeside Cottage accommodation page -->
+  <url>
+    <loc>https://lakesideretreat.co.nz/lakeside-cottage.html</loc>
+
+    <image:image>
+      <image:loc>https://lakesideretreat.co.nz/images/lakeside-cottage-exterior.jpeg</image:loc>
+      <image:title>Lakeside Cottage - Family Accommodation on Lake Dunstan</image:title>
+      <image:caption>Pet-friendly family cottage with direct Lake Dunstan access sleeping up to 6 guests</image:caption>
+      <image:geo_location>Cromwell, Central Otago, New Zealand</image:geo_location>
+    </image:image>
+
+    <image:image>
+      <image:loc>https://lakesideretreat.co.nz/images/lakeview.jpeg</image:loc>
+      <image:title>Lakeside Cottage Lake Dunstan Views</image:title>
+      <image:caption>Stunning Lake Dunstan views from the family-friendly Lakeside Cottage</image:caption>
+      <image:geo_location>Cromwell, Central Otago, New Zealand</image:geo_location>
+    </image:image>
+  </url>
+
 </urlset>

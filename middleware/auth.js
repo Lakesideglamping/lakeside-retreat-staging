@@ -157,28 +157,64 @@ async function executeDbOperation(operation, db, params = [], retries = 3) {
 }
 
 // ==========================================
+// TOKEN BLACKLIST (Session Revocation)
+// ==========================================
+
+const tokenBlacklist = new Set();
+
+/**
+ * Add a token to the blacklist (e.g., on logout).
+ * Auto-cleanup after 1 hour (JWT max lifetime).
+ */
+function blacklistToken(token) {
+    tokenBlacklist.add(token);
+    setTimeout(() => tokenBlacklist.delete(token), 3600000);
+}
+
+/**
+ * Check if a token has been blacklisted (revoked).
+ */
+function isTokenBlacklisted(token) {
+    return tokenBlacklist.has(token);
+}
+
+// ==========================================
 // AUTH MIDDLEWARE
 // ==========================================
 
 /**
  * Verify admin JWT token. Attaches decoded token to req.admin.
+ * Checks Authorization header first, then falls back to httpOnly cookie.
+ * Rejects blacklisted (logged-out) tokens.
  */
 function verifyAdmin(req, res, next) {
     try {
-        const token = req.headers.authorization?.split(' ')[1];
-        
+        // Check Authorization header first (backward compat)
+        let token = req.headers.authorization?.split(' ')[1];
+
+        // Fall back to httpOnly cookie
+        if (!token) {
+            const cookies = parseCookies(req);
+            token = cookies['auth-token'];
+        }
+
         if (!token) {
             return sendError(res, 401, ERROR_CODES.AUTHENTICATION_REQUIRED, 'No token provided');
         }
-        
+
+        // Check if token has been revoked (logged out)
+        if (isTokenBlacklisted(token)) {
+            return sendError(res, 401, ERROR_CODES.INVALID_TOKEN, 'Token has been revoked');
+        }
+
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         if (decoded.role !== 'admin') {
             return sendError(res, 403, ERROR_CODES.ADMIN_ACCESS_REQUIRED, 'Admin access required');
         }
-        
+
         req.admin = decoded;
         next();
-        
+
     } catch (error) {
         res.status(401).json({ error: 'Invalid token' });
     }
@@ -319,5 +355,7 @@ module.exports = {
     verifyAdmin,
     verifyCsrf,
     generateCsrfToken,
-    parseCookies
+    parseCookies,
+    blacklistToken,
+    isTokenBlacklisted
 };

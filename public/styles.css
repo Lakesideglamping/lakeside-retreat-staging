@@ -388,25 +388,6 @@
             display: flex;
         }
 
-        /* Social Proof Notifications */
-        .social-proof {
-            position: fixed;
-            bottom: 2rem;
-            left: 2rem;
-            background: white;
-            border-radius: 10px;
-            padding: 1rem 1.5rem;
-            box-shadow: var(--shadow);
-            z-index: 999;
-            transform: translateX(-120%);
-            transition: transform 0.5s ease;
-            max-width: 300px;
-        }
-
-        .social-proof.show {
-            transform: translateX(0);
-        }
-
         /* Skeleton Loading */
         .skeleton {
             background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
@@ -1705,15 +1686,6 @@
 
             .footer-section:last-child {
                 border-bottom: none;
-            }
-
-            /* Mobile Social Proof */
-            .social-proof {
-                left: 1rem;
-                right: 1rem;
-                max-width: none;
-                padding: 0.8rem 1rem;
-                border-radius: 8px;
             }
 
             /* Mobile Lightbox */

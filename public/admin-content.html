@@ -357,11 +357,7 @@
     </div>
 
     <script>
-        // Check authentication
-        const token = localStorage.getItem('adminToken');
-        if (!token) {
-            window.location.href = '/admin.html';
-        }
+        // Authentication is handled by admin-shell.js via cookie verification
 
         function switchTab(tabName) {
             // Remove active class from all tabs and content

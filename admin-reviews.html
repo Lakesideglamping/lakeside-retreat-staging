@@ -495,25 +495,10 @@
 
         // Check authentication on page load
         document.addEventListener('DOMContentLoaded', async function() {
-            await checkAuthentication();
-        });
-
-        function checkAuthentication() {
-            const token = localStorage.getItem('adminToken');
-            if (!token) {
-                window.location.href = '/admin.html';
-                return;
-            }
-            
-            // Update user info
-            document.getElementById('currentUser').textContent = 'Admin User';
-            
-            // Load reviews after authentication confirmed
+            // Authentication is handled by admin-shell.js via cookie verification
             loadReviews();
-            
-            // Set up event listeners
             setupEventListeners();
-        }
+        });
 
         function setupEventListeners() {
             document.getElementById('statusFilter').addEventListener('change', filterReviews);
@@ -522,8 +507,10 @@
         }
 
         function logout() {
-            localStorage.removeItem('adminToken');
-            window.location.href = '/admin.html';
+            fetch('/api/admin/logout', { method: 'POST', credentials: 'same-origin' })
+                .finally(() => {
+                    window.location.href = '/admin.html';
+                });
         }
 
         function loadStats() {
@@ -732,7 +719,7 @@
                 return `
                     <div class="review-photos">
                         ${photos.map(photo => `
-                            <img src="${escapeHtml(photo)}" alt="Guest photo" onclick="window.open('${escapeHtml(photo)}', '_blank')">
+                            <img src="${escapeHtml(photo)}" alt="Guest photo" onclick="window.open('${encodeURI(photo)}', '_blank')">
                         `).join('')}
                     </div>
                 `;

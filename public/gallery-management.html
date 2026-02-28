@@ -349,10 +349,7 @@
 
     <script src="/admin-shell.js?v=2"></script>
     <script>
-        const token = localStorage.getItem('adminToken');
-        if (!token) {
-            window.location.href = '/admin.html';
-        }
+        // Authentication is handled by admin-shell.js via cookie verification
 
         let galleryImages = [];
 
@@ -365,7 +362,7 @@
         async function loadGallery() {
             try {
                 const response = await fetch('/api/admin/gallery', {
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    credentials: 'same-origin'
                 });
                 const data = await response.json();
                 if (data.success) {
@@ -407,7 +404,8 @@
                 try {
                     const response = await fetch(`/api/admin/gallery/${encodeURIComponent(filename)}`, {
                         method: 'PUT',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                        credentials: 'same-origin',
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ title })
                     });
                     const data = await response.json();

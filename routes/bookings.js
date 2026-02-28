@@ -28,6 +28,15 @@ const bookingLimiter = rateLimit({
     legacyHeaders: false,
 });
 
+// Rate limiter for Stripe payment session creation: 10 requests per 15 minutes per IP
+const stripeSessionLimit = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    message: { success: false, error: 'Too many booking attempts. Please try again later.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
 /**
  * Initialize booking routes with shared dependencies.
  * @param {Object} deps
@@ -219,6 +228,17 @@ function createBookingRoutes(deps) {
                     return res.status(400).json({ success: false, error: `Minimum stay for ${accommodationConfig.name} is ${minStay} nights` });
                 }
 
+                // Children policy — domes are adults only
+                if (accommodationConfig && accommodationConfig.adultsOnly === true) {
+                    const children = parseInt(req.body.children) || 0;
+                    if (children > 0) {
+                        return res.status(400).json({
+                            success: false,
+                            error: `${accommodationConfig.name} is an adults-only accommodation. Children are not permitted.`
+                        });
+                    }
+                }
+
                 // Server-side price validation
                 const expectedBase = accommodationConfig.basePrice * nights;
                 const minExpected = expectedBase * 0.9; // 10% tolerance
@@ -325,6 +345,7 @@ function createBookingRoutes(deps) {
 
     // --- Payment session ---
     router.post('/api/payments/create-session',
+        stripeSessionLimit,
         paymentQueue.middleware({ queueName: 'payment', priority: 'high' }),
         async (req, res) => {
             try {
@@ -355,7 +376,8 @@ function createBookingRoutes(deps) {
                     return sendError(res, 404, ERROR_CODES.BOOKING_NOT_FOUND, 'Booking not found');
                 }
 
-                const securityDepositAmount = booking.security_deposit_amount ?? 350.00;
+                const accommodationConfig = accommodations.getById(booking.accommodation);
+                const securityDepositAmount = accommodationConfig?.securityDeposit || 300;
                 const hasSecurityDeposit = securityDepositAmount > 0;
 
                 const lineItems = [
@@ -418,18 +440,28 @@ function createBookingRoutes(deps) {
 
                 const session = await stripe.checkout.sessions.create(sessionConfig);
 
-                await new Promise((resolve, reject) => {
-                    db().run('UPDATE bookings SET stripe_session_id = ? WHERE id = ?',
-                        [session.id, bookingId], (err) => {
-                            if (err) reject(err);
-                            else resolve();
-                        });
-                });
+                // Store Stripe session ID on the booking. If this fails, the webhook
+                // can still match via metadata.bookingId, so we log but don't block.
+                try {
+                    await new Promise((resolve, reject) => {
+                        db().run('UPDATE bookings SET stripe_session_id = ? WHERE id = ?',
+                            [session.id, bookingId], (err) => {
+                                if (err) reject(err);
+                                else resolve();
+                            });
+                    });
+                } catch (dbErr) {
+                    console.error('[CRITICAL] Stripe session created but failed to store session ID in DB');
+                    console.error('[CRITICAL] Stripe session ID:', session.id);
+                    console.error('[CRITICAL] Booking ID:', bookingId);
+                    console.error('[CRITICAL] Error:', dbErr.message || dbErr);
+                    // Continue anyway -- the session is valid and webhook can recover via metadata
+                }
 
                 res.json({ sessionId: session.id, url: session.url });
 
             } catch (error) {
-                console.error('❌ Payment session creation error:', error);
+                console.error('Payment session creation error:', error);
 
                 if (error.type === 'StripeCardError') {
                     return sendError(res, 400, ERROR_CODES.PAYMENT_ERROR, 'Your card was declined.');

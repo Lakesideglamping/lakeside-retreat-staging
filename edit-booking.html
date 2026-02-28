@@ -354,11 +354,7 @@
 
     <script src="/admin-shell.js?v=2"></script>
     <script>
-        // Check authentication
-        const token = localStorage.getItem('adminToken');
-        if (!token) {
-            window.location.href = '/admin.html';
-        }
+        // Authentication is handled by admin-shell.js via cookie verification
 
         // Escape HTML to prevent XSS
         function escapeHtml(text) {
@@ -419,9 +415,7 @@
 
             try {
                 const response = await fetch(`/api/admin/booking/${encodeURIComponent(bookingId)}`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
+                    credentials: 'same-origin'
                 });
 
                 if (!response.ok) {
@@ -504,9 +498,9 @@
             try {
                 const response = await fetch(`/api/admin/booking/${encodeURIComponent(bookingId)}`, {
                     method: 'PUT',
+                    credentials: 'same-origin',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify(bookingData)
                 });

@@ -308,31 +308,19 @@
     </div>
 
     <script>
-        // Check authentication on load
-        const token = localStorage.getItem('adminToken');
-        if (!token) {
-            window.location.href = '/admin.html';
-        }
-
         // Load dashboard data from live APIs
         async function loadDashboardData() {
             try {
-                const token = localStorage.getItem('adminToken');
-                if (!token) {
-                    window.location.href = '/admin.html';
-                    return;
-                }
-
                 // Fetch real booking stats from API and Uplisting data
                 const [statsResponse, bookingStatsResponse, uplistingResponse] = await Promise.all([
                     fetch('/api/admin/stats', {
-                        headers: { 'Authorization': `Bearer ${token}` }
+                        credentials: 'same-origin'
                     }),
                     fetch('/api/admin/booking-stats', {
-                        headers: { 'Authorization': `Bearer ${token}` }
+                        credentials: 'same-origin'
                     }),
                     fetch('/api/admin/uplisting-dashboard', {
-                        headers: { 'Authorization': `Bearer ${token}` }
+                        credentials: 'same-origin'
                     })
                 ]);
 
@@ -412,11 +400,6 @@
                 document.getElementById('occupancyRate').textContent = 'Error';
                 document.getElementById('avgRating').textContent = 'Error';
             }
-        }
-
-        function logout() {
-            localStorage.removeItem('adminToken');
-            window.location.href = '/admin.html';
         }
 
         // Load data when page loads

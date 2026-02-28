@@ -213,6 +213,8 @@ class WebsiteSecurityManager {
             .replace(/[<>]/g, '')
             .replace(/javascript:/gi, '')
             .replace(/on\w+=/gi, '')
+            .replace(/data:/gi, '')
+            .replace(/vbscript:/gi, '')
             .trim();
     }
     
@@ -702,32 +704,40 @@ document.addEventListener('DOMContentLoaded', () => {
             const petSelectionGroup = document.getElementById('petSelectionGroup');
             const cottageWarning = document.getElementById('cottageMinimumStayWarning');
             
+            // Adults-only warning element
+            let adultsOnlyWarning = document.getElementById('adultsOnlyWarning');
+
             if (accommodationType === 'dome-pinot' || accommodationType === 'dome-rose') {
                 // Domes: Adults only (1-2), no children, no pets
                 safeCreateSelectOptions(adultsSelect, [
                     {value: '1', text: '1 Adult'},
                     {value: '2', text: '2 Adults', selected: true}
                 ]);
-                
+
                 // Hide children section for domes
                 if (childrenGroup) {
                     childrenGroup.style.display = 'none';
                 }
-                
+
                 // Hide pet option for domes
                 if (petSelectionGroup) {
                     petSelectionGroup.style.display = 'none';
                     document.getElementById('bookingPets').value = '0';
                 }
-                
+
                 // Set children to 0 for domes
                 childrenSelect.value = '0';
-                
+
                 // Hide cottage minimum stay warning for domes
                 if (cottageWarning) {
                     cottageWarning.style.display = 'none';
                 }
-                
+
+                // Show adults-only warning for domes
+                if (adultsOnlyWarning) {
+                    adultsOnlyWarning.style.display = 'block';
+                }
+
                 // Console statement removed for production
             } else {
                 // Cottage: Maximum 4 people total, pets allowed
@@ -757,7 +767,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (cottageWarning) {
                     cottageWarning.style.display = 'block';
                 }
-                
+
+                // Hide adults-only warning for cottage
+                if (adultsOnlyWarning) {
+                    adultsOnlyWarning.style.display = 'none';
+                }
+
                 // Console statement removed for production
             }
         }
@@ -979,9 +994,11 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const cleaningFee = 75;
             const serviceFee = Math.round(subtotal * 0.03); // 3% service fee
-            
+            const securityBond = 300; // $300 refundable security bond
+
             // Calculate total (all prices already include GST)
             const total = subtotal + cleaningFee + serviceFee;
+            const totalCharge = total + securityBond;
             // GST is already included in all prices (15% of total)
             const gst = Math.round(total * 0.13); // GST portion is 15/115 = 13% of GST-inclusive price
 
@@ -992,8 +1009,10 @@ document.addEventListener('DOMContentLoaded', () => {
             bookingData.petFee = petFee;
             bookingData.cleaningFee = cleaningFee;
             bookingData.serviceFee = serviceFee;
+            bookingData.securityBond = securityBond;
             bookingData.gst = gst;
             bookingData.total = total;
+            bookingData.totalCharge = totalCharge;
 
             // Update UI with NZD formatting
             document.getElementById('accommodationRate').textContent = `${nightlyRate} NZD`;
@@ -1030,6 +1049,8 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('serviceFee').textContent = `${serviceFee} NZD`;
             document.getElementById('gst').textContent = `${gst} NZD`;
             document.getElementById('totalAmount').textContent = `${total} NZD`;
+            document.getElementById('securityBondAmount').textContent = `${securityBond} NZD`;
+            document.getElementById('totalChargeAmount').textContent = `${totalCharge} NZD`;
         }
 
         // SECURE PAYMENT: Process payment securely with Stripe
@@ -1299,6 +1320,8 @@ document.addEventListener('DOMContentLoaded', () => {
             
             document.getElementById('finalGST').textContent = `$${bookingData.gst}`;
             document.getElementById('finalTotalAmount').textContent = `$${bookingData.total}`;
+            document.getElementById('finalSecurityBond').textContent = `$${bookingData.securityBond}`;
+            document.getElementById('finalTotalCharge').textContent = `$${bookingData.totalCharge}`;
         }
 
         // Validate guest details before proceeding to step 3
@@ -1406,7 +1429,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <p><strong>Total Paid (incl. GST):</strong> ${escapeHtml(String(bookingData.total))} NZD</p>
                         <p><strong>Confirmation sent to:</strong> ${escapeHtml(guestData.email)}</p>
                     </div>
-                    <button class="btn btn-primary" onclick="closeBookingModal()" style="margin-top: 1rem;">Close & Plan Your Stay</button>
+                    <button class="btn btn-primary" data-action="closeBookingModal" style="margin-top: 1rem;">Close & Plan Your Stay</button>
                 </div>
             `;
 
@@ -1574,7 +1597,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Small delay to allow date picker to open first
             setTimeout(() => {
                 // Find the "Check Availability & Book Instantly" button
-                const bookingButton = document.querySelector('button[onclick="instantBookingWithPayment()"]');
+                const bookingButton = document.querySelector('button[data-action="instantBookingWithPayment"]');
                 
                 if (bookingButton) {
                     bookingButton.scrollIntoView({
@@ -1687,7 +1710,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 link.classList.remove('active');
             });
 
-            const activeLink = document.querySelector(`[onclick="showPage('${pageName}')"]`);
+            const activeLink = document.querySelector(`[data-page="${pageName}"]`);
             if (activeLink && activeLink.classList.contains('nav-link')) {
                 activeLink.classList.add('active');
             }
@@ -1887,7 +1910,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             modal.innerHTML = `
                 <div style="background: white; max-width: 800px; max-height: 90vh; overflow-y: auto; border-radius: 15px; padding: 2rem; position: relative;">
-                    <button onclick="closeLegalModal()" style="position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #666;">&times;</button>
+                    <button data-action="closeLegalModal" style="position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #666;">&times;</button>
                     <div style="color: #333; line-height: 1.6;">
                         ${content.content}
                     </div>
@@ -2023,7 +2046,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             resultsContainer.innerHTML = results.map(result => 
-                `<div class="search-result" onclick="showPage('${result.page}'); closeSearch();">
+                `<div class="search-result" data-page="${result.page}" data-close-search="true">
                     <strong>${result.title}</strong><br>
                     <small>${result.description}</small>
                 </div>`
@@ -2613,7 +2636,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const floatingButton = document.createElement('div');
             floatingButton.id = 'floating-book-button';
             floatingButton.innerHTML = `
-                <button onclick="openBookingModal()" style="
+                <button data-action="openBookingModal" class="hover-lift-book" style="
                     background: linear-gradient(135deg, #753742 0%, #1a3a3a 100%);
                     color: white;
                     border: none;
@@ -2629,13 +2652,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     transition: all 0.3s ease;
                     min-width: 160px;
                     justify-content: center;
-                " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 12px 35px rgba(45, 90, 90, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 8px 25px rgba(45, 90, 90, 0.3)'">
+                ">
                     <span style="font-size: 1.2rem;">📅</span>
                     Book Now
                 </button>
                 
                 <!-- WhatsApp Quick Contact -->
-                <a href="https://wa.me/642136868?text=Hi! I'm interested in booking a stay at Lakeside Retreat. Can you help me with availability and pricing?" target="_blank" style="
+                <a href="https://wa.me/642136868?text=Hi! I'm interested in booking a stay at Lakeside Retreat. Can you help me with availability and pricing?" target="_blank" rel="noopener noreferrer" style="
                     background: #25D366;
                     color: white;
                     border: none;
@@ -2652,7 +2675,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     width: 50px;
                     height: 50px;
                     transition: all 0.3s ease;
-                " onmouseover="this.style.transform='scale(1.1)'; this.style.boxShadow='0 8px 25px rgba(37, 211, 102, 0.4)'" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 6px 20px rgba(37, 211, 102, 0.3)'" title="Chat with us on WhatsApp">
+                " class="hover-scale-whatsapp" title="Chat with us on WhatsApp">
                     💬
                 </a>
             `;
@@ -2801,15 +2824,10 @@ document.addEventListener('DOMContentLoaded', () => {
         let backToTopVisible = false;
         
         function initBackToTopButton() {
-            console.log('🔝 Starting back-to-top button initialization...');
-            
             const backToTopBtn = document.getElementById("backToTopBtn");
             if (!backToTopBtn) {
-                console.error('❌ Back to top button element not found!');
                 return;
             }
-            
-            console.log('✅ Back to top button element found');
             
             // Force initial styles - override everything
             backToTopBtn.style.cssText = `
@@ -2852,24 +2870,12 @@ document.addEventListener('DOMContentLoaded', () => {
             document.addEventListener('scroll', handleScroll, { passive: true });
             document.body.addEventListener('scroll', handleScroll, { passive: true });
             
-            // Immediate test
-            setTimeout(() => {
-                console.log('🧪 Testing - forcing button visible for 3 seconds...');
-                backToTopBtn.style.setProperty('opacity', '1', 'important');
-                backToTopBtn.style.setProperty('visibility', 'visible', 'important');
-                backToTopBtn.style.setProperty('display', 'block', 'important');
-                
-                setTimeout(() => {
-                    handleScroll(); // Back to normal
-                }, 3000);
-            }, 1000);
-            
-            console.log('🎯 Initialization complete');
+            // Run initial scroll check
+            handleScroll();
         }
 
         // ===== PARALLAX SCROLLING SYSTEM =====
         function initializeParallaxScrolling() {
-            console.log('🌊 Initializing Parallax Scrolling System');
 
             // Detect if device supports smooth parallax
             const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -2877,7 +2883,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Disable complex parallax on mobile/low-performance devices
             if (isMobile || isLowPerformanceDevice) {
-                console.log('📱 Mobile/Low-performance device detected - using simplified parallax');
                 return;
             }
 
@@ -2936,7 +2941,6 @@ document.addEventListener('DOMContentLoaded', () => {
             // Initial parallax setup
             updateParallax();
 
-            console.log('✨ Parallax scrolling system initialized');
         }
 
         // ===== PARALLAX LAYER CREATION HELPER =====
@@ -2955,51 +2959,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 container.appendChild(layer);
             });
 
-            console.log(`🎨 Created ${backgroundImages.length} parallax layers`);
         }
-
-        // ===== PARALLAX TESTING & DEBUGGING =====
-        function testParallaxSystem() {
-            console.log('🧪 Testing Parallax System...');
-
-            // Test mobile detection
-            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-            console.log('📱 Mobile detected:', isMobile);
-
-            // Test parallax elements
-            const heroSections = document.querySelectorAll('.hero.parallax-container');
-            console.log('🎯 Hero sections with parallax:', heroSections.length);
-
-            const parallaxLayers = document.querySelectorAll('.parallax-layer');
-            console.log('🌊 Total parallax layers:', parallaxLayers.length);
-
-            const sectionTransitions = document.querySelectorAll('.section-transition');
-            console.log('🔄 Section transitions:', sectionTransitions.length);
-
-            // Test performance
-            const hardwareConcurrency = navigator.hardwareConcurrency || 'unknown';
-            console.log('⚡ CPU cores:', hardwareConcurrency);
-
-            return {
-                mobile: isMobile,
-                heroSections: heroSections.length,
-                parallaxLayers: parallaxLayers.length,
-                sectionTransitions: sectionTransitions.length,
-                cpuCores: hardwareConcurrency
-            };
-        }
-
-        // Call test function in development
-        window.testParallax = testParallaxSystem;
 
         window.scrollToTop = function() {
-            console.log('Scrolling to top...');
-            
             // Force scroll to top immediately
             document.documentElement.scrollTop = 0;
             document.body.scrollTop = 0;
             window.scrollTo(0, 0);
-            
+
             // Also try smooth scroll as backup
             try {
                 window.scrollTo({
@@ -3008,7 +2975,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     behavior: 'smooth'
                 });
             } catch (e) {
-                console.log('Smooth scroll not supported, using instant scroll');
+                // Fallback to instant scroll already done above
             }
         }
 

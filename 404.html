@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Page Not Found | Lakeside Retreat</title>
+    <meta name="robots" content="noindex">
+    <meta name="description" content="The page you are looking for could not be found.">
+
+    <!-- Fonts and Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3HjA1EtLp/XYbECTLiTQ5EjR9IAXY5IjF2yIGLKqmPLkA==" crossorigin="anonymous" referrerpolicy="no-referrer">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png">
+    <link rel="apple-touch-icon" href="/images/apple-touch-icon.png">
+
+    <style>
+        :root {
+            --brand-teal: #2d5a5a;
+            --brand-gold: #c9a962;
+            --text: #333;
+            --text-light: #666;
+            --bg: #fafafa;
+            --white: #fff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            color: var(--text);
+            background: var(--bg);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        h1, h2, h3 {
+            font-family: 'Playfair Display', serif;
+            color: var(--brand-teal);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Navigation */
+        .nav {
+            background: var(--white);
+            padding: 1rem 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-logo {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+            color: var(--brand-teal);
+            text-decoration: none;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: var(--brand-teal);
+        }
+
+        /* 404 Content */
+        .error-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 4rem 1rem;
+        }
+
+        .error-content h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .error-content p {
+            font-size: 1.1rem;
+            color: var(--text-light);
+            margin-bottom: 2rem;
+            max-width: 500px;
+        }
+
+        .error-links {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .error-links a {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: var(--brand-gold);
+            color: var(--white);
+        }
+
+        .btn-primary:hover {
+            background: #b8954d;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: var(--brand-teal);
+            color: var(--white);
+        }
+
+        .btn-secondary:hover {
+            background: #1e4040;
+            transform: translateY(-2px);
+        }
+
+        /* Footer */
+        .footer {
+            background: var(--brand-teal);
+            color: var(--white);
+            padding: 3rem 0;
+            text-align: center;
+        }
+
+        .footer a {
+            color: var(--brand-gold);
+            text-decoration: none;
+        }
+
+        .mobile-menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--brand-teal);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .mobile-menu-toggle { display: block; }
+            .nav-links {
+                display: none;
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                background: rgba(0,0,0,0.95);
+                flex-direction: column;
+                padding: 1rem;
+            }
+            .nav-links.active { display: flex; }
+            .nav-links a { color: #fff; }
+            .error-content h1 { font-size: 2.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="container nav-content">
+            <a href="/" class="nav-logo">Lakeside Retreat</a>
+            <button class="mobile-menu-toggle" id="mobileMenuBtn" aria-label="Menu">&#9776;</button>
+            <ul class="nav-links">
+                <li><a href="/">Home</a></li>
+                <li><a href="/?page=stay">Stay</a></li>
+                <li><a href="/?page=gallery">Gallery</a></li>
+                <li><a href="/?page=explore">Explore</a></li>
+                <li><a href="/?page=reviews">Reviews</a></li>
+                <li><a href="/?page=contact">Contact</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- 404 Content -->
+    <main class="error-content">
+        <div>
+            <h1>Page Not Found</h1>
+            <p>Sorry, the page you're looking for doesn't exist or has been moved.</p>
+            <div class="error-links">
+                <a href="/" class="btn-primary">Back to Homepage</a>
+                <a href="/stay.html" class="btn-secondary">View Accommodation</a>
+                <a href="/contact.html" class="btn-secondary">Contact Us</a>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p style="margin-bottom: 1rem;">
+                <strong>Lakeside Retreat</strong> | 96 Smiths Way, Mount Pisa, Cromwell 9310
+            </p>
+            <p style="margin-bottom: 1rem;">
+                <a href="tel:+64213686822">021 368 682</a> | <a href="mailto:info@lakesideretreat.co.nz">info@lakesideretreat.co.nz</a>
+            </p>
+            <p style="opacity: 0.8;">
+                <a href="/">Home</a> | <a href="/dome-pinot.html">Dome Pinot</a> | <a href="/dome-rose.html">Dome Rose</a> | <a href="/lakeside-cottage.html">Lakeside Cottage</a> | <a href="/?page=contact">Contact</a>
+            </p>
+            <p style="opacity: 0.8; margin-top: 0.5rem;">
+                <a href="/privacy-policy.html">Privacy Policy</a> | <a href="/terms.html">Terms &amp; Conditions</a>
+            </p>
+            <p style="margin-top: 2rem; opacity: 0.6; font-size: 0.9rem;">
+                &copy; 2026 Lakeside Retreat. All rights reserved.
+            </p>
+        </div>
+    </footer>
+    <script>
+    document.getElementById('mobileMenuBtn').addEventListener('click', function() {
+        document.querySelector('.nav-links').classList.toggle('active');
+    });
+    </script>
+</body>
+</html>

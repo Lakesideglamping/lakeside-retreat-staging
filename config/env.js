@@ -21,16 +21,12 @@ function loadConfig() {
     const errors = [];
 
     // --- JWT ---
-    let jwtSecret = process.env.JWT_SECRET;
-    if (!jwtSecret) {
-        if (isProduction) {
-            // Generate a random secret so the server can start, but warn loudly
-            jwtSecret = require('crypto').randomBytes(64).toString('hex');
-            warnings.push('⚠️ JWT_SECRET not set in production - using random secret (sessions will not persist across restarts). Set JWT_SECRET in environment variables!');
-        } else {
-            jwtSecret = 'dev-secret-key-for-local-testing-only';
-            warnings.push('JWT_SECRET not set - using development default');
-        }
+    if (isProduction && !process.env.JWT_SECRET) {
+        throw new Error('JWT_SECRET environment variable is required in production');
+    }
+    const jwtSecret = process.env.JWT_SECRET || 'dev-only-secret-change-in-production';
+    if (!process.env.JWT_SECRET) {
+        warnings.push('JWT_SECRET not set - using development default');
     }
 
     // --- Stripe ---

@@ -577,22 +577,14 @@
     <button class="add-booking-btn" onclick="window.location.href='/add-booking.html'" title="Add New Booking">+</button>
 
     <script>
-        // Check authentication
-        const token = localStorage.getItem('adminToken');
-        if (!token) {
-            window.location.href = '/admin.html';
-        }
-
         // Load bookings data
         async function loadBookings() {
             try {
                 // Load Uplisting properties first
                 await loadUplistingProperties();
-                
+
                 const response = await fetch('/api/admin/bookings', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
+                    credentials: 'same-origin'
                 });
                 
                 if (!response.ok) {
@@ -615,9 +607,7 @@
         async function loadUplistingProperties() {
             try {
                 const response = await fetch('/api/admin/uplisting-dashboard', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
+                    credentials: 'same-origin'
                 });
                 
                 if (response.ok) {
@@ -715,7 +705,7 @@
 
             try {
                 const response = await fetch(`/api/admin/booking/${id}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    credentials: 'same-origin'
                 });
 
                 if (!response.ok) throw new Error('Failed to load booking details');
@@ -792,7 +782,7 @@
         async function fetchStripeDetails(sessionId) {
             try {
                 const response = await fetch(`/api/admin/stripe-payment/${sessionId}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    credentials: 'same-origin'
                 });
                 if (!response.ok) throw new Error('Failed to fetch Stripe details');
                 const data = await response.json();
@@ -834,7 +824,7 @@
             try {
                 const response = await fetch(`/api/admin/retry-sync/${bookingId}`, {
                     method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    credentials: 'same-origin'
                 });
                 const data = await response.json();
                 if (data.success) {
@@ -871,9 +861,7 @@
             try {
                 const response = await fetch(`/api/admin/booking/${id}`, {
                     method: 'DELETE',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
+                    credentials: 'same-origin'
                 });
                 
                 if (!response.ok) {
@@ -912,9 +900,7 @@
                 params.append('limit', '100'); // Get more results for filtering
                 
                 const response = await fetch(`/api/admin/bookings?${params.toString()}`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
+                    credentials: 'same-origin'
                 });
                 
                 if (!response.ok) {
@@ -967,9 +953,7 @@
             
             // Use fetch to get the CSV with auth header
             fetch(exportUrl, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
+                credentials: 'same-origin'
             })
             .then(response => {
                 if (!response.ok) throw new Error('Export failed');
@@ -989,11 +973,6 @@
                 console.error('Export error:', error);
                 alert('Failed to export bookings. Please try again.');
             });
-        }
-
-        function logout() {
-            localStorage.removeItem('adminToken');
-            window.location.href = '/admin.html';
         }
 
         // Load bookings on page load

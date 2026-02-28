@@ -20,7 +20,7 @@ const jwt = require('jsonwebtoken');
 const rateLimit = require('express-rate-limit');
 const crypto = require('crypto');
 
-const { verifyAdmin, sendError, ERROR_CODES, escapeHtml } = require('../middleware/auth');
+const { verifyAdmin, sendError, ERROR_CODES, escapeHtml, blacklistToken, parseCookies } = require('../middleware/auth');
 
 // --- TOTP Helpers (RFC 6238 / RFC 4226) ---
 const TOTP_STEP = 30; // 30-second time window
@@ -273,10 +273,9 @@ function createAdminAuthRoutes(deps) {
                 }
             );
 
-            const isProduction = process.env.NODE_ENV === 'production';
             res.cookie('auth-token', token, {
                 httpOnly: true,
-                secure: isProduction,
+                secure: true,
                 sameSite: 'strict',
                 maxAge: 60 * 60 * 1000,
                 path: '/admin'
@@ -295,14 +294,30 @@ function createAdminAuthRoutes(deps) {
 
     // --- Logout ---
     router.post('/api/admin/logout', (req, res) => {
-        res.clearCookie('auth-token', { path: '/admin' });
+        // Blacklist the current token so it cannot be reused
+        let token = req.headers.authorization?.split(' ')[1];
+        if (!token) {
+            const cookies = parseCookies(req);
+            token = cookies['auth-token'];
+        }
+        if (token) {
+            blacklistToken(token);
+        }
+
+        res.clearCookie('auth-token', { path: '/admin', secure: true, httpOnly: true, sameSite: 'strict' });
         res.json({ success: true, message: 'Logged out' });
     });
 
     // --- Verify token ---
     router.get('/api/admin/verify', (req, res) => {
         try {
-            const token = req.headers.authorization?.split(' ')[1];
+            // Check Authorization header first, then fall back to httpOnly cookie
+            let token = req.headers.authorization?.split(' ')[1];
+
+            if (!token) {
+                const cookies = require('../middleware/auth').parseCookies(req);
+                token = cookies['auth-token'];
+            }
 
             if (!token) {
                 return sendError(res, 401, ERROR_CODES.AUTHENTICATION_REQUIRED, 'No token provided');

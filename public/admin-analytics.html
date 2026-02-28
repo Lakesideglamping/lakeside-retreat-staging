@@ -480,11 +480,7 @@
     </div>
 
     <script>
-        // Check authentication
-        const token = localStorage.getItem('adminToken');
-        if (!token) {
-            window.location.href = '/admin.html';
-        }
+        // Authentication is handled by admin-shell.js via cookie verification
 
         // Uplisting Analytics Data - Real property data
         let uplistingAnalyticsData = {
@@ -794,15 +790,13 @@
         // Fetch real analytics data from server including Uplisting
         async function fetchRealAnalytics(dateRange = 'month') {
             try {
-                const token = localStorage.getItem('adminToken');
-                
                 // Fetch both analytics and Uplisting data
                 const [analyticsResponse, uplistingResponse] = await Promise.all([
                     fetch(`/api/admin/analytics?dateRange=${dateRange}`, {
-                        headers: { 'Authorization': 'Bearer ' + token }
+                        credentials: 'same-origin'
                     }),
                     fetch('/api/admin/uplisting-dashboard', {
-                        headers: { 'Authorization': 'Bearer ' + token }
+                        credentials: 'same-origin'
                     })
                 ]);
                 

@@ -409,10 +409,7 @@
 
     <script src="/admin-shell.js?v=2"></script>
     <script>
-        const token = localStorage.getItem('adminToken');
-        if (!token) {
-            window.location.href = '/admin.html';
-        }
+        // Authentication is handled by admin-shell.js via cookie verification
 
         function showAlert(message, type = 'success') {
             const alertBox = document.getElementById('alertBox');
@@ -423,7 +420,7 @@
         async function loadSettings() {
             try {
                 const response = await fetch('/api/admin/settings', {
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    credentials: 'same-origin'
                 });
                 const data = await response.json();
                 if (data.success && data.settings) {
@@ -460,7 +457,8 @@
             try {
                 const response = await fetch('/api/admin/settings', {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    credentials: 'same-origin',
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ settings })
                 });
                 const data = await response.json();

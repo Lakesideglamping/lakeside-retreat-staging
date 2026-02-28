@@ -373,11 +373,7 @@
     </button>
 
     <script>
-        // Check authentication
-        const token = localStorage.getItem('adminToken');
-        if (!token) {
-            window.location.href = '/admin.html';
-        }
+        // Authentication is handled by admin-shell.js via cookie verification
 
         // Notification data
         let notifications = {
@@ -393,13 +389,13 @@
                 // Fetch data from multiple endpoints
                 const [bookingsRes, abandonedRes, statsRes] = await Promise.all([
                     fetch('/api/admin/bookings?limit=100', {
-                        headers: { 'Authorization': `Bearer ${token}` }
+                        credentials: 'same-origin'
                     }),
                     fetch('/api/admin/marketing/abandoned-checkouts', {
-                        headers: { 'Authorization': `Bearer ${token}` }
+                        credentials: 'same-origin'
                     }),
                     fetch('/api/admin/booking-stats', {
-                        headers: { 'Authorization': `Bearer ${token}` }
+                        credentials: 'same-origin'
                     })
                 ]);
 
@@ -714,7 +710,7 @@
             try {
                 const response = await fetch(`/api/admin/retry-sync/${bookingId}`, {
                     method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    credentials: 'same-origin'
                 });
                 
                 if (response.ok) {
@@ -750,8 +746,10 @@
         }
 
         function logout() {
-            localStorage.removeItem('adminToken');
-            window.location.href = '/admin.html';
+            fetch('/api/admin/logout', { method: 'POST', credentials: 'same-origin' })
+                .finally(() => {
+                    window.location.href = '/admin.html';
+                });
         }
 
         // Load notifications on page load

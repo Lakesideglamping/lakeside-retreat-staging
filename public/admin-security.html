@@ -495,11 +495,7 @@
     </div>
 
     <script>
-        // Check authentication
-        const token = localStorage.getItem('adminToken');
-        if (!token) {
-            window.location.href = '/admin.html';
-        }
+        // Authentication is handled by admin-shell.js via cookie verification
 
         // State
         let twoFASecret = null;
@@ -510,7 +506,7 @@
         async function check2FAStatus() {
             try {
                 const response = await fetch('/api/admin/2fa/status', {
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    credentials: 'same-origin'
                 });
                 
                 if (response.ok) {
@@ -552,7 +548,7 @@
             try {
                 const response = await fetch('/api/admin/2fa/setup', {
                     method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    credentials: 'same-origin'
                 });
                 
                 if (response.ok) {
@@ -652,8 +648,8 @@
             try {
                 const response = await fetch('/api/admin/2fa/verify', {
                     method: 'POST',
+                    credentials: 'same-origin',
                     headers: {
-                        'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({ code, secret: twoFASecret })
@@ -743,8 +739,8 @@ If you lose access to your authenticator app, use one of these codes to log in.
             try {
                 const response = await fetch('/api/admin/2fa/disable', {
                     method: 'POST',
+                    credentials: 'same-origin',
                     headers: {
-                        'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({ code })
@@ -808,8 +804,8 @@ If you lose access to your authenticator app, use one of these codes to log in.
             try {
                 const response = await fetch('/api/admin/change-password', {
                     method: 'POST',
+                    credentials: 'same-origin',
                     headers: {
-                        'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({ currentPassword, newPassword })
@@ -838,8 +834,10 @@ If you lose access to your authenticator app, use one of these codes to log in.
         }
 
         function logout() {
-            localStorage.removeItem('adminToken');
-            window.location.href = '/admin.html';
+            fetch('/api/admin/logout', { method: 'POST', credentials: 'same-origin' })
+                .finally(() => {
+                    window.location.href = '/admin.html';
+                });
         }
 
         // Check status on load

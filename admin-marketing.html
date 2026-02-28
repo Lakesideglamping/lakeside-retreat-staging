@@ -554,18 +554,15 @@
     </div>
 
     <script>
-        const token = localStorage.getItem('adminToken');
-        if (!token) {
-            window.location.href = '/admin.html';
-        }
+        // Authentication is handled by admin-shell.js via cookie verification
 
         let currentGeneratedContent = null;
 
         async function apiCall(endpoint, options = {}) {
             const response = await fetch(endpoint, {
                 ...options,
+                credentials: 'same-origin',
                 headers: {
-                    'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
                     ...options.headers
                 }
@@ -934,8 +931,10 @@
         }
 
         function logout() {
-            localStorage.removeItem('adminToken');
-            window.location.href = '/admin.html';
+            fetch('/api/admin/logout', { method: 'POST', credentials: 'same-origin' })
+                .finally(() => {
+                    window.location.href = '/admin.html';
+                });
         }
 
         document.addEventListener('DOMContentLoaded', () => {

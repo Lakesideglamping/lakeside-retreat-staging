@@ -33,22 +33,23 @@ function errorMiddleware(err, req, res, next) {
     const statusCode = err.statusCode || err.status || 500;
     const isProduction = process.env.NODE_ENV === 'production';
 
-    // Structured error log
-    const errorContext = {
+    // Sanitized error log — never log request body (may contain guest personal data)
+    // and never log authorization headers
+    const errorLog = {
+        timestamp: new Date().toISOString(),
+        level: statusCode >= 500 ? 'error' : 'warn',
+        message: err.message,
         method: req.method,
-        url: req.originalUrl,
-        ip: req.ip,
-        userAgent: req.get('User-Agent'),
+        path: req.path,
         statusCode,
-        error: err.message,
         ...(isProduction ? {} : { stack: err.stack })
     };
 
     // Log at appropriate level
     if (statusCode >= 500) {
-        console.error('[ERROR]', JSON.stringify(errorContext));
+        console.error(JSON.stringify(errorLog));
     } else {
-        console.warn('[WARN]', JSON.stringify(errorContext));
+        console.warn(JSON.stringify(errorLog));
     }
 
     // Known error types
@@ -70,12 +71,15 @@ function errorMiddleware(err, req, res, next) {
         return sendError(res, 503, ERROR_CODES.DATABASE_ERROR, 'Database busy, please retry');
     }
 
-    // Default error response
+    // Never send stack traces to clients in production
+    const clientMessage = isProduction
+        ? 'An internal error occurred'
+        : err.message;
+
     res.status(statusCode).json({
         success: false,
-        error: isProduction ? 'Internal server error' : err.message,
-        code: ERROR_CODES.INTERNAL_SERVER_ERROR,
-        ...(isProduction ? {} : { stack: err.stack })
+        error: clientMessage,
+        code: ERROR_CODES.INTERNAL_SERVER_ERROR
     });
 }
 

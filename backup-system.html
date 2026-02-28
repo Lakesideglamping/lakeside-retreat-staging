@@ -549,10 +549,7 @@
 
     <script src="/admin-shell.js?v=2"></script>
     <script>
-        const token = localStorage.getItem('adminToken');
-        if (!token) {
-            window.location.href = '/admin.html';
-        }
+        // Authentication is handled by admin-shell.js via cookie verification
 
         function showAlert(message, type = 'success') {
             const alertBox = document.getElementById('alertBox');
@@ -563,7 +560,7 @@
         async function loadBackups() {
             try {
                 const response = await fetch('/api/admin/backups', {
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    credentials: 'same-origin'
                 });
                 const data = await response.json();
                 if (data.success) {
@@ -602,7 +599,7 @@
             try {
                 const response = await fetch('/api/admin/backups', {
                     method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    credentials: 'same-origin'
                 });
                 const data = await response.json();
                 if (data.success) {
@@ -620,7 +617,7 @@
             showAlert(`Preparing ${filename} for download...`, 'info');
             try {
                 const response = await fetch(`/api/admin/backups/${encodeURIComponent(filename)}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    credentials: 'same-origin'
                 });
                 if (response.ok) {
                     const blob = await response.blob();

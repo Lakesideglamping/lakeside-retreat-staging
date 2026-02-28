@@ -135,6 +135,9 @@ database.initializeDatabase()
 
         // Recover any pending deposit releases that were lost due to server restart
         recoverPendingDepositReleases();
+
+        // Check for orphaned payments (Stripe session created but DB never updated to completed)
+        checkOrphanedPayments();
     })
     .catch(err => {
         console.error('❌ Failed to initialize database:', err.message);
@@ -168,10 +171,9 @@ app.get('/health', (req, res) => {
 // The frontend must send the token back via the X-CSRF-Token header on mutations.
 app.get('/api/csrf-token', (req, res) => {
     const token = generateCsrfToken();
-    const isProduction = process.env.NODE_ENV === 'production';
 
     res.setHeader('Set-Cookie',
-        `csrf-token=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Strict${isProduction ? '; Secure' : ''}; Max-Age=86400`
+        `csrf-token=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Strict; Secure; Max-Age=3600`
     );
     res.json({ csrfToken: token });
 });
@@ -194,10 +196,13 @@ const generalLimiter = rateLimit({
 // CORS middleware (must be before rate limiting so preflight OPTIONS are handled first)
 app.use((req, res, next) => {
     const allowedOrigins = [
-        process.env.PUBLIC_BASE_URL,
-        'http://localhost:10000',
-        'http://localhost:3000'
+        'https://lakesideretreat.co.nz',
+        'https://www.lakesideretreat.co.nz',
+        process.env.PUBLIC_BASE_URL
     ].filter(Boolean);
+    if (process.env.NODE_ENV !== 'production') {
+        allowedOrigins.push('http://localhost:3000', 'http://localhost:10000');
+    }
 
     const origin = req.headers.origin;
     if (allowedOrigins.includes(origin)) {
@@ -233,25 +238,22 @@ app.use(helmet({
     // ENHANCED: Additional security headers
     hsts: {
         maxAge: 31536000, // 1 year
-        includeSubDomains: false,
-        preload: false
+        includeSubDomains: true,
+        preload: true
     },
     
-    // SECURITY: Content Security Policy — hardened in Phase 4
-    // Note: 'unsafe-inline' still required for 2 small analytics scripts 
-    // and 232 inline event handlers in HTML. Full removal requires refactoring
-    // all onclick/onchange handlers to addEventListener in app.js (Phase 5 candidate).
+    // SECURITY: Content Security Policy — hardened in Phase 5
+    // Inline event handlers (onclick etc.) removed; 'unsafe-inline' no longer needed for scripts.
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
             scriptSrc: [
-                "'self'", 
-                "'unsafe-inline'",
+                "'self'",
                 "https://js.stripe.com",
                 "https://www.googletagmanager.com",
                 "https://www.google-analytics.com"
             ],
-            scriptSrcAttr: ["'unsafe-inline'"],  // Required for inline event handlers (onclick etc.)
+            scriptSrcAttr: ["'none'"],
             styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
             imgSrc: ["'self'", "data:", "https:", "blob:"],
             fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com", "data:"],
@@ -315,8 +317,13 @@ app.post('/api/stripe/webhook', express.raw({type: 'application/json'}), async (
     try {
         await handleStripeWebhook(event, res);
     } catch (err) {
-        console.error('Webhook handler error:', err.message);
-        return res.status(500).send('Webhook handler error');
+        console.error('[CRITICAL] Unhandled webhook handler error:', err.message);
+        console.error('[CRITICAL] Event ID:', event.id, 'Type:', event.type);
+        // Return 500 so Stripe retries -- this likely means a Stripe API call failed
+        // before the DB update was attempted
+        if (!res.headersSent) {
+            return res.status(500).send('Webhook handler error');
+        }
     }
 });
 
@@ -334,14 +341,14 @@ app.post('/api/uplisting/webhook', express.raw({type: 'application/json'}), (req
             return res.status(400).json({ error: 'Invalid JSON' });
         }
         
-        // Verify webhook signature if secret is configured
+        // Verify webhook signature — always required regardless of environment
         if (process.env.UPLISTING_WEBHOOK_SECRET) {
             const signature = req.headers['x-uplisting-signature'];
             const expectedSignature = crypto
                 .createHmac('sha256', process.env.UPLISTING_WEBHOOK_SECRET)
                 .update(rawBody)
                 .digest('hex');
-            
+
             const sigBuffer = Buffer.from(signature || '');
             const expectedBuffer = Buffer.from(expectedSignature);
             if (sigBuffer.length !== expectedBuffer.length || !crypto.timingSafeEqual(sigBuffer, expectedBuffer)) {
@@ -349,11 +356,9 @@ app.post('/api/uplisting/webhook', express.raw({type: 'application/json'}), (req
                 return res.status(400).json({ error: 'Invalid signature' });
             }
         } else {
-            // In production, require webhook secret
-            if (process.env.NODE_ENV === 'production') {
-                console.error('UPLISTING_WEBHOOK_SECRET not configured in production');
-                return res.status(503).json({ error: 'Webhook not configured' });
-            }
+            // Webhook secret not configured — log warning and reject unsigned requests
+            console.warn('[SECURITY WARNING] UPLISTING_WEBHOOK_SECRET is not set — rejecting unsigned webhook. Set UPLISTING_WEBHOOK_SECRET for webhook handling.');
+            return res.status(503).json({ error: 'Webhook secret not configured' });
         }
         
         // Delegate to the Uplisting service webhook handler
@@ -737,12 +742,28 @@ async function handleStripeWebhook(event, res) {
         });
     });
     if (existing) {
-        console.log(`⏭️ Webhook event ${event.id} already processed, skipping`);
+        console.log(`Webhook event ${event.id} already processed, skipping`);
         return res.json({ received: true });
     }
 
     if (event.type === 'checkout.session.completed') {
         const session = event.data.object;
+
+        // Check if this booking was already completed (handles Stripe retries after
+        // a previous 500 response where the DB update actually succeeded on a later attempt)
+        const alreadyCompleted = await new Promise((resolve, reject) => {
+            db.get(
+                'SELECT id FROM bookings WHERE (stripe_session_id = ? OR id = ?) AND payment_status = ?',
+                [session.id, session.metadata.bookingId, 'completed'],
+                (err, row) => { if (err) reject(err); else resolve(row); }
+            );
+        });
+        if (alreadyCompleted) {
+            console.log('[PAYMENT] Webhook already processed for session:', session.id, '(booking already completed)');
+            // Record as processed so future retries are caught by the event-level check above
+            db.run('INSERT OR IGNORE INTO processed_webhook_events (event_id) VALUES (?)', [event.id]);
+            return res.json({ received: true, already_processed: true });
+        }
 
         // Handle payment with security deposit
         if (session.metadata.hasSecurityDeposit === 'true') {
@@ -770,106 +791,263 @@ async function handleStripeWebhook(event, res) {
                 }
             });
 
-            // Update booking with both payment IDs and security deposit status
-            const updateSql = `
-                UPDATE bookings
-                SET payment_status = 'completed',
-                    status = 'confirmed',
-                    stripe_payment_id = ?,
-                    security_deposit_intent_id = ?,
-                    security_deposit_status = 'authorized'
-                WHERE stripe_session_id = ?
-            `;
+            // Update booking with both payment IDs and security deposit status.
+            // Match by stripe_session_id first, fall back to booking ID from metadata
+            // in case the session ID was not stored during payment session creation.
+            try {
+                const updateSql = `
+                    UPDATE bookings
+                    SET payment_status = 'completed',
+                        status = 'confirmed',
+                        stripe_payment_id = ?,
+                        stripe_session_id = COALESCE(stripe_session_id, ?),
+                        security_deposit_intent_id = ?,
+                        security_deposit_status = 'authorized'
+                    WHERE stripe_session_id = ? OR id = ?
+                `;
 
-            await new Promise((resolve, reject) => {
-                db.run(updateSql, [capturedPayment.id, depositIntent.id, session.id], function(err) {
-                    if (err) reject(err); else resolve();
-                });
-            });
-
-            console.log('Booking confirmed with security deposit for session:', session.id);
-
-            // Schedule automatic release of security deposit
-            scheduleDepositRelease(session.metadata.bookingId, depositIntent.id);
-
-            // Get booking data for sync to Uplisting
-            const booking = await new Promise((resolve, reject) => {
-                db.get('SELECT * FROM bookings WHERE stripe_session_id = ?', [session.id], (err, row) => {
-                    if (err) reject(err); else resolve(row);
-                });
-            });
-
-            if (booking) {
-                try {
-                    // Sync to Uplisting
-                    await syncBookingToUplisting(booking);
-
-                    // Send payment confirmation email
-                    await sendPaymentConfirmation({
-                        guest_name: session.metadata.guest_name,
-                        guest_email: session.metadata.guest_email,
-                        accommodation: session.metadata.accommodation,
-                        check_in: session.metadata.check_in,
-                        check_out: session.metadata.check_out,
-                        guests: session.metadata.guests,
-                        total_price: (bookingAmount / 100).toFixed(2),
-                        security_deposit: (depositAmount / 100).toFixed(2),
-                        booking_id: booking.id
+                await new Promise((resolve, reject) => {
+                    db.run(updateSql, [
+                        capturedPayment.id, session.id, depositIntent.id,
+                        session.id, session.metadata.bookingId
+                    ], function(err) {
+                        if (err) reject(err); else resolve();
                     });
-                } catch (asyncErr) {
-                    console.error('Post-payment processing error:', asyncErr);
+                });
+
+                // Verify the update actually persisted
+                const verifiedBooking = await new Promise((resolve, reject) => {
+                    db.get(
+                        'SELECT * FROM bookings WHERE (stripe_session_id = ? OR id = ?) AND payment_status = ?',
+                        [session.id, session.metadata.bookingId, 'completed'],
+                        (err, row) => { if (err) reject(err); else resolve(row); }
+                    );
+                });
+                if (!verifiedBooking) {
+                    throw new Error('DB update verification failed — booking not found or payment_status not updated');
                 }
+
+                console.log('Booking confirmed with security deposit for session:', session.id);
+
+                // Record successful processing for idempotency
+                db.run('INSERT OR IGNORE INTO processed_webhook_events (event_id) VALUES (?)', [event.id]);
+
+                // Schedule automatic release of security deposit
+                scheduleDepositRelease(session.metadata.bookingId, depositIntent.id);
+
+                // Post-payment processing (non-critical: sync + email)
+                if (verifiedBooking) {
+                    try {
+                        await syncBookingToUplisting(verifiedBooking);
+                        await sendPaymentConfirmation({
+                            guest_name: session.metadata.guest_name,
+                            guest_email: session.metadata.guest_email,
+                            accommodation: session.metadata.accommodation,
+                            check_in: session.metadata.check_in,
+                            check_out: session.metadata.check_out,
+                            guests: session.metadata.guests,
+                            total_price: (bookingAmount / 100).toFixed(2),
+                            security_deposit: (depositAmount / 100).toFixed(2),
+                            booking_id: verifiedBooking.id
+                        });
+                    } catch (asyncErr) {
+                        console.error('[PAYMENT] Non-critical post-payment error:', asyncErr.message);
+                        // Don't fail the webhook — payment and booking are saved
+                    }
+                }
+            } catch (dbErr) {
+                // CRITICAL: Payment was captured by Stripe but DB update failed
+                console.error('[CRITICAL] Payment succeeded but DB update failed:', {
+                    sessionId: session.id,
+                    paymentIntent: capturedPayment?.id,
+                    depositIntentId: depositIntent?.id,
+                    bookingId: session.metadata.bookingId,
+                    error: dbErr.message || String(dbErr)
+                });
+
+                // Store failed event for manual recovery
+                await logFailedWebhookEvent(event, session, dbErr);
+
+                // Return 500 so Stripe retries the webhook (retries for up to 3 days)
+                return res.status(500).json({ error: 'Database update failed' });
             }
         } else {
-            // Original logic for bookings without security deposit
-            const updateSql = `
-                UPDATE bookings
-                SET payment_status = 'completed', status = 'confirmed', stripe_payment_id = ?
-                WHERE stripe_session_id = ?
-            `;
+            // Logic for bookings without security deposit.
+            // Match by stripe_session_id first, fall back to booking ID from metadata.
+            try {
+                const updateSql = `
+                    UPDATE bookings
+                    SET payment_status = 'completed', status = 'confirmed',
+                        stripe_payment_id = ?,
+                        stripe_session_id = COALESCE(stripe_session_id, ?)
+                    WHERE stripe_session_id = ? OR id = ?
+                `;
 
-            await new Promise((resolve, reject) => {
-                db.run(updateSql, [session.payment_intent, session.id], function(err) {
-                    if (err) reject(err); else resolve();
-                });
-            });
-
-            console.log('Booking confirmed for session:', session.id);
-
-            // Get booking data for sync to Uplisting
-            const booking = await new Promise((resolve, reject) => {
-                db.get('SELECT * FROM bookings WHERE stripe_session_id = ?', [session.id], (err, row) => {
-                    if (err) reject(err); else resolve(row);
-                });
-            });
-
-            if (booking) {
-                try {
-                    // Sync to Uplisting
-                    await syncBookingToUplisting(booking);
-
-                    // Send payment confirmation email
-                    await sendPaymentConfirmation({
-                        guest_name: session.metadata.guest_name,
-                        guest_email: session.metadata.guest_email,
-                        accommodation: session.metadata.accommodation,
-                        check_in: session.metadata.check_in,
-                        check_out: session.metadata.check_out,
-                        guests: session.metadata.guests,
-                        total_price: (session.amount_total / 100).toFixed(2),
-                        booking_id: booking.id
+                await new Promise((resolve, reject) => {
+                    db.run(updateSql, [
+                        session.payment_intent, session.id,
+                        session.id, session.metadata.bookingId
+                    ], function(err) {
+                        if (err) reject(err); else resolve();
                     });
-                } catch (asyncErr) {
-                    console.error('Post-payment processing error:', asyncErr);
+                });
+
+                // Verify the update actually persisted
+                const verifiedBooking = await new Promise((resolve, reject) => {
+                    db.get(
+                        'SELECT * FROM bookings WHERE (stripe_session_id = ? OR id = ?) AND payment_status = ?',
+                        [session.id, session.metadata.bookingId, 'completed'],
+                        (err, row) => { if (err) reject(err); else resolve(row); }
+                    );
+                });
+                if (!verifiedBooking) {
+                    throw new Error('DB update verification failed — booking not found or payment_status not updated');
                 }
+
+                console.log('Booking confirmed for session:', session.id);
+
+                // Record successful processing for idempotency
+                db.run('INSERT OR IGNORE INTO processed_webhook_events (event_id) VALUES (?)', [event.id]);
+
+                // Post-payment processing (non-critical: sync + email)
+                if (verifiedBooking) {
+                    try {
+                        await syncBookingToUplisting(verifiedBooking);
+                        await sendPaymentConfirmation({
+                            guest_name: session.metadata.guest_name,
+                            guest_email: session.metadata.guest_email,
+                            accommodation: session.metadata.accommodation,
+                            check_in: session.metadata.check_in,
+                            check_out: session.metadata.check_out,
+                            guests: session.metadata.guests,
+                            total_price: (session.amount_total / 100).toFixed(2),
+                            booking_id: verifiedBooking.id
+                        });
+                    } catch (asyncErr) {
+                        console.error('[PAYMENT] Non-critical post-payment error:', asyncErr.message);
+                        // Don't fail the webhook — payment and booking are saved
+                    }
+                }
+            } catch (dbErr) {
+                // CRITICAL: Payment completed on Stripe but DB update failed
+                console.error('[CRITICAL] Payment succeeded but DB update failed:', {
+                    sessionId: session.id,
+                    paymentIntent: session.payment_intent,
+                    bookingId: session.metadata.bookingId,
+                    error: dbErr.message || String(dbErr)
+                });
+
+                // Store failed event for manual recovery
+                await logFailedWebhookEvent(event, session, dbErr);
+
+                // Return 500 so Stripe retries the webhook (retries for up to 3 days)
+                return res.status(500).json({ error: 'Database update failed' });
             }
         }
+    } else {
+        // Non-checkout events: record as processed
+        db.run('INSERT OR IGNORE INTO processed_webhook_events (event_id) VALUES (?)', [event.id]);
     }
 
-    // Record this event as processed for idempotency
-    db.run('INSERT OR IGNORE INTO processed_webhook_events (event_id) VALUES (?)', [event.id]);
+    res.json({ received: true });
+}
 
-    res.json({received: true});
+/**
+ * Log a failed webhook event to the failed_webhook_events table for manual recovery.
+ * This is called when Stripe payment succeeded but the DB update failed.
+ */
+async function logFailedWebhookEvent(event, session, error) {
+    const insertSql = `
+        INSERT INTO failed_webhook_events
+            (event_id, event_type, stripe_session_id, stripe_payment_id, booking_id, event_data, error_message)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    `;
+    const params = [
+        event.id,
+        event.type,
+        session.id,
+        session.payment_intent || null,
+        session.metadata?.bookingId || null,
+        JSON.stringify({
+            guest_name: session.metadata?.guest_name,
+            guest_email: session.metadata?.guest_email,
+            accommodation: session.metadata?.accommodation,
+            check_in: session.metadata?.check_in,
+            check_out: session.metadata?.check_out,
+            amount_total: session.amount_total
+        }),
+        (error.message || String(error)).substring(0, 1000)
+    ];
+
+    try {
+        await new Promise((resolve, reject) => {
+            db.run(insertSql, params, function(err) {
+                if (err) reject(err); else resolve();
+            });
+        });
+        console.error('[CRITICAL] Failed webhook event saved to failed_webhook_events table for recovery');
+    } catch (logErr) {
+        // Last resort: if even the recovery table write fails, log everything to stdout
+        console.error('[CRITICAL] UNABLE TO WRITE TO RECOVERY TABLE. Manual intervention required.');
+        console.error('[CRITICAL] Recovery data:', JSON.stringify({
+            event_id: event.id,
+            event_type: event.type,
+            stripe_session_id: session.id,
+            stripe_payment_id: session.payment_intent,
+            booking_id: session.metadata?.bookingId,
+            error: error.message || String(error)
+        }));
+    }
+}
+
+/**
+ * Check for orphaned payments on startup — bookings where a Stripe session was
+ * created but the payment_status never moved to 'completed'. These may indicate
+ * webhook failures that were never retried successfully.
+ */
+async function checkOrphanedPayments() {
+    try {
+        // Use a JS-computed ISO timestamp for DB-engine compatibility (works with both SQLite and PostgreSQL)
+        const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+        const orphaned = await new Promise((resolve, reject) => {
+            db.all(
+                `SELECT id, stripe_session_id, guest_email, accommodation, created_at
+                 FROM bookings
+                 WHERE stripe_session_id IS NOT NULL
+                 AND payment_status = 'pending'
+                 AND created_at < ?`,
+                [thirtyMinAgo],
+                (err, rows) => { if (err) reject(err); else resolve(rows || []); }
+            );
+        });
+
+        if (orphaned.length > 0) {
+            console.warn(`[STARTUP WARNING] Found ${orphaned.length} potentially orphaned payment(s):`);
+            orphaned.forEach(b => {
+                console.warn(`  - Booking ${b.id}: ${b.accommodation}, email: ${b.guest_email}, created: ${b.created_at}`);
+            });
+        }
+
+        // Also check for unresolved failed webhook events
+        const unresolved = await new Promise((resolve, reject) => {
+            db.all(
+                `SELECT id, event_id, stripe_session_id, booking_id, created_at
+                 FROM failed_webhook_events
+                 WHERE resolved = ?`,
+                [database.isUsingPostgres() ? false : 0],
+                (err, rows) => { if (err) reject(err); else resolve(rows || []); }
+            );
+        });
+
+        if (unresolved.length > 0) {
+            console.warn(`[STARTUP WARNING] Found ${unresolved.length} unresolved failed webhook event(s):`);
+            unresolved.forEach(e => {
+                console.warn(`  - Event ${e.event_id}: session=${e.stripe_session_id}, booking=${e.booking_id}, created: ${e.created_at}`);
+            });
+        }
+    } catch (err) {
+        console.error('[STARTUP] Failed to check for orphaned payments:', err.message);
+    }
 }
 
 // Security Deposit Management Functions
@@ -1106,6 +1284,25 @@ function ensureSystemSettingsTable(callback) {
 }
 
 // ==========================================
+// SEO: Extensionless accommodation routes (canonical URLs use no .html)
+// ==========================================
+app.get('/dome-pinot', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'dome-pinot.html'));
+});
+app.get('/dome-rose', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'dome-rose.html'));
+});
+app.get('/lakeside-cottage', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'lakeside-cottage.html'));
+});
+app.get('/privacy-policy', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'privacy-policy.html'));
+});
+app.get('/terms', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'terms.html'));
+});
+
+// ==========================================
 // GLOBAL ERROR HANDLER (must be after all routes, before SPA fallback)
 // ==========================================
 app.use(errorMiddleware);
@@ -1124,6 +1321,11 @@ app.get('*', publicRouter({
     getMarketingAutomation: () => marketingAutomation,
     database
 }).spaFallback);
+
+// 404 handler
+app.use((req, res) => {
+    res.status(404).sendFile(path.join(__dirname, 'public', '404.html'));
+});
 
 const server = app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);

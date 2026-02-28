@@ -489,12 +489,6 @@
     </div>
 
     <script>
-        // Check authentication
-        const token = localStorage.getItem('adminToken');
-        if (!token) {
-            window.location.href = '/admin.html';
-        }
-
         // State
         let currentDate = new Date();
         let currentView = 'monthly';
@@ -547,7 +541,7 @@
                 const endDate = new Date(year, month + 2, 0).toISOString().split('T')[0];
                 
                 const response = await fetch(`/api/admin/bookings?limit=200&dateFrom=${startDate}&dateTo=${endDate}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    credentials: 'same-origin'
                 });
                 
                 if (response.ok) {
@@ -872,8 +866,10 @@
         });
 
         function logout() {
-            localStorage.removeItem('adminToken');
-            window.location.href = '/admin.html';
+            fetch('/api/admin/logout', { method: 'POST', credentials: 'same-origin' })
+                .finally(() => {
+                    window.location.href = '/admin.html';
+                });
         }
 
         // Load bookings on page load

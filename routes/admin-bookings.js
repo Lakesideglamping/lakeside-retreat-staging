@@ -22,10 +22,20 @@
 
 const express = require('express');
 const router = express.Router();
+const rateLimit = require('express-rate-limit');
 const { body, validationResult } = require('express-validator');
 const { v4: uuidv4 } = require('uuid');
 
 const { verifyAdmin, sendError, sanitizeInput, ERROR_CODES } = require('../middleware/auth');
+
+// Rate limiter for CSV export: 5 requests per 1 minute per IP
+const csvExportLimit = rateLimit({
+    windowMs: 60 * 1000,
+    max: 5,
+    message: { success: false, error: 'Too many export requests. Please wait.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
 
 /**
  * @param {Object} deps
@@ -41,6 +51,14 @@ const { verifyAdmin, sendError, sanitizeInput, ERROR_CODES } = require('../middl
 function createAdminBookingRoutes(deps) {
     const { db, stripe, syncBookingToUplisting, cancelUplistingBooking, emailNotifications } = deps;
     const { getUplistingDashboardData } = require('../uplisting-dashboard-api');
+
+    /**
+     * Audit log for admin actions. Logs to console and could be extended to DB later.
+     */
+    function auditLog(adminUser, action, details) {
+        const timestamp = new Date().toISOString();
+        console.log(`[AUDIT] ${timestamp} | ${adminUser} | ${action} | ${JSON.stringify(details)}`);
+    }
 
 // Get all bookings (admin only) - Enhanced with search, filters, and Stripe/Uplisting status
 router.get('/api/admin/bookings', verifyAdmin, (req, res) => {
@@ -172,7 +190,7 @@ function sanitizeCsvValue(val) {
 }
 
 // Export bookings to CSV (admin only)
-router.get('/api/admin/bookings/export', verifyAdmin, (req, res) => {
+router.get('/api/admin/bookings/export', verifyAdmin, csvExportLimit, (req, res) => {
     const status = req.query.status;
     const search = req.query.search;
     const accommodation = req.query.accommodation;
@@ -348,6 +366,8 @@ router.put('/api/admin/booking/:id', verifyAdmin, [
             return sendError(res, 404, ERROR_CODES.BOOKING_NOT_FOUND, 'Booking not found');
         }
 
+        auditLog(req.admin?.username || 'unknown', 'edit_booking', { bookingId, fields: Object.keys(req.body) });
+
         res.json({
             success: true,
             message: 'Booking updated successfully'
@@ -405,6 +425,8 @@ router.put('/api/admin/booking/:id/status', verifyAdmin, [
             });
         });
 
+        auditLog(req.admin?.username || 'unknown', 'update_booking_status', { bookingId, newStatus });
+
         // If cancelling, trigger Stripe refund and Uplisting cancellation
         if (newStatus === 'cancelled') {
             if (booking.stripe_payment_id && stripe) {
@@ -446,7 +468,9 @@ router.delete('/api/admin/booking/:id', verifyAdmin, (req, res) => {
         if (this.changes === 0) {
             return sendError(res, 404, ERROR_CODES.BOOKING_NOT_FOUND, 'Booking not found');
         }
-        
+
+        auditLog(req.admin?.username || 'unknown', 'delete_booking', { bookingId });
+
         res.json({
             success: true,
             message: 'Booking deleted'
@@ -673,7 +697,9 @@ router.post('/api/admin/refund/:bookingId', verifyAdmin, async (req, res) => {
                     if (booking.uplisting_id && refund.amount === Math.round(booking.total_price * 100)) {
                         await cancelUplistingBooking(booking.uplisting_id);
                     }
-                    
+
+                    auditLog(req.admin?.username || 'unknown', 'refund_booking', { bookingId, refundId: refund.id, amount: refund.amount / 100, reason: refund.reason });
+
                     res.json({
                         success: true,
                         refund: {
@@ -729,6 +755,7 @@ router.post('/api/admin/retry-sync/:bookingId', verifyAdmin, async (req, res) =>
                         [bookingId],
                         (err, updated) => {
                             if (!err && updated?.uplisting_id) {
+                                auditLog(req.admin?.username || 'unknown', 'manual_sync', { bookingId, uplisting_id: updated.uplisting_id });
                                 res.json({
                                     success: true,
                                     message: 'Booking synced successfully',
@@ -874,7 +901,8 @@ router.post('/api/admin/claim-deposit/:bookingId', verifyAdmin, async (req, res)
             });
         });
         
-        console.log(`✅ Security deposit claimed: $${amount} from booking ${bookingId}`);
+        console.log(`Security deposit claimed: $${amount} from booking ${bookingId}`);
+        auditLog(req.admin?.username || 'unknown', 'claim_deposit', { bookingId, amount, reason });
         
         // Send notification email to admin
         await emailNotifications.sendSystemAlert('info', 
@@ -951,7 +979,8 @@ router.post('/api/admin/release-deposit/:bookingId', verifyAdmin, async (req, re
             });
         });
         
-        console.log(`✅ Security deposit manually released for booking ${bookingId}`);
+        console.log(`Security deposit manually released for booking ${bookingId}`);
+        auditLog(req.admin?.username || 'unknown', 'release_deposit', { bookingId, amount: booking.security_deposit_amount });
         
         // Send notification email
         await emailNotifications.sendSystemAlert('info', 
@@ -1037,6 +1066,8 @@ router.post('/api/admin/bookings', verifyAdmin, async (req, res) => {
                     console.error('Manual booking Uplisting sync failed:', syncErr.message);
                 }
             }
+
+            auditLog(req.admin?.username || 'unknown', 'create_manual_booking', { bookingId, guest_name, accommodation, check_in, check_out });
 
             res.json({
                 success: true,

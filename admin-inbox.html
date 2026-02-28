@@ -586,11 +586,7 @@
     </div>
 
     <script>
-        // Check authentication
-        const token = localStorage.getItem('adminToken');
-        if (!token) {
-            window.location.href = '/admin.html';
-        }
+        // Authentication is handled by admin-shell.js via cookie verification
 
         // State
         let currentFolder = 'inbox';
@@ -735,7 +731,7 @@ The Lakeside Retreat Team`
             try {
                 // Load contact form messages
                 const contactRes = await fetch('/api/admin/contact-messages', {
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    credentials: 'same-origin'
                 });
                 
                 let contactMessages = [];
@@ -986,8 +982,8 @@ The Lakeside Retreat Team`
                 // In production, this would call an email sending API
                 const response = await fetch('/api/admin/send-email', {
                     method: 'POST',
+                    credentials: 'same-origin',
                     headers: {
-                        'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({ to, subject, body })
@@ -1088,8 +1084,10 @@ The Lakeside Retreat Team`
         });
 
         function logout() {
-            localStorage.removeItem('adminToken');
-            window.location.href = '/admin.html';
+            fetch('/api/admin/logout', { method: 'POST', credentials: 'same-origin' })
+                .finally(() => {
+                    window.location.href = '/admin.html';
+                });
         }
 
         // Load messages on page load

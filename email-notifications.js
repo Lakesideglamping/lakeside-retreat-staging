@@ -54,7 +54,13 @@ class EmailNotifications {
                         <li>If you have any questions, reply to this email or call +64-21-368-682</li>
                         <li>Find local recommendations on our website</li>
                     </ul>
-                    
+
+                    ${(booking.accommodation === 'dome-pinot' || booking.accommodation === 'dome-rose') ? `
+                    <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
+                        <p style="margin: 0;"><strong>Please note:</strong> Dome Pinot and Dome Ros\u00e9 are adults-only accommodations. Guests arriving with children will not be accommodated and no refund will be given.</p>
+                    </div>
+                    ` : ''}
+
                     <p>We're excited to host you at our solar-powered retreat!</p>
                     <p>Warm regards,<br>Stephen & Sandy<br>Lakeside Retreat</p>
                     

@@ -403,10 +403,7 @@
 
     <script src="/admin-shell.js?v=2"></script>
     <script>
-        const token = localStorage.getItem('adminToken');
-        if (!token) {
-            window.location.href = '/admin.html';
-        }
+        // Authentication is handled by admin-shell.js via cookie verification
 
         const templates = {
             thank: "Thank you so much for your wonderful review! We're thrilled that you enjoyed your stay with us. ",
@@ -430,7 +427,7 @@
                 if (platform) url += `platform=${platform}`;
                 
                 const response = await fetch(url, {
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    credentials: 'same-origin'
                 });
                 const data = await response.json();
                 if (data.success) {
@@ -464,7 +461,8 @@
             try {
                 const res = await fetch(`/api/admin/reviews/${id}`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    credentials: 'same-origin',
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ admin_response: response, status: 'approved' })
                 });
                 const data = await res.json();

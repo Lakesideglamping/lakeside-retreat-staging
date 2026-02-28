@@ -674,11 +674,7 @@
     </div>
 
     <script>
-        // Check authentication
-        const token = localStorage.getItem('adminToken');
-        if (!token) {
-            window.location.href = '/admin.html';
-        }
+        // Authentication is handled by admin-shell.js via cookie verification
 
         function openCreateModal() {
             document.getElementById('modalTitle').textContent = 'Create New Promotional Code';
