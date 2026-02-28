@@ -281,6 +281,196 @@
             color: #666;
             margin-top: 0.5rem;
         }
+
+        /* Booking Detail Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-dialog {
+            background: white;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 620px;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid #eee;
+            position: sticky;
+            top: 0;
+            background: white;
+            border-radius: 12px 12px 0 0;
+            z-index: 1;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 1.25rem;
+            color: #2d5a5a;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #999;
+            padding: 0.25rem 0.5rem;
+            line-height: 1;
+        }
+
+        .modal-close:hover {
+            color: #333;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .modal-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .modal-section h3 {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #2d5a5a;
+            margin: 0 0 0.75rem 0;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #2d5a5a;
+        }
+
+        .detail-row {
+            display: flex;
+            padding: 0.4rem 0;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 0.925rem;
+        }
+
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+
+        .detail-label {
+            width: 140px;
+            min-width: 140px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .detail-value {
+            flex: 1;
+            word-break: break-word;
+        }
+
+        .payment-badge {
+            display: inline-block;
+            padding: 0.15rem 0.6rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .payment-succeeded {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .payment-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .payment-failed {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .sync-status {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            border-radius: 8px;
+            font-size: 0.925rem;
+        }
+
+        .sync-ok {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .sync-warn {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .sync-pending {
+            background: #f0f0f0;
+            color: #666;
+        }
+
+        .btn-retry-sync {
+            background: #2d5a5a;
+            color: white;
+            border: none;
+            padding: 0.4rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .btn-retry-sync:hover {
+            background: #1e4040;
+        }
+
+        .btn-retry-sync:disabled {
+            background: #999;
+            cursor: not-allowed;
+        }
+
+        .btn-receipt {
+            display: inline-block;
+            background: #17a2b8;
+            color: white;
+            text-decoration: none;
+            padding: 0.3rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .btn-receipt:hover {
+            background: #138496;
+        }
+
+        .modal-loading {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+        }
     </style>
 </head>
 <body>
@@ -475,9 +665,9 @@
                     <td><span class="source-badge source-${booking.booking_source || 'unknown'}">${formatSource(booking.booking_source)}</span></td>
                     <td>
                         <div class="actions">
-                            <button class="btn-action btn-view" onclick="viewBooking(${booking.id})">View</button>
-                            <button class="btn-action btn-edit" onclick="editBooking(${booking.id})">Edit</button>
-                            <button class="btn-action btn-cancel" onclick="cancelBooking(${booking.id})">Cancel</button>
+                            <button class="btn-action btn-view" onclick="viewBooking('${booking.id}')">View</button>
+                            <button class="btn-action btn-edit" onclick="editBooking('${booking.id}')">Edit</button>
+                            <button class="btn-action btn-cancel" onclick="cancelBooking('${booking.id}')">Cancel</button>
                         </div>
                     </td>
                 </tr>
@@ -517,46 +707,157 @@
         }
 
         async function viewBooking(id) {
+            // Show modal immediately with loading state
+            const modal = document.getElementById('bookingModal');
+            const modalBody = document.getElementById('modalBody');
+            modal.style.display = 'flex';
+            modalBody.innerHTML = '<div class="modal-loading">Loading booking details...</div>';
+
             try {
                 const response = await fetch(`/api/admin/booking/${id}`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
+                    headers: { 'Authorization': `Bearer ${token}` }
                 });
-                
-                if (!response.ok) {
-                    throw new Error('Failed to load booking details');
-                }
-                
+
+                if (!response.ok) throw new Error('Failed to load booking details');
+
                 const data = await response.json();
                 const booking = data.booking || data;
-                
-                const details = `
-Booking #${booking.id}
-━━━━━━━━━━━━━━━━━━━━━━
-Guest: ${booking.guest_name || 'N/A'}
-Email: ${booking.guest_email || 'N/A'}
-Phone: ${booking.guest_phone || 'N/A'}
+                const esc = (s) => s ? String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') : 'N/A';
 
-Accommodation: ${booking.accommodation || 'N/A'}
-Check-in: ${formatDate(booking.check_in)}
-Check-out: ${formatDate(booking.check_out)}
-Guests: ${booking.guests || 'N/A'}
+                document.getElementById('modalTitle').textContent = `Booking #${booking.id}`;
 
-Total: $${booking.total_price || 0}
-Status: ${booking.status || 'N/A'}
-Payment: ${booking.payment_status || 'N/A'}
+                let html = `
+                    <div class="modal-section">
+                        <h3>Guest Information</h3>
+                        <div class="detail-row"><span class="detail-label">Name</span><span class="detail-value">${esc(booking.guest_name)}</span></div>
+                        <div class="detail-row"><span class="detail-label">Email</span><span class="detail-value">${esc(booking.guest_email)}</span></div>
+                        <div class="detail-row"><span class="detail-label">Phone</span><span class="detail-value">${esc(booking.guest_phone) || 'N/A'}</span></div>
+                    </div>
 
-Created: ${booking.created_at ? formatDate(booking.created_at) : 'N/A'}
-${booking.special_requests ? `\nSpecial Requests: ${booking.special_requests}` : ''}
-                `.trim();
-                
-                alert(details);
+                    <div class="modal-section">
+                        <h3>Stay Details</h3>
+                        <div class="detail-row"><span class="detail-label">Accommodation</span><span class="detail-value">${esc(booking.accommodation)}</span></div>
+                        <div class="detail-row"><span class="detail-label">Check-in</span><span class="detail-value">${formatDate(booking.check_in)}</span></div>
+                        <div class="detail-row"><span class="detail-label">Check-out</span><span class="detail-value">${formatDate(booking.check_out)}</span></div>
+                        <div class="detail-row"><span class="detail-label">Guests</span><span class="detail-value">${booking.guests || 'N/A'}</span></div>
+                        <div class="detail-row"><span class="detail-label">Total</span><span class="detail-value"><strong>$${booking.total_price || 0}</strong></span></div>
+                        <div class="detail-row"><span class="detail-label">Status</span><span class="detail-value"><span class="status ${booking.status}">${booking.status}</span></span></div>
+                        <div class="detail-row"><span class="detail-label">Source</span><span class="detail-value"><span class="source-badge source-${booking.booking_source || 'unknown'}">${formatSource(booking.booking_source)}</span></span></div>
+                        <div class="detail-row"><span class="detail-label">Created</span><span class="detail-value">${booking.created_at ? formatDate(booking.created_at) : 'N/A'}</span></div>
+                        ${booking.notes ? `<div class="detail-row"><span class="detail-label">Notes</span><span class="detail-value">${esc(booking.notes)}</span></div>` : ''}
+                    </div>
+                `;
+
+                // Stripe Payment Section
+                html += '<div class="modal-section"><h3>Payment</h3>';
+                if (booking.stripe_session_id) {
+                    html += `<div class="detail-row"><span class="detail-label">Payment Status</span><span class="detail-value"><span class="payment-badge payment-${booking.payment_status === 'completed' ? 'succeeded' : booking.payment_status}">${booking.payment_status || 'unknown'}</span></span></div>`;
+                    html += `<div class="detail-row"><span class="detail-label">Stripe ID</span><span class="detail-value" style="font-family:monospace;font-size:0.85rem">${esc(booking.stripe_payment_id || booking.stripe_session_id)}</span></div>`;
+                    html += '<div id="stripeDetailsLoading" class="detail-row"><span class="detail-label">Receipt</span><span class="detail-value" style="color:#999">Loading Stripe details...</span></div>';
+                    html += '</div>';
+
+                    // Fetch Stripe details async
+                    modalBody.innerHTML = html + buildSyncSection(booking);
+                    fetchStripeDetails(booking.stripe_session_id);
+                } else {
+                    html += `<div class="detail-row"><span class="detail-label">Payment Status</span><span class="detail-value"><span class="payment-badge payment-${booking.payment_status === 'completed' ? 'succeeded' : (booking.payment_status || 'pending')}">${booking.payment_status || 'N/A'}</span></span></div>`;
+                    html += '<div class="detail-row"><span class="detail-label">Stripe</span><span class="detail-value" style="color:#999">No Stripe payment (external/manual booking)</span></div>';
+                    html += '</div>';
+                    modalBody.innerHTML = html + buildSyncSection(booking);
+                }
+
+                if (!booking.stripe_session_id) {
+                    modalBody.innerHTML = html + buildSyncSection(booking);
+                }
+
             } catch (error) {
                 console.error('Error viewing booking:', error);
-                alert('Failed to load booking details. Please try again.');
+                modalBody.innerHTML = '<div class="modal-loading" style="color:#dc3545">Failed to load booking details. Please try again.</div>';
             }
         }
+
+        function buildSyncSection(booking) {
+            let html = '<div class="modal-section"><h3>Uplisting Sync</h3>';
+            if (booking.uplisting_id) {
+                html += `<div class="sync-status sync-ok">✅ Synced to Uplisting (ID: ${booking.uplisting_id})</div>`;
+            } else if (booking.payment_status === 'completed') {
+                html += `<div class="sync-status sync-warn">⚠️ Not synced to Uplisting <button id="retrySyncBtn" class="btn-retry-sync" onclick="retrySyncBooking('${booking.id}')">Retry Sync</button></div>`;
+            } else {
+                html += '<div class="sync-status sync-pending">⏳ Pending payment — will sync after payment completes</div>';
+            }
+            html += '</div>';
+            return html;
+        }
+
+        async function fetchStripeDetails(sessionId) {
+            try {
+                const response = await fetch(`/api/admin/stripe-payment/${sessionId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!response.ok) throw new Error('Failed to fetch Stripe details');
+                const data = await response.json();
+
+                const el = document.getElementById('stripeDetailsLoading');
+                if (!el) return;
+
+                let receiptHtml = '';
+                if (data.payment?.receipt_url) {
+                    receiptHtml = `<a href="${data.payment.receipt_url}" target="_blank" rel="noopener" class="btn-receipt">View Receipt ↗</a>`;
+                } else {
+                    receiptHtml = '<span style="color:#999">No receipt available</span>';
+                }
+
+                el.innerHTML = `<span class="detail-label">Receipt</span><span class="detail-value">${receiptHtml}</span>`;
+
+                // Add refund info if applicable
+                if (data.payment?.refunded) {
+                    const refundRow = document.createElement('div');
+                    refundRow.className = 'detail-row';
+                    refundRow.innerHTML = `<span class="detail-label">Refunded</span><span class="detail-value"><span class="payment-badge payment-failed">$${data.payment.refund_amount} refunded</span></span>`;
+                    el.parentNode.insertBefore(refundRow, el.nextSibling);
+                }
+            } catch (error) {
+                console.log('Could not load Stripe details:', error);
+                const el = document.getElementById('stripeDetailsLoading');
+                if (el) {
+                    el.innerHTML = '<span class="detail-label">Receipt</span><span class="detail-value" style="color:#999">Could not load Stripe details</span>';
+                }
+            }
+        }
+
+        async function retrySyncBooking(bookingId) {
+            const btn = document.getElementById('retrySyncBtn');
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = 'Syncing...';
+            }
+            try {
+                const response = await fetch(`/api/admin/retry-sync/${bookingId}`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                if (data.success) {
+                    viewBooking(bookingId); // Refresh modal
+                    loadBookings(); // Refresh table
+                } else {
+                    alert('Sync failed: ' + (data.error || 'Unknown error'));
+                    if (btn) { btn.disabled = false; btn.textContent = 'Retry Sync'; }
+                }
+            } catch (error) {
+                alert('Sync failed: ' + error.message);
+                if (btn) { btn.disabled = false; btn.textContent = 'Retry Sync'; }
+            }
+        }
+
+        function closeBookingModal() {
+            document.getElementById('bookingModal').style.display = 'none';
+        }
+
+        // Close modal on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeBookingModal();
+        });
 
         function editBooking(id) {
             window.location.href = `/edit-booking.html?id=${id}`;
@@ -699,5 +1000,18 @@ ${booking.special_requests ? `\nSpecial Requests: ${booking.special_requests}` :
         loadBookings();
     </script>
     <script src="/admin-shell.js?v=2"></script>
+
+    <!-- Booking Detail Modal -->
+    <div id="bookingModal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeBookingModal()">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h2 id="modalTitle">Booking Details</h2>
+                <button class="modal-close" onclick="closeBookingModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <div class="modal-loading">Loading booking details...</div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
