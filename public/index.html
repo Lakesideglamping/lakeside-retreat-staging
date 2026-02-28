@@ -6476,7 +6476,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Real availability check via backend API
             let isAvailable = false;
             try {
-                const token = csrfToken || await getCSRFToken();
+                const token = await getCSRFToken();
                 const response = await fetch('/api/availability', {
                     method: 'POST',
                     credentials: 'include',
@@ -6968,7 +6968,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             try {
-                const token = csrfToken || await getCSRFToken();
+                const token = await getCSRFToken();
                 const headers = {
                     'Content-Type': 'application/json',
                     'X-CSRF-Token': token,
