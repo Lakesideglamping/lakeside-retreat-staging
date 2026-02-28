@@ -16,7 +16,7 @@
     
     <!-- Dome Pinot Images -->
     <image:image>
-      <image:loc>https://lakesideretreat.co.nz/images/dome-pinot-exterior.jpg</image:loc>
+      <image:loc>https://lakesideretreat.co.nz/images/dome-pinot-hero.jpeg</image:loc>
       <image:title>Dome Pinot - Luxury Geodesic Dome Accommodation</image:title>
       <image:caption>50sqm luxury geodesic dome with vineyard views and private spa bath in Central Otago</image:caption>
       <image:geo_location>Cromwell, Central Otago, New Zealand</image:geo_location>
@@ -39,7 +39,7 @@
     
     <!-- Lakeside Cottage Images -->
     <image:image>
-      <image:loc>https://lakesideretreat.co.nz/images/lakeside-cottage-lake-view.jpg</image:loc>
+      <image:loc>https://lakesideretreat.co.nz/images/lakeside-cottage-exterior.jpeg</image:loc>
       <image:title>Lakeside Cottage - Family Accommodation on Lake Dunstan</image:title>
       <image:caption>Pet-friendly family cottage with direct Lake Dunstan access and stunning views</image:caption>
       <image:geo_location>Cromwell, Central Otago, New Zealand</image:geo_location>
@@ -47,7 +47,7 @@
     
     <!-- Solar/Sustainability Images -->
     <image:image>
-      <image:loc>https://lakesideretreat.co.nz/images/solar-panels.jpg</image:loc>
+      <image:loc>https://lakesideretreat.co.nz/images/solarpanel.jpeg</image:loc>
       <image:title>16.72kW Solar Power System - Sustainable Accommodation</image:title>
       <image:caption>Commercial-grade 16.72kW solar array powering New Zealand's first energy-positive glamping</image:caption>
       <image:geo_location>Cromwell, Central Otago, New Zealand</image:geo_location>
@@ -62,7 +62,7 @@
     </image:image>
     
     <image:image>
-      <image:loc>https://lakesideretreat.co.nz/images/cycle-trail.jpg</image:loc>
+      <image:loc>https://lakesideretreat.co.nz/images/vineyard-path.jpg</image:loc>
       <image:title>Otago Rail Trail Access - 300m from Accommodation</image:title>
       <image:caption>Direct access to the famous Otago Rail Trail for cycling through Central Otago wine country</image:caption>
       <image:geo_location>Cromwell, Central Otago, New Zealand</image:geo_location>

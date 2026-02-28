@@ -124,9 +124,9 @@ document.addEventListener('DOMContentLoaded', () => {
       "url": "https://lakesideretreat.co.nz/",
       "logo": "https://lakesideretreat.co.nz/images/logo.png",
       "image": [
-        "https://lakesideretreat.co.nz/images/dome-pinot-exterior.jpg",
+        "https://lakesideretreat.co.nz/images/dome-pinot-hero.jpeg",
         "https://lakesideretreat.co.nz/images/dome-rose-spa1.jpg",
-        "https://lakesideretreat.co.nz/images/lakeside-cottage-lake-view.jpg"
+        "https://lakesideretreat.co.nz/images/lakeside-cottage-exterior.jpeg"
       ],
       "telephone": "+64-21-368-682",
       "email": "info@lakesideretreat.co.nz",
@@ -677,25 +677,25 @@ document.addEventListener('DOMContentLoaded', () => {
         // Carousel-specific image arrays
         const carouselImages = {
             'pinot': [
-                'images/Desktop/pinot-internal.jpeg',
-                'images/Desktop/Pinotfront.jpeg',
-                'images/Desktop/windowview.jpeg',
-                'images/Desktop/pinotspa.jpeg',
-                'images/Desktop/GallerySwingChair.jpeg'
+                'images/pinot-internal.jpeg',
+                'images/Pinotfront.jpeg',
+                'images/windowview.jpeg',
+                'images/pinotspa.jpeg',
+                'images/GallerySwingChair.jpeg'
             ],
             'rose': [
-                'images/Desktop/IMG_E8919-1000x700.jpeg',
-                'images/Desktop/IMG_1403-1000x700.jpeg',
-                'images/Desktop/rosespa.jpeg',
-                'images/Desktop/gallerydecksitting.jpeg',
-                'images/Desktop/dome-rose-interior.jpeg'
+                'images/IMG_E8919-1000x700.jpeg',
+                'images/IMG_1403-1000x700.jpeg',
+                'images/rosespa.jpeg',
+                'images/gallerydecksitting.jpeg',
+                'images/dome-rose-interior.jpeg'
             ],
             'cottage': [
-                'images/Desktop/lakeside-cottage-exterior.jpeg',
-                'images/Desktop/cottage.jpg',
-                'images/Desktop/Hottub1000x700.jpeg',
-                'images/Desktop/cottagebathroom.jpeg',
-                'images/Desktop/cottagebedroom.jpeg'
+                'images/lakeside-cottage-exterior.jpeg',
+                'images/cottage.jpg',
+                'images/Hottub1000x700.jpeg',
+                'images/cottagebathroom.jpeg',
+                'images/cottagebedroom.jpeg'
             ]
         };
 
