@@ -42,7 +42,7 @@ const bookingLimiter = rateLimit({
 function createBookingRoutes(deps) {
     const {
         db, stripe, DEV_MODE, bookingQueue, paymentQueue,
-        database,
+        database, checkAvailability,
         tracking: { trackBookingStart, trackBookingStep, trackBookingSuccess, trackBookingFailure }
     } = deps;
 
@@ -95,32 +95,16 @@ function createBookingRoutes(deps) {
         }
 
         try {
-            const sql = `
-                SELECT COUNT(*) as count 
-                FROM bookings 
-                WHERE accommodation = ? 
-                AND status IN ('confirmed', 'pending')
-                AND (
-                    (check_in <= ? AND check_out > ?) OR
-                    (check_in < ? AND check_out >= ?) OR
-                    (check_in >= ? AND check_out <= ?)
-                )
-            `;
+            const isAvailable = checkAvailability
+                ? await checkAvailability(accommodation, checkIn, checkOut)
+                : true;
 
-            db().get(sql, [accommodation, checkIn, checkIn, checkOut, checkOut, checkIn, checkOut], (err, row) => {
-                if (err) {
-                    console.error('Error checking availability:', err);
-                    return res.status(503).json({ success: false, available: false, error: 'Service temporarily unavailable' });
-                }
+            console.log(`📅 Availability check for ${accommodation}: ${checkIn} to ${checkOut} - ${isAvailable ? 'AVAILABLE' : 'NOT AVAILABLE'}`);
 
-                const isAvailable = row.count === 0;
-                console.log(`📅 Availability check for ${accommodation}: ${checkIn} to ${checkOut} - ${isAvailable ? 'AVAILABLE' : 'NOT AVAILABLE'}`);
-
-                res.json({
-                    success: true,
-                    available: isAvailable,
-                    source: 'local-database'
-                });
+            res.json({
+                success: true,
+                available: isAvailable,
+                source: checkAvailability ? 'uplisting+local' : 'default'
             });
         } catch (error) {
             console.error('Error in availability endpoint:', error);
