@@ -457,8 +457,11 @@ app.use(express.static(path.join(__dirname, 'public'), {
             // CSS: cache for 30 days
             res.setHeader('Cache-Control', 'public, max-age=2592000');
         } else if (filePath.endsWith('.html')) {
-            // HTML: shorter cache for dynamic content
-            res.setHeader('Cache-Control', 'public, max-age=3600');
+            // HTML: short cache so deploys take effect quickly
+            res.setHeader('Cache-Control', 'public, max-age=60');
+        } else if (filePath.endsWith('.js')) {
+            // JS: short cache so deploys take effect quickly
+            res.setHeader('Cache-Control', 'public, max-age=60');
         }
     }
 }));
