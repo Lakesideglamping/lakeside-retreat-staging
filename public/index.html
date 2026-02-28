@@ -5527,7 +5527,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 }
 </script>
-<script>
 
 <script type="application/ld+json">
 {
@@ -5566,7 +5565,6 @@ document.addEventListener('DOMContentLoaded', () => {
       ]
     }
 </script>
-<script>
 
 <script type="application/ld+json">
 {
@@ -5617,7 +5615,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }]
     }
 </script>
-<script>
 
 <script type="application/ld+json">
 {
@@ -5641,7 +5638,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }]
     }
 </script>
-<script>
 
 <script type="application/ld+json">
 {
@@ -5660,7 +5656,6 @@ document.addEventListener('DOMContentLoaded', () => {
       ]
     }
 </script>
-<script>
 
 <script type="application/ld+json">
 {
@@ -6034,7 +6029,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // CSRF Token Management
         let csrfToken = '';
 
-        async window.getCSRFToken = function() {
+        window.getCSRFToken = async function() {
           try {
             const response = await fetch('/api/csrf-token', {
               credentials: 'include'
@@ -6450,7 +6445,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // INSTANT BOOKING: Combined availability check, pricing, and immediate payment
-        async window.instantBookingWithPayment = function() {
+        window.instantBookingWithPayment = async function() {
             // Console statement removed for production
             // Console statement removed for production
             // Console statement removed for production
@@ -6966,7 +6961,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // BUTTON 3: Process booking and show confirmation
-        async window.processBookingAndConfirm = function() {
+        window.processBookingAndConfirm = async function() {
             // Collect guest data
             const guestData = {
                 firstName: document.getElementById('guestFirstName').value,
