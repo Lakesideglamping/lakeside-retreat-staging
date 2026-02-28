@@ -2668,9 +2668,7 @@
                         </div>
                     </div>
 
-                    <div style="background: #fee2e2; border: 1px solid #f87171; padding: 1rem; border-radius: 10px; margin: 1.5rem 0;">
-                        <p style="margin: 0; color: #dc2626; font-size: 0.9rem;"><strong>Payment Integration:</strong> This demo shows the booking flow. In production, this would integrate with Stripe/PayPal for secure payment processing.</p>
-                    </div>
+                    <!-- Payment processed securely via Stripe -->
 
                     <div id="bookingResultSection">
                         <!-- This will show either booking success or form for additional info -->
@@ -6475,13 +6473,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Console statement removed for production
 
-            // Simulate API call to Uplisting
-            await new Promise(resolve => setTimeout(resolve, 1500));
-
-            // Mock availability check (90% chance of availability)
-            const isAvailable = Math.random() > 0.1;
-            
-            // Console statement removed for production
+            // Real availability check via backend API
+            let isAvailable = false;
+            try {
+                const token = csrfToken || await getCSRFToken();
+                const response = await fetch('/api/availability', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': token,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({
+                        accommodation: selectedAccommodation,
+                        checkIn: bookingData.checkin,
+                        checkOut: bookingData.checkout
+                    })
+                });
+                const result = await response.json();
+                isAvailable = result.success && result.available;
+            } catch (err) {
+                console.error('Availability check failed:', err);
+                isAvailable = false;
+            }
             
             if (isAvailable) {
                 // Console statement removed for production
@@ -6926,7 +6941,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // BUTTON 3: Process booking and show confirmation
         window.processBookingAndConfirm = async function() {
-            // Collect guest data
             const guestData = {
                 firstName: document.getElementById('guestFirstName').value,
                 lastName: document.getElementById('guestLastName').value,
@@ -6935,53 +6949,100 @@ document.addEventListener('DOMContentLoaded', () => {
                 specialRequests: document.getElementById('specialRequests').value
             };
 
-            // Validate required fields first
             if (!guestData.firstName || !guestData.lastName || !guestData.email || !guestData.phone) {
                 alert('Please fill in all required fields');
                 return;
             }
 
-            // Validate email format
             const emailInput = document.getElementById('guestEmail');
             if (!validateEmail(emailInput)) {
                 return;
             }
 
-            // Update button state
-            const button = event.target;
-            button.innerHTML = 'Processing Booking with Uplisting <span class="loading-spinner"></span>';
-            button.disabled = true;
+            // Find the Confirm & Pay button
+            const buttons = document.querySelectorAll('.btn-primary');
+            const button = Array.from(buttons).find(b => b.textContent.includes('Confirm'));
+            if (button) {
+                button.innerHTML = 'Processing Booking... <span class="loading-spinner"></span>';
+                button.disabled = true;
+            }
 
-            // Simulate booking API call to Uplisting
-            await new Promise(resolve => setTimeout(resolve, 3000));
+            try {
+                const token = csrfToken || await getCSRFToken();
+                const headers = {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': token,
+                    'X-Requested-With': 'XMLHttpRequest'
+                };
 
-            // Mock successful booking
-            const bookingReference = 'LR' + Date.now().toString().slice(-6);
-            
-            // Show success directly in step 3
-            document.getElementById('bookingResultSection').innerHTML = `
-                <div class="booking-success">
-                    <div class="success-icon">✅</div>
-                    <h3 style="color: var(--brand-teal); margin-bottom: 1rem;">Booking Confirmed!</h3>
-                    <p>Thank you for choosing Lakeside Retreat. You'll receive a confirmation email shortly with all the details for your stay.</p>
-                    <div style="background: #FAF4F5; padding: 1rem; border-radius: 10px; margin: 1.5rem 0;">
-                        <p><strong>Booking Reference:</strong> ${bookingReference}</p>
-                        <p><strong>Total Paid (incl. GST):</strong> ${bookingData.total} NZD</p>
-                        <p><strong>Confirmation sent to:</strong> ${guestData.email}</p>
+                // Step 1: Create booking in database
+                const bookingResponse = await fetch('/api/bookings', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers,
+                    body: JSON.stringify({
+                        firstName: guestData.firstName,
+                        lastName: guestData.lastName,
+                        email: guestData.email,
+                        phone: guestData.phone,
+                        accommodation: bookingData.accommodation,
+                        checkin: bookingData.checkin,
+                        checkout: bookingData.checkout,
+                        guests: bookingData.adults,
+                        totalAmount: bookingData.total,
+                        specialRequests: guestData.specialRequests
+                    })
+                });
+
+                const bookingResult = await bookingResponse.json();
+
+                if (!bookingResult.success) {
+                    throw new Error(bookingResult.error?.message || 'Failed to create booking');
+                }
+
+                const bookingId = bookingResult.data.booking.id;
+
+                // Step 2: Create Stripe payment session
+                const paymentResponse = await fetch('/api/payments/create-session', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers,
+                    body: JSON.stringify({ bookingId })
+                });
+
+                const paymentResult = await paymentResponse.json();
+
+                if (paymentResult.url) {
+                    // Redirect to Stripe Checkout (or dev success page)
+                    window.location.href = paymentResult.url;
+                    return;
+                }
+
+                // Fallback: show success if no redirect URL (dev mode without Stripe)
+                const bookingReference = bookingId.slice(0, 8).toUpperCase();
+                document.getElementById('bookingResultSection').innerHTML = `
+                    <div class="booking-success">
+                        <div class="success-icon" style="font-size: 3rem;">✅</div>
+                        <h3 style="color: var(--brand-teal); margin-bottom: 1rem;">Booking Created!</h3>
+                        <p>Your booking has been created. ${paymentResult.devMode ? 'Payment processing is in test mode.' : 'You will receive a confirmation email shortly.'}</p>
+                        <div style="background: #FAF4F5; padding: 1rem; border-radius: 10px; margin: 1.5rem 0;">
+                            <p><strong>Booking Reference:</strong> ${bookingReference}</p>
+                            <p><strong>Total:</strong> $${bookingData.total} NZD</p>
+                            <p><strong>Confirmation sent to:</strong> ${guestData.email}</p>
+                        </div>
+                        <button class="btn btn-primary" onclick="closeBookingModal()" style="margin-top: 1rem;">Close & Plan Your Stay</button>
                     </div>
-                    <button class="btn btn-primary" onclick="closeBookingModal()" style="margin-top: 1rem;">Close & Plan Your Stay</button>
-                </div>
-            `;
+                `;
+                if (button) button.parentElement.style.display = 'none';
 
-            // Hide the back/confirm buttons
-            button.parentElement.style.display = 'none';
-
-            // In real implementation, this would:
-            // 1. Process payment through Stripe/PayPal
-            // 2. Create booking in Uplisting via API
-            // 3. Send confirmation emails
-            // 4. Update calendar availability
-            // 5. Sync with all booking platforms
+            } catch (error) {
+                console.error('Booking error:', error);
+                alert('Booking failed: ' + error.message + '. Please try again.');
+                if (button) {
+                    button.innerHTML = 'Confirm & Pay';
+                    button.disabled = false;
+                }
+            }
         }
 
         // === EMAIL VALIDATION FUNCTIONS ===
@@ -7147,6 +7208,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }, 300);
         }
+
+        // Expose to global scope for inline HTML event handlers
+        window.scrollToBookingButton = scrollToBookingButton;
+        window.clearFormError = clearFormError;
+        window.validatePhoneField = validatePhoneField;
 
         // === CONTACT FORM EMAIL HANDLER ===
         
