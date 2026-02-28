@@ -243,12 +243,15 @@ app.use(helmet({
     },
     
     // SECURITY: Content Security Policy — hardened in Phase 5
-    // Inline event handlers (onclick etc.) removed; 'unsafe-inline' no longer needed for scripts.
+    // Inline event handlers (onclick etc.) removed via data-attribute delegation.
+    // 'unsafe-inline' required for script-src because app logic lives in inline <script> blocks.
+    // scriptSrcAttr 'none' still blocks inline event handlers (onclick="...").
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
             scriptSrc: [
                 "'self'",
+                "'unsafe-inline'",
                 "https://js.stripe.com",
                 "https://www.googletagmanager.com",
                 "https://www.google-analytics.com"

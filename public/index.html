@@ -9,13 +9,13 @@
     
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
-<!-- Content Security Policy - Inline event handlers removed; scripts restricted to trusted sources -->
+<!-- Content Security Policy - Inline event handlers blocked via scriptSrcAttr; inline script blocks allowed for app logic -->
 <meta http-equiv="Content-Security-Policy" content="
     default-src 'self';
-    script-src 'self' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://js.stripe.com;
-    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; 
-    font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; 
-    img-src 'self' data: https: blob:; 
+    script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://js.stripe.com;
+    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com;
+    font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com;
+    img-src 'self' data: https: blob:;
     connect-src 'self' https: wss:;
     media-src 'self' https:;
     object-src 'none';
@@ -2294,7 +2294,7 @@
     <link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png">
 
     <!-- Font Awesome -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3HjA1EtLp/XYbECTLiTQ5EjR9IAXY5IjF2yIGLKqmPLkA==" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" crossorigin="anonymous" referrerpolicy="no-referrer">
 
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700&display=swap" rel="stylesheet">
