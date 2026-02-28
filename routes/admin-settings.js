@@ -13,7 +13,7 @@
 const express = require('express');
 const router = express.Router();
 const path = require('path');
-const { verifyAdmin, sanitizeInput } = require('../middleware/auth');
+const { verifyAdmin, sanitizeInput, verifyCsrf } = require('../middleware/auth');
 
 /**
  * @param {Object} deps
@@ -35,13 +35,28 @@ router.get('/api/admin/seasonal-rates', verifyAdmin, (req, res) => {
     });
 });
 
-router.post('/api/admin/seasonal-rates', verifyAdmin, (req, res) => {
+router.post('/api/admin/seasonal-rates', verifyAdmin, verifyCsrf, (req, res) => {
     const { name, start_date, end_date, multiplier, is_active } = req.body;
     
     if (!name || !start_date || !end_date) {
         return res.status(400).json({
             success: false,
             error: 'Missing required fields: name, start_date, end_date'
+        });
+    }
+
+    const startDateObj = new Date(start_date);
+    const endDateObj = new Date(end_date);
+    if (isNaN(startDateObj.getTime()) || isNaN(endDateObj.getTime())) {
+        return res.status(400).json({
+            success: false,
+            error: 'Invalid date format. Use ISO 8601 format (YYYY-MM-DD).'
+        });
+    }
+    if (startDateObj >= endDateObj) {
+        return res.status(400).json({
+            success: false,
+            error: 'Start date must be before end date.'
         });
     }
 
@@ -75,10 +90,26 @@ router.post('/api/admin/seasonal-rates', verifyAdmin, (req, res) => {
     });
 });
 
-router.put('/api/admin/seasonal-rates/:id', verifyAdmin, (req, res) => {
+router.put('/api/admin/seasonal-rates/:id', verifyAdmin, verifyCsrf, (req, res) => {
     const { id } = req.params;
     const { name, start_date, end_date, multiplier, is_active } = req.body;
-    
+
+    // Validate dates
+    const startDateObj = new Date(start_date);
+    const endDateObj = new Date(end_date);
+    if (isNaN(startDateObj.getTime()) || isNaN(endDateObj.getTime())) {
+        return res.status(400).json({
+            success: false,
+            error: 'Invalid date format. Use ISO 8601 format (YYYY-MM-DD).'
+        });
+    }
+    if (startDateObj >= endDateObj) {
+        return res.status(400).json({
+            success: false,
+            error: 'Start date must be before end date.'
+        });
+    }
+
     const sql = `
         UPDATE seasonal_rates 
         SET name = ?, start_date = ?, end_date = ?, multiplier = ?, is_active = ?, updated_at = CURRENT_TIMESTAMP
@@ -104,7 +135,7 @@ router.put('/api/admin/seasonal-rates/:id', verifyAdmin, (req, res) => {
     });
 });
 
-router.delete('/api/admin/seasonal-rates/:id', verifyAdmin, (req, res) => {
+router.delete('/api/admin/seasonal-rates/:id', verifyAdmin, verifyCsrf, (req, res) => {
     const { id } = req.params;
     
     db().run('DELETE FROM seasonal_rates WHERE id = ?', [id], function(err) {
@@ -166,7 +197,7 @@ router.get('/api/admin/gallery', verifyAdmin, (req, res) => {
     });
 });
 
-router.put('/api/admin/gallery/:filename', verifyAdmin, (req, res) => {
+router.put('/api/admin/gallery/:filename', verifyAdmin, verifyCsrf, (req, res) => {
     const { filename } = req.params;
     const { title, description, property, is_hero, is_featured, display_order } = req.body;
     
@@ -263,7 +294,7 @@ router.get('/api/admin/reviews', verifyAdmin, (req, res) => {
     });
 });
 
-router.post('/api/admin/reviews', verifyAdmin, (req, res) => {
+router.post('/api/admin/reviews', verifyAdmin, verifyCsrf, (req, res) => {
     const { guest_name, platform, rating, review_text, stay_date, property } = req.body;
     
     if (!guest_name) {
@@ -291,7 +322,7 @@ router.post('/api/admin/reviews', verifyAdmin, (req, res) => {
     });
 });
 
-router.put('/api/admin/reviews/:id', verifyAdmin, (req, res) => {
+router.put('/api/admin/reviews/:id', verifyAdmin, verifyCsrf, (req, res) => {
     const { id } = req.params;
     const { status, is_featured, admin_notes, admin_response } = req.body;
     
@@ -330,7 +361,7 @@ router.put('/api/admin/reviews/:id', verifyAdmin, (req, res) => {
     });
 });
 
-router.delete('/api/admin/reviews/:id', verifyAdmin, (req, res) => {
+router.delete('/api/admin/reviews/:id', verifyAdmin, verifyCsrf, (req, res) => {
     const { id } = req.params;
     
     db().run('DELETE FROM reviews WHERE id = ?', [id], function(err) {
@@ -369,7 +400,7 @@ router.get('/api/admin/pricing', verifyAdmin, (req, res) => {
 });
 
 // Save pricing for an accommodation
-router.post('/api/admin/pricing', verifyAdmin, (req, res) => {
+router.post('/api/admin/pricing', verifyAdmin, verifyCsrf, (req, res) => {
     const { accommodation, base, weekend, peak, cleaning, minNights } = req.body;
     
     if (!accommodation) {
@@ -437,7 +468,7 @@ router.get('/api/admin/settings', verifyAdmin, (req, res) => {
     });
 });
 
-router.put('/api/admin/settings', verifyAdmin, (req, res) => {
+router.put('/api/admin/settings', verifyAdmin, verifyCsrf, (req, res) => {
     const { settings } = req.body;
     
     if (!settings || typeof settings !== 'object') {
@@ -546,7 +577,7 @@ router.get('/api/admin/backups', verifyAdmin, (req, res) => {
     });
 });
 
-router.post('/api/admin/backups', verifyAdmin, async (req, res) => {
+router.post('/api/admin/backups', verifyAdmin, verifyCsrf, async (req, res) => {
     try {
         const BackupSystem = require('../backup-system');
         const backupSystem = new BackupSystem();
@@ -581,7 +612,7 @@ router.get('/api/admin/backups/:filename', verifyAdmin, (req, res) => {
     res.download(backupPath, filename);
 });
 
-router.delete('/api/admin/backups/:filename', verifyAdmin, (req, res) => {
+router.delete('/api/admin/backups/:filename', verifyAdmin, verifyCsrf, (req, res) => {
     const { filename } = req.params;
     const fs = require('fs');
     const backupPath = path.join('./backups', filename);
@@ -601,6 +632,39 @@ router.delete('/api/admin/backups/:filename', verifyAdmin, (req, res) => {
         }
         res.json({ success: true, message: 'Backup deleted' });
     });
+});
+
+router.post('/api/admin/backups/restore', verifyAdmin, verifyCsrf, async (req, res) => {
+    const { filename } = req.body;
+
+    if (!filename || !filename.match(/^[a-zA-Z0-9_.-]+$/) || filename.includes('..')) {
+        return res.status(400).json({ success: false, error: 'Invalid filename' });
+    }
+
+    const fs = require('fs');
+    const backupPath = path.join('./backups', filename);
+
+    if (!fs.existsSync(backupPath)) {
+        return res.status(404).json({ success: false, error: 'Backup file not found' });
+    }
+
+    try {
+        // For database backups, copy the backup file over the current database
+        if (filename.endsWith('.db')) {
+            const dbPath = process.env.SQLITE_PATH || './lakeside.db';
+            fs.copyFileSync(backupPath, dbPath);
+            res.json({ success: true, message: 'Database backup restored. Please restart the server for changes to take effect.' });
+        } else if (filename.endsWith('.json')) {
+            // JSON backups contain settings/config data
+            const backupData = JSON.parse(fs.readFileSync(backupPath, 'utf8'));
+            res.json({ success: true, message: 'Backup data loaded', data: backupData });
+        } else {
+            res.status(400).json({ success: false, error: 'Unsupported backup format' });
+        }
+    } catch (error) {
+        console.error('Backup restore error:', error);
+        res.status(500).json({ success: false, error: 'Failed to restore backup: ' + error.message });
+    }
 });
 
 

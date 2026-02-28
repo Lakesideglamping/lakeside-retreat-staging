@@ -41,6 +41,36 @@ class UplistingService {
         return `Basic ${Buffer.from(this.apiKey).toString('base64')}`;
     }
 
+    /**
+     * Fetch with exponential backoff retry for transient failures.
+     */
+    async fetchWithRetry(url, options, maxRetries = 3) {
+        for (let attempt = 0; attempt <= maxRetries; attempt++) {
+            try {
+                const response = await fetch(url, options);
+
+                // Don't retry client errors (4xx) except 429
+                if (response.status >= 400 && response.status < 500 && response.status !== 429) {
+                    return response;
+                }
+
+                // Retry on server errors (5xx) and rate limiting (429)
+                if (response.ok || attempt === maxRetries) {
+                    return response;
+                }
+
+                const delay = Math.min(1000 * Math.pow(2, attempt), 10000);
+                console.warn(`⚠️ Uplisting API returned ${response.status}, retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries})`);
+                await new Promise(r => setTimeout(r, delay));
+            } catch (err) {
+                if (attempt === maxRetries) throw err;
+                const delay = Math.min(1000 * Math.pow(2, attempt), 10000);
+                console.warn(`⚠️ Uplisting API network error, retrying in ${delay}ms: ${err.message}`);
+                await new Promise(r => setTimeout(r, delay));
+            }
+        }
+    }
+
     // ==========================================
     // AVAILABILITY
     // ==========================================
@@ -65,7 +95,7 @@ class UplistingService {
             const url = `${UPLISTING_API_BASE}/properties/${propertyId}/availability?start_date=${checkIn}&end_date=${checkOut}`;
             console.log('🔍 Checking Uplisting availability:', url);
 
-            const response = await fetch(url, {
+            const response = await this.fetchWithRetry(url, {
                 method: 'GET',
                 headers: {
                     'Authorization': this.authHeader,
@@ -129,7 +159,7 @@ class UplistingService {
                 notes: bookingData.notes || ''
             };
 
-            const response = await fetch(`${UPLISTING_API_BASE}/bookings`, {
+            const response = await this.fetchWithRetry(`${UPLISTING_API_BASE}/bookings`, {
                 method: 'POST',
                 headers: {
                     'Authorization': this.authHeader,
@@ -156,7 +186,18 @@ class UplistingService {
 
                 return uplistingResponse.id;
             } else {
-                console.error('❌ Failed to sync booking to Uplisting:', response.status);
+                const errorText = await response.text().catch(() => 'Unknown error');
+                console.error('❌ Failed to sync booking to Uplisting:', response.status, errorText);
+                // Track sync failure in database
+                try {
+                    const database = require('../database');
+                    await database.run(
+                        `UPDATE bookings SET notes = COALESCE(notes, '') || ? WHERE id = ?`,
+                        [`\n[Uplisting sync failed at ${new Date().toISOString()}: ${response.status}]`, bookingData.id]
+                    );
+                } catch (dbErr) {
+                    console.error('Failed to track sync failure:', dbErr.message);
+                }
                 return null;
             }
 
@@ -173,7 +214,7 @@ class UplistingService {
         if (!this.isConfigured || !uplistingId) return;
 
         try {
-            const response = await fetch(`${UPLISTING_API_BASE}/bookings/${uplistingId}/cancel`, {
+            const response = await this.fetchWithRetry(`${UPLISTING_API_BASE}/bookings/${uplistingId}/cancel`, {
                 method: 'POST',
                 headers: {
                     'Authorization': this.authHeader,
@@ -216,8 +257,8 @@ class UplistingService {
                 check_out: data.check_out,
                 guests: data.guests,
                 total_price: data.total_amount,
-                status: data.status === 'confirmed' ? 'confirmed' : 'pending',
-                payment_status: data.payment_status || 'completed',
+                status: ['confirmed', 'completed'].includes(data.status) ? 'confirmed' : (data.status === 'cancelled' || data.status === 'declined') ? 'cancelled' : 'pending',
+                payment_status: data.payment_status === 'completed' ? 'completed' : 'pending',
                 notes: sanitizeInput(data.notes || 'Booking from Uplisting'),
                 uplisting_id: data.id,
                 booking_source: channel
@@ -317,7 +358,7 @@ class UplistingService {
 
         try {
             // Get properties
-            const propertiesResponse = await fetch(`${UPLISTING_API_BASE}/properties`, {
+            const propertiesResponse = await this.fetchWithRetry(`${UPLISTING_API_BASE}/properties`, {
                 headers: { 'Authorization': this.authHeader, 'Content-Type': 'application/json' }
             });
 
@@ -332,7 +373,7 @@ class UplistingService {
             const bookingData = { total_bookings: 0, total_revenue: 0, bookings: [] };
 
             try {
-                const bookingsResponse = await fetch(`${UPLISTING_API_BASE}/bookings?per_page=100`, {
+                const bookingsResponse = await this.fetchWithRetry(`${UPLISTING_API_BASE}/bookings?per_page=100`, {
                     headers: { 'Authorization': this.authHeader, 'Content-Type': 'application/json' }
                 });
 
@@ -350,7 +391,7 @@ class UplistingService {
                     // Try per-property bookings as fallback
                     for (const property of (propertiesData.data || []).slice(0, 2)) {
                         try {
-                            const resp = await fetch(
+                            const resp = await this.fetchWithRetry(
                                 `${UPLISTING_API_BASE}/properties/${property.id}/bookings?per_page=50`,
                                 { headers: { 'Authorization': this.authHeader, 'Content-Type': 'application/json' } }
                             );
@@ -409,7 +450,7 @@ class UplistingService {
         if (!this.isConfigured) return null;
 
         try {
-            const response = await fetch(`${UPLISTING_API_BASE}/properties?include=fees,taxes,discounts`, {
+            const response = await this.fetchWithRetry(`${UPLISTING_API_BASE}/properties?include=fees,taxes,discounts`, {
                 headers: { 'Authorization': this.authHeader, 'Content-Type': 'application/json' }
             });
 

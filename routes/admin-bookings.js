@@ -23,10 +23,11 @@
 const express = require('express');
 const router = express.Router();
 const rateLimit = require('express-rate-limit');
+const { adminDestructiveLimiter } = require('../middleware/rate-limit');
 const { body, validationResult } = require('express-validator');
 const { v4: uuidv4 } = require('uuid');
 
-const { verifyAdmin, sendError, sanitizeInput, ERROR_CODES } = require('../middleware/auth');
+const { verifyAdmin, sendError, sanitizeInput, ERROR_CODES, verifyCsrf } = require('../middleware/auth');
 
 // Rate limiter for CSV export: 5 requests per 1 minute per IP
 const csvExportLimit = rateLimit({
@@ -58,6 +59,18 @@ function createAdminBookingRoutes(deps) {
     function auditLog(adminUser, action, details) {
         const timestamp = new Date().toISOString();
         console.log(`[AUDIT] ${timestamp} | ${adminUser} | ${action} | ${JSON.stringify(details)}`);
+        // Persist to database
+        try {
+            db().run(
+                'INSERT INTO audit_logs (admin_user, action, details, created_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)',
+                [adminUser, action, JSON.stringify(details)],
+                (err) => {
+                    if (err) console.error('Failed to persist audit log:', err.message);
+                }
+            );
+        } catch (e) {
+            // Non-fatal: don't break the request if audit logging fails
+        }
     }
 
 // Get all bookings (admin only) - Enhanced with search, filters, and Stripe/Uplisting status
@@ -304,7 +317,7 @@ router.get('/api/admin/booking/:id', verifyAdmin, (req, res) => {
 });
 
 // Update booking (admin only) - full edit
-router.put('/api/admin/booking/:id', verifyAdmin, [
+router.put('/api/admin/booking/:id', verifyAdmin, verifyCsrf, [
     body('guest_name').optional().isLength({ min: 1, max: 200 }).trim(),
     body('guest_email').optional().isEmail().normalizeEmail(),
     body('guest_phone').optional().isLength({ max: 50 }).trim(),
@@ -376,7 +389,7 @@ router.put('/api/admin/booking/:id', verifyAdmin, [
 });
 
 // Update booking status (admin only)
-router.put('/api/admin/booking/:id/status', verifyAdmin, [
+router.put('/api/admin/booking/:id/status', verifyAdmin, verifyCsrf, [
     body('status').isIn(['pending', 'confirmed', 'cancelled', 'completed']),
     body('notes').optional().isLength({ max: 500 }).escape()
 ], async (req, res) => {
@@ -457,7 +470,7 @@ router.put('/api/admin/booking/:id/status', verifyAdmin, [
 });
 
 // Delete booking (admin only)
-router.delete('/api/admin/booking/:id', verifyAdmin, (req, res) => {
+router.delete('/api/admin/booking/:id', verifyAdmin, verifyCsrf, adminDestructiveLimiter, (req, res) => {
     const bookingId = req.params.id;
     
     db().run('DELETE FROM bookings WHERE id = ?', [bookingId], function(err) {
@@ -644,7 +657,7 @@ router.get('/api/admin/uplisting-booking/:bookingId', verifyAdmin, async (req, r
 });
 
 // Process Stripe refund
-router.post('/api/admin/refund/:bookingId', verifyAdmin, async (req, res) => {
+router.post('/api/admin/refund/:bookingId', verifyAdmin, verifyCsrf, adminDestructiveLimiter, async (req, res) => {
     if (!stripe) {
         return res.status(503).json({ success: false, error: 'Stripe not configured' });
     }
@@ -730,7 +743,7 @@ router.post('/api/admin/refund/:bookingId', verifyAdmin, async (req, res) => {
 });
 
 // Retry failed booking sync
-router.post('/api/admin/retry-sync/:bookingId', verifyAdmin, async (req, res) => {
+router.post('/api/admin/retry-sync/:bookingId', verifyAdmin, verifyCsrf, async (req, res) => {
     try {
         const { bookingId } = req.params;
         
@@ -840,7 +853,7 @@ router.get('/api/admin/booking-stats', verifyAdmin, (req, res) => {
 
 // SECURITY DEPOSIT ADMIN ENDPOINTS (Must be after verifyAdmin definition)
 // Admin endpoint to manually claim security deposit
-router.post('/api/admin/claim-deposit/:bookingId', verifyAdmin, async (req, res) => {
+router.post('/api/admin/claim-deposit/:bookingId', verifyAdmin, verifyCsrf, adminDestructiveLimiter, async (req, res) => {
     if (!stripe) {
         return res.status(503).json({ success: false, error: 'Stripe not configured' });
     }
@@ -933,7 +946,7 @@ router.post('/api/admin/claim-deposit/:bookingId', verifyAdmin, async (req, res)
 });
 
 // Admin endpoint to manually release security deposit
-router.post('/api/admin/release-deposit/:bookingId', verifyAdmin, async (req, res) => {
+router.post('/api/admin/release-deposit/:bookingId', verifyAdmin, verifyCsrf, adminDestructiveLimiter, async (req, res) => {
     if (!stripe) {
         return res.status(503).json({ success: false, error: 'Stripe not configured' });
     }
@@ -1007,7 +1020,7 @@ router.post('/api/admin/release-deposit/:bookingId', verifyAdmin, async (req, re
     }
 });
 
-router.post('/api/admin/bookings', verifyAdmin, async (req, res) => {
+router.post('/api/admin/bookings', verifyAdmin, verifyCsrf, async (req, res) => {
     try {
         const {
             guest_name,

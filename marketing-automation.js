@@ -347,26 +347,19 @@ class MarketingAutomation {
 
     // Manually send reminder for a specific booking
     async sendManualReminder(bookingId) {
-        return new Promise(async (resolve, reject) => {
-            try {
-                const booking = await new Promise((res, rej) => {
-                    this.db.get('SELECT * FROM bookings WHERE id = ?', [bookingId], (err, row) => {
-                        if (err) rej(err);
-                        else res(row);
-                    });
-                });
-
-                if (!booking) {
-                    reject(new Error('Booking not found'));
-                    return;
-                }
-
-                await this.sendAbandonedCheckoutReminder(booking);
-                resolve({ success: true, message: 'Reminder sent successfully' });
-            } catch (error) {
-                reject(error);
-            }
+        const booking = await new Promise((res, rej) => {
+            this.db.get('SELECT * FROM bookings WHERE id = ?', [bookingId], (err, row) => {
+                if (err) rej(err);
+                else res(row);
+            });
         });
+
+        if (!booking) {
+            throw new Error('Booking not found');
+        }
+
+        await this.sendAbandonedCheckoutReminder(booking);
+        return { success: true, message: 'Reminder sent successfully' };
     }
 
     // ==========================================
@@ -675,26 +668,19 @@ class MarketingAutomation {
 
     // Manually send review request
     async sendManualReviewRequest(bookingId) {
-        return new Promise(async (resolve, reject) => {
-            try {
-                const booking = await new Promise((res, rej) => {
-                    this.db.get('SELECT * FROM bookings WHERE id = ?', [bookingId], (err, row) => {
-                        if (err) rej(err);
-                        else res(row);
-                    });
-                });
-
-                if (!booking) {
-                    reject(new Error('Booking not found'));
-                    return;
-                }
-
-                await this.sendReviewRequest(booking);
-                resolve({ success: true, message: 'Review request sent successfully' });
-            } catch (error) {
-                reject(error);
-            }
+        const booking = await new Promise((res, rej) => {
+            this.db.get('SELECT * FROM bookings WHERE id = ?', [bookingId], (err, row) => {
+                if (err) rej(err);
+                else res(row);
+            });
         });
+
+        if (!booking) {
+            throw new Error('Booking not found');
+        }
+
+        await this.sendReviewRequest(booking);
+        return { success: true, message: 'Review request sent successfully' };
     }
 
     // ==========================================
@@ -768,14 +754,21 @@ class MarketingAutomation {
         
         // Add hashtags from each category
         Object.values(hashtags).forEach(category => {
-            const shuffled = category.sort(() => 0.5 - Math.random());
+            // Fisher-Yates shuffle
+            const shuffled = [...category];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
             selectedHashtags.push(...shuffled.slice(0, 2));
         });
-        
-        // Shuffle and limit
-        const finalHashtags = selectedHashtags
-            .sort(() => 0.5 - Math.random())
-            .slice(0, hashtagCount);
+
+        // Fisher-Yates shuffle and limit
+        for (let i = selectedHashtags.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [selectedHashtags[i], selectedHashtags[j]] = [selectedHashtags[j], selectedHashtags[i]];
+        }
+        const finalHashtags = selectedHashtags.slice(0, hashtagCount);
 
         // Generate story text (shorter, more punchy)
         const storyTexts = {

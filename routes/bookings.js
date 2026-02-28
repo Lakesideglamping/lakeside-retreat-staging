@@ -438,7 +438,10 @@ function createBookingRoutes(deps) {
                     };
                 }
 
-                const session = await stripe.checkout.sessions.create(sessionConfig);
+                const idempotencyKey = `booking-${bookingId}-${Date.now()}`;
+                const session = await stripe.checkout.sessions.create(sessionConfig, {
+                    idempotencyKey
+                });
 
                 // Store Stripe session ID on the booking. If this fails, the webhook
                 // can still match via metadata.bookingId, so we log but don't block.
@@ -512,6 +515,49 @@ function createBookingRoutes(deps) {
                 }
             });
         });
+    });
+
+    // Verify booking payment status (for confirmation page)
+    router.get('/api/booking/:id/payment-status', async (req, res) => {
+        try {
+            const bookingId = req.params.id;
+
+            if (!bookingId || bookingId.length < 10) {
+                return res.status(400).json({ success: false, error: 'Invalid booking ID' });
+            }
+
+            const booking = await new Promise((resolve, reject) => {
+                db().get(
+                    'SELECT id, status, payment_status, guest_name, accommodation, check_in, check_out, total_price FROM bookings WHERE id = ?',
+                    [bookingId],
+                    (err, row) => {
+                        if (err) reject(err);
+                        else resolve(row);
+                    }
+                );
+            });
+
+            if (!booking) {
+                return res.status(404).json({ success: false, error: 'Booking not found' });
+            }
+
+            res.json({
+                success: true,
+                booking: {
+                    id: booking.id,
+                    status: booking.status,
+                    payment_status: booking.payment_status,
+                    guest_name: booking.guest_name,
+                    accommodation: booking.accommodation,
+                    check_in: booking.check_in,
+                    check_out: booking.check_out,
+                    total_price: booking.total_price
+                }
+            });
+        } catch (error) {
+            console.error('Payment status check error:', error);
+            res.status(500).json({ success: false, error: 'Failed to check payment status' });
+        }
     });
 
     return router;

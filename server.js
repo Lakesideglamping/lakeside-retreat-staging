@@ -947,8 +947,71 @@ async function handleStripeWebhook(event, res) {
                 return res.status(500).json({ error: 'Database update failed' });
             }
         }
+    } else if (event.type === 'charge.refunded') {
+        const charge = event.data.object;
+        const refundAmount = (charge.amount_refunded / 100).toFixed(2);
+        try {
+            await new Promise((resolve, reject) => {
+                db.run(
+                    `UPDATE bookings SET payment_status = 'refunded', notes = COALESCE(notes, '') || ? WHERE stripe_payment_id = ?`,
+                    [`\n[Refunded: $${refundAmount} NZD - ${new Date().toISOString()}]`, charge.payment_intent],
+                    function(err) { if (err) reject(err); else resolve(); }
+                );
+            });
+            console.log(`[WEBHOOK] Refund recorded: $${refundAmount} for payment ${charge.payment_intent}`);
+        } catch (err) {
+            console.error('[WEBHOOK] Failed to record refund:', err.message);
+        }
+        db.run('INSERT OR IGNORE INTO processed_webhook_events (event_id) VALUES (?)', [event.id]);
+
+    } else if (event.type === 'charge.dispute.created') {
+        const dispute = event.data.object;
+        const disputeAmount = (dispute.amount / 100).toFixed(2);
+        console.warn(`[CHARGEBACK] Dispute created: ${dispute.id}, amount: $${disputeAmount}, reason: ${dispute.reason}`);
+        try {
+            await new Promise((resolve, reject) => {
+                db.run(
+                    `UPDATE bookings SET notes = COALESCE(notes, '') || ? WHERE stripe_payment_id = ?`,
+                    [`\n[DISPUTE: $${disputeAmount} - ${dispute.reason} - ${new Date().toISOString()}]`, dispute.payment_intent],
+                    function(err) { if (err) reject(err); else resolve(); }
+                );
+            });
+        } catch (err) {
+            console.error('[WEBHOOK] Failed to record dispute:', err.message);
+        }
+        if (emailNotifications) {
+            try {
+                emailNotifications.sendSystemAlert('Payment Dispute Alert',
+                    `A chargeback/dispute has been filed.\nAmount: $${disputeAmount}\nReason: ${dispute.reason}\nDispute ID: ${dispute.id}`
+                );
+            } catch (emailErr) {
+                console.error('[WEBHOOK] Failed to send dispute alert email:', emailErr.message);
+            }
+        }
+        db.run('INSERT OR IGNORE INTO processed_webhook_events (event_id) VALUES (?)', [event.id]);
+
+    } else if (event.type === 'payment_intent.payment_failed') {
+        const paymentIntent = event.data.object;
+        const failureMessage = paymentIntent.last_payment_error?.message || 'Unknown failure';
+        console.warn(`[WEBHOOK] Payment failed: ${paymentIntent.id}, reason: ${failureMessage}`);
+        try {
+            const bookingId = paymentIntent.metadata?.bookingId;
+            if (bookingId) {
+                await new Promise((resolve, reject) => {
+                    db.run(
+                        `UPDATE bookings SET payment_status = 'failed', notes = COALESCE(notes, '') || ? WHERE id = ?`,
+                        [`\n[Payment failed: ${failureMessage} - ${new Date().toISOString()}]`, bookingId],
+                        function(err) { if (err) reject(err); else resolve(); }
+                    );
+                });
+            }
+        } catch (err) {
+            console.error('[WEBHOOK] Failed to record payment failure:', err.message);
+        }
+        db.run('INSERT OR IGNORE INTO processed_webhook_events (event_id) VALUES (?)', [event.id]);
+
     } else {
-        // Non-checkout events: record as processed
+        // Other events: record as processed
         db.run('INSERT OR IGNORE INTO processed_webhook_events (event_id) VALUES (?)', [event.id]);
     }
 

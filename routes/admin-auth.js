@@ -515,6 +515,16 @@ function createAdminAuthRoutes(deps) {
             // Also update process.env for the current running session
             process.env.ADMIN_PASSWORD_HASH = newHash;
 
+            // Blacklist the current token to force re-login
+            let currentToken = req.headers.authorization?.split(' ')[1];
+            if (!currentToken) {
+                const cookies = parseCookies(req);
+                currentToken = cookies['auth-token'];
+            }
+            if (currentToken) {
+                blacklistToken(currentToken);
+            }
+
             res.json({ success: true, message: 'Password changed successfully' });
         } catch (error) {
             console.error('Change password error:', error);

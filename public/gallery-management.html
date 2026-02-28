@@ -400,22 +400,54 @@
 
         async function editImage(filename) {
             const title = prompt('Enter image title:');
-            if (title) {
-                try {
-                    const response = await fetch(`/api/admin/gallery/${encodeURIComponent(filename)}`, {
-                        method: 'PUT',
-                        credentials: 'same-origin',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ title })
-                    });
-                    const data = await response.json();
-                    if (data.success) {
-                        showAlert('Image updated successfully');
-                        loadGallery();
-                    }
-                } catch (error) {
-                    showAlert('Error updating image', 'error');
+            if (!title) return;
+            try {
+                const csrfRes = await fetch('/api/csrf-token', { credentials: 'same-origin' });
+                const csrfData = await csrfRes.json();
+                const response = await fetch(`/api/admin/gallery/${encodeURIComponent(filename)}`, {
+                    method: 'PUT',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': csrfData.token
+                    },
+                    body: JSON.stringify({ title })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    adminShell.showAlert('Image updated successfully', 'success');
+                    loadGallery();
+                } else {
+                    adminShell.showAlert('Failed to update image: ' + (data.error || 'Unknown error'), 'error');
                 }
+            } catch (err) {
+                adminShell.showAlert('Error updating image: ' + err.message, 'error');
+            }
+        }
+
+        async function deleteImage(filename) {
+            if (!confirm('Are you sure you want to remove this image from the gallery? The file will not be deleted from the server.')) return;
+            try {
+                const csrfRes = await fetch('/api/csrf-token', { credentials: 'same-origin' });
+                const csrfData = await csrfRes.json();
+                const response = await fetch(`/api/admin/gallery/${encodeURIComponent(filename)}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': csrfData.token
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ title: '[REMOVED]', is_hero: false, is_featured: false, display_order: -1 })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    adminShell.showAlert('Image removed from gallery', 'success');
+                    loadGallery();
+                } else {
+                    adminShell.showAlert('Failed to remove image: ' + (data.error || 'Unknown error'), 'error');
+                }
+            } catch (err) {
+                adminShell.showAlert('Error removing image: ' + err.message, 'error');
             }
         }
 

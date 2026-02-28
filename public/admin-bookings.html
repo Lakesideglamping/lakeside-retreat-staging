@@ -822,9 +822,15 @@
                 btn.textContent = 'Syncing...';
             }
             try {
+                const csrfRes = await fetch('/api/csrf-token', { credentials: 'same-origin' });
+                const csrfData = await csrfRes.json();
+
                 const response = await fetch(`/api/admin/retry-sync/${bookingId}`, {
                     method: 'POST',
-                    credentials: 'same-origin'
+                    credentials: 'same-origin',
+                    headers: {
+                        'X-CSRF-Token': csrfData.csrfToken
+                    }
                 });
                 const data = await response.json();
                 if (data.success) {
@@ -857,11 +863,17 @@
             if (!confirm('Are you sure you want to cancel this booking? This action cannot be undone.')) {
                 return;
             }
-            
+
             try {
+                const csrfRes = await fetch('/api/csrf-token', { credentials: 'same-origin' });
+                const csrfData = await csrfRes.json();
+
                 const response = await fetch(`/api/admin/booking/${id}`, {
                     method: 'DELETE',
-                    credentials: 'same-origin'
+                    credentials: 'same-origin',
+                    headers: {
+                        'X-CSRF-Token': csrfData.csrfToken
+                    }
                 });
                 
                 if (!response.ok) {

@@ -143,7 +143,7 @@
         });
 
         return `
-            <aside class="admin-sidebar" id="adminSidebar" aria-label="Admin sidebar">
+            <aside class="admin-sidebar" id="adminSidebar" aria-label="Admin navigation">
                 <div class="admin-sidebar-header">
                     <span class="admin-sidebar-logo" aria-hidden="true">🏔️</span>
                     <div>
@@ -151,7 +151,7 @@
                         <div class="admin-sidebar-subtitle">Admin Panel</div>
                     </div>
                 </div>
-                <nav class="admin-nav" role="navigation" aria-label="Admin navigation">
+                <nav class="admin-nav" role="navigation" aria-label="Main admin navigation">
                     ${navHtml}
                 </nav>
                 <div class="admin-sidebar-footer">
@@ -184,22 +184,13 @@
 
     // Initialize the admin shell
     function initAdminShell() {
-        // Verify session via httpOnly cookie by calling the verify endpoint
-        fetch('/api/admin/verify', { credentials: 'same-origin' })
-            .then(response => {
-                if (!response.ok) {
-                    window.location.href = '/admin.html';
-                    return;
-                }
-                // Session is valid, proceed to build the shell
-                buildAdminShell();
-            })
-            .catch(() => {
-                window.location.href = '/admin.html';
-            });
-    }
+        // Check authentication
+        const token = localStorage.getItem('adminToken');
+        if (!token) {
+            window.location.href = '/admin.html';
+            return;
+        }
 
-    function buildAdminShell() {
         const currentPageId = getCurrentPageId();
         const pageTitle = getPageTitle(currentPageId);
 
@@ -383,14 +374,10 @@
 
             const alert = document.createElement('div');
             alert.className = `admin-alert admin-alert-${type}`;
-            const span = document.createElement('span');
-            span.textContent = message;
-            const closeBtn = document.createElement('button');
-            closeBtn.textContent = '\u00D7';
-            closeBtn.style.cssText = 'float: right; background: none; border: none; cursor: pointer; font-size: 1.2rem;';
-            closeBtn.addEventListener('click', function() { alert.remove(); });
-            alert.appendChild(span);
-            alert.appendChild(closeBtn);
+            alert.innerHTML = `
+                <span>${message}</span>
+                <button onclick="this.parentElement.remove()" style="float: right; background: none; border: none; cursor: pointer; font-size: 1.2rem;">&times;</button>
+            `;
             
             alertContainer.insertBefore(alert, alertContainer.firstChild);
             

@@ -385,12 +385,73 @@
             }
         }
 
-        async function editSeason(season) {
-            showAlert(`Editing ${season} season rates...`);
+        async function editSeason(id) {
+            try {
+                const ratesRes = await fetch('/api/admin/seasonal-rates', { credentials: 'same-origin' });
+                const ratesData = await ratesRes.json();
+                const rate = ratesData.rates.find(r => r.id === id);
+                if (!rate) { adminShell.showAlert('Rate not found', 'error'); return; }
+
+                const name = prompt('Season name:', rate.name);
+                if (!name) return;
+                const multiplier = prompt('Price multiplier (e.g. 1.2 for 20% increase):', rate.multiplier);
+                if (!multiplier) return;
+                const startDate = prompt('Start date (YYYY-MM-DD):', rate.start_date);
+                if (!startDate) return;
+                const endDate = prompt('End date (YYYY-MM-DD):', rate.end_date);
+                if (!endDate) return;
+
+                const csrfRes = await fetch('/api/csrf-token', { credentials: 'same-origin' });
+                const csrfData = await csrfRes.json();
+                const response = await fetch('/api/admin/seasonal-rates/' + id, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': csrfData.token
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ name, multiplier: parseFloat(multiplier), start_date: startDate, end_date: endDate, is_active: rate.is_active })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    adminShell.showAlert('Season updated successfully', 'success');
+                    loadSeasonalRates();
+                } else {
+                    adminShell.showAlert('Failed to update: ' + (data.error || 'Unknown error'), 'error');
+                }
+            } catch (err) {
+                adminShell.showAlert('Error: ' + err.message, 'error');
+            }
         }
 
-        async function toggleSeason(season) {
-            showAlert(`Toggled ${season} season status`);
+        async function toggleSeason(id) {
+            try {
+                const ratesRes = await fetch('/api/admin/seasonal-rates', { credentials: 'same-origin' });
+                const ratesData = await ratesRes.json();
+                const rate = ratesData.rates.find(r => r.id === id);
+                if (!rate) { adminShell.showAlert('Rate not found', 'error'); return; }
+
+                const csrfRes = await fetch('/api/csrf-token', { credentials: 'same-origin' });
+                const csrfData = await csrfRes.json();
+                const response = await fetch('/api/admin/seasonal-rates/' + id, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': csrfData.token
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ name: rate.name, multiplier: rate.multiplier, start_date: rate.start_date, end_date: rate.end_date, is_active: !rate.is_active })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    adminShell.showAlert('Season ' + (rate.is_active ? 'deactivated' : 'activated'), 'success');
+                    loadSeasonalRates();
+                } else {
+                    adminShell.showAlert('Failed to toggle: ' + (data.error || 'Unknown error'), 'error');
+                }
+            } catch (err) {
+                adminShell.showAlert('Error: ' + err.message, 'error');
+            }
         }
 
         document.getElementById('addSeasonForm').addEventListener('submit', async function(e) {

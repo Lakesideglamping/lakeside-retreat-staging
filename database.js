@@ -245,6 +245,36 @@ function createTablesPostgres() {
             await db.query(`CREATE INDEX IF NOT EXISTS idx_failed_webhook_unresolved ON failed_webhook_events(resolved) WHERE resolved = false`);
             console.log('✅ Failed webhook events table ready (PostgreSQL)');
 
+            // Create audit_logs table for admin action tracking
+            await db.query(`
+                CREATE TABLE IF NOT EXISTS audit_logs (
+                    id SERIAL PRIMARY KEY,
+                    admin_user TEXT NOT NULL,
+                    action TEXT NOT NULL,
+                    details TEXT,
+                    ip_address TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            `);
+            await db.query(`CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at)`);
+            await db.query(`CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action)`);
+            console.log('✅ Audit logs table ready (PostgreSQL)');
+
+            // Create abandoned_checkout_reminders table for marketing automation
+            await db.query(`
+                CREATE TABLE IF NOT EXISTS abandoned_checkout_reminders (
+                    id SERIAL PRIMARY KEY,
+                    booking_id TEXT,
+                    guest_email TEXT NOT NULL,
+                    guest_name TEXT,
+                    accommodation TEXT,
+                    reminder_count INTEGER DEFAULT 0,
+                    last_reminder_at TIMESTAMP,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            `);
+            console.log('✅ Abandoned checkout reminders table ready (PostgreSQL)');
+
             resolve();
         } catch (err) {
             console.error('❌ Error creating PostgreSQL tables:', err.message);
@@ -373,6 +403,30 @@ function createTablesSqlite() {
             )
         `;
 
+        const createAuditLogsTable = `
+            CREATE TABLE IF NOT EXISTS audit_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                admin_user TEXT NOT NULL,
+                action TEXT NOT NULL,
+                details TEXT,
+                ip_address TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `;
+
+        const createAbandonedCheckoutRemindersTable = `
+            CREATE TABLE IF NOT EXISTS abandoned_checkout_reminders (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                booking_id TEXT,
+                guest_email TEXT NOT NULL,
+                guest_name TEXT,
+                accommodation TEXT,
+                reminder_count INTEGER DEFAULT 0,
+                last_reminder_at DATETIME,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `;
+
         db.serialize(() => {
             db.run(createBookingsTable, (err) => {
                 if (err) {
@@ -444,6 +498,24 @@ function createTablesSqlite() {
                     return;
                 }
                 console.log('✅ Failed webhook events table ready (SQLite)');
+            });
+
+            db.run(createAuditLogsTable, (err) => {
+                if (err) {
+                    console.error('❌ Error creating audit_logs table:', err.message);
+                    reject(err);
+                    return;
+                }
+                console.log('✅ Audit logs table ready (SQLite)');
+            });
+
+            db.run(createAbandonedCheckoutRemindersTable, (err) => {
+                if (err) {
+                    console.error('❌ Error creating abandoned_checkout_reminders table:', err.message);
+                    reject(err);
+                    return;
+                }
+                console.log('✅ Abandoned checkout reminders table ready (SQLite)');
             });
 
             // Migration: add booking_source column to existing databases

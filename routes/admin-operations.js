@@ -17,7 +17,7 @@
 const express = require('express');
 const router = express.Router();
 
-const { verifyAdmin, sendError, ERROR_CODES } = require('../middleware/auth');
+const { verifyAdmin, verifyCsrf, sendError, ERROR_CODES } = require('../middleware/auth');
 
 /**
  * @param {Object} deps
@@ -88,7 +88,7 @@ router.get('/api/admin/cache-stats', verifyAdmin, (req, res) => {
 });
 
 // Clear cache (admin only)
-router.post('/api/admin/cache/clear', verifyAdmin, (req, res) => {
+router.post('/api/admin/cache/clear', verifyAdmin, verifyCsrf, (req, res) => {
     try {
         const cleared = CacheManager.clearAll();
         
@@ -315,7 +315,7 @@ router.get('/api/admin/analytics', verifyAdmin, (req, res) => {
 });
 
 // Admin endpoint - generate email reply drafts
-router.post('/api/admin/chatbot/email-reply', verifyAdmin, async (req, res) => {
+router.post('/api/admin/chatbot/email-reply', verifyAdmin, verifyCsrf, async (req, res) => {
     try {
         const { emailContent, guestName, bookingId } = req.body;
         
@@ -395,7 +395,7 @@ router.get('/api/admin/marketing/abandoned-checkouts', verifyAdmin, async (req, 
 });
 
 // Admin endpoint - Send abandoned checkout reminder
-router.post('/api/admin/marketing/send-reminder/:bookingId', verifyAdmin, async (req, res) => {
+router.post('/api/admin/marketing/send-reminder/:bookingId', verifyAdmin, verifyCsrf, async (req, res) => {
     try {
         const { bookingId } = req.params;
         
@@ -416,7 +416,7 @@ router.post('/api/admin/marketing/send-reminder/:bookingId', verifyAdmin, async 
 });
 
 // Admin endpoint - Run abandoned checkout check manually
-router.post('/api/admin/marketing/run-abandoned-check', verifyAdmin, async (req, res) => {
+router.post('/api/admin/marketing/run-abandoned-check', verifyAdmin, verifyCsrf, async (req, res) => {
     try {
         const marketingAutomation = getMarketingAutomation();
         if (!marketingAutomation) {
@@ -456,7 +456,7 @@ router.get('/api/admin/marketing/review-requests', verifyAdmin, async (req, res)
 });
 
 // Admin endpoint - Send review request manually
-router.post('/api/admin/marketing/send-review-request/:bookingId', verifyAdmin, async (req, res) => {
+router.post('/api/admin/marketing/send-review-request/:bookingId', verifyAdmin, verifyCsrf, async (req, res) => {
     try {
         const { bookingId } = req.params;
         
@@ -477,7 +477,7 @@ router.post('/api/admin/marketing/send-review-request/:bookingId', verifyAdmin, 
 });
 
 // Admin endpoint - Run review request check manually
-router.post('/api/admin/marketing/run-review-check', verifyAdmin, async (req, res) => {
+router.post('/api/admin/marketing/run-review-check', verifyAdmin, verifyCsrf, async (req, res) => {
     try {
         const marketingAutomation = getMarketingAutomation();
         if (!marketingAutomation) {
@@ -496,7 +496,7 @@ router.post('/api/admin/marketing/run-review-check', verifyAdmin, async (req, re
 });
 
 // Admin endpoint - Generate social content
-router.post('/api/admin/marketing/generate-social', verifyAdmin, async (req, res) => {
+router.post('/api/admin/marketing/generate-social', verifyAdmin, verifyCsrf, async (req, res) => {
     try {
         const { platform, tone, sourceText, accommodation, saveDraft } = req.body;
         
@@ -551,7 +551,7 @@ router.get('/api/admin/marketing/social-drafts', verifyAdmin, async (req, res) =
 });
 
 // Admin endpoint - Update social draft status
-router.put('/api/admin/marketing/social-drafts/:draftId', verifyAdmin, async (req, res) => {
+router.put('/api/admin/marketing/social-drafts/:draftId', verifyAdmin, verifyCsrf, async (req, res) => {
     try {
         const { draftId } = req.params;
         const { status } = req.body;

@@ -13,6 +13,29 @@
 (function() {
     'use strict';
 
+    // Session timeout - 30 minutes of inactivity
+    let lastActivityTime = Date.now();
+    const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+
+    function updateActivity() {
+        lastActivityTime = Date.now();
+    }
+
+    function checkSessionTimeout() {
+        if (Date.now() - lastActivityTime > SESSION_TIMEOUT) {
+            // Call logout endpoint to clear the httpOnly cookie, then redirect
+            fetch('/api/admin/logout', { method: 'POST', credentials: 'same-origin' })
+                .finally(() => {
+                    window.location.href = '/admin.html';
+                });
+        }
+    }
+
+    document.addEventListener('click', updateActivity);
+    document.addEventListener('keypress', updateActivity);
+    document.addEventListener('scroll', updateActivity);
+    setInterval(checkSessionTimeout, 60000); // Check every minute
+
     // Navigation configuration
     const navConfig = {
         sections: [
@@ -319,8 +342,10 @@
         },
 
         logout: function() {
-            localStorage.removeItem('adminToken');
-            window.location.href = '/admin.html';
+            fetch('/api/admin/logout', { method: 'POST', credentials: 'same-origin' })
+                .finally(() => {
+                    window.location.href = '/admin.html';
+                });
         },
 
         // Method to update notification badge

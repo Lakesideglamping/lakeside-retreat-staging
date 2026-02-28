@@ -634,6 +634,33 @@
             }
         }
 
+        async function restoreBackup(filename) {
+            if (!confirm('Are you sure you want to restore from backup: ' + filename + '? This will overwrite current data.')) return;
+            if (!confirm('This action cannot be undone. Are you absolutely sure?')) return;
+            adminShell.showAlert('Restoring backup... Please do not close this page.', 'info');
+            try {
+                const csrfRes = await fetch('/api/csrf-token', { credentials: 'same-origin' });
+                const csrfData = await csrfRes.json();
+                const response = await fetch('/api/admin/backups/restore', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': csrfData.token
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ filename })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    adminShell.showAlert('Backup restored successfully! Please refresh the page.', 'success');
+                } else {
+                    adminShell.showAlert('Restore failed: ' + (data.error || 'Unknown error'), 'error');
+                }
+            } catch (err) {
+                adminShell.showAlert('Restore error: ' + err.message, 'error');
+            }
+        }
+
         loadBackups();
     </script>
 </body>

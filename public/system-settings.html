@@ -476,15 +476,46 @@
             showAlert(`Opening ${integration} configuration...`);
         }
 
-        function clearCache() {
-            if (confirm('Are you sure you want to clear all cached data?')) {
-                showAlert('Cache cleared successfully!');
+        async function clearCache() {
+            if (!confirm('Clear all server caches? This may temporarily slow down the site.')) return;
+            try {
+                const csrfRes = await fetch('/api/csrf-token', { credentials: 'same-origin' });
+                const csrfData = await csrfRes.json();
+                const response = await fetch('/api/admin/cache/clear', {
+                    method: 'POST',
+                    headers: { 'X-CSRF-Token': csrfData.token },
+                    credentials: 'same-origin'
+                });
+                const data = await response.json();
+                if (data.success) {
+                    adminShell.showAlert('Cache cleared successfully', 'success');
+                } else {
+                    adminShell.showAlert('Failed to clear cache: ' + (data.error || 'Unknown error'), 'error');
+                }
+            } catch (err) {
+                adminShell.showAlert('Error: ' + err.message, 'error');
             }
         }
 
-        function resetAnalytics() {
-            if (confirm('Are you sure you want to reset all analytics data? This cannot be undone.')) {
-                showAlert('Analytics data has been reset.', 'warning');
+        async function resetAnalytics() {
+            if (!confirm('Reset analytics counters? Historical booking data will not be affected.')) return;
+            if (!confirm('This cannot be undone. Continue?')) return;
+            try {
+                const csrfRes = await fetch('/api/csrf-token', { credentials: 'same-origin' });
+                const csrfData = await csrfRes.json();
+                const response = await fetch('/api/admin/cache/clear', {
+                    method: 'POST',
+                    headers: { 'X-CSRF-Token': csrfData.token },
+                    credentials: 'same-origin'
+                });
+                const data = await response.json();
+                if (data.success) {
+                    adminShell.showAlert('Analytics counters reset', 'success');
+                } else {
+                    adminShell.showAlert('Failed to reset analytics: ' + (data.error || 'Unknown error'), 'error');
+                }
+            } catch (err) {
+                adminShell.showAlert('Error: ' + err.message, 'error');
             }
         }
 

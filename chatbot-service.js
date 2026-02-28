@@ -241,7 +241,7 @@ class ChatbotService {
                 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
             },
             body: JSON.stringify({
-                model: 'gpt-3.5-turbo',
+                model: 'gpt-4o-mini',
                 messages: messages,
                 max_tokens: 500,
                 temperature: 0.7
@@ -454,7 +454,7 @@ Return only the enhanced email reply, nothing else.`;
                 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
             },
             body: JSON.stringify({
-                model: 'gpt-3.5-turbo',
+                model: 'gpt-4o-mini',
                 messages: [{ role: 'user', content: prompt }],
                 max_tokens: 800,
                 temperature: 0.7
