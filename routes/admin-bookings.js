@@ -56,13 +56,18 @@ router.get('/api/admin/bookings', verifyAdmin, (req, res) => {
         SELECT id, guest_name, guest_email, guest_phone, accommodation,
                check_in, check_out, guests, total_price, status,
                payment_status, created_at, stripe_payment_id, stripe_session_id,
-               uplisting_id, updated_at
+               uplisting_id, booking_source, updated_at
         FROM bookings
     `;
-    
+
     const params = [];
     const conditions = [];
-    
+
+    if (req.query.source) {
+        conditions.push('booking_source = ?');
+        params.push(req.query.source);
+    }
+
     if (status) {
         conditions.push('status = ?');
         params.push(status);
@@ -171,18 +176,18 @@ router.get('/api/admin/bookings/export', verifyAdmin, (req, res) => {
     let sql = `
         SELECT id, guest_name, guest_email, guest_phone, accommodation,
                check_in, check_out, guests, total_price, status,
-               payment_status, created_at, stripe_payment_id, uplisting_id
+               payment_status, created_at, stripe_payment_id, uplisting_id, booking_source
         FROM bookings
     `;
-    
+
     const params = [];
     const conditions = [];
-    
+
     if (status) {
         conditions.push('status = ?');
         params.push(status);
     }
-    
+
     if (search) {
         conditions.push('(guest_name LIKE ? OR guest_email LIKE ?)');
         params.push(`%${search}%`, `%${search}%`);
@@ -872,8 +877,8 @@ router.post('/api/admin/bookings', verifyAdmin, async (req, res) => {
             INSERT INTO bookings (
                 id, guest_name, guest_email, guest_phone, accommodation,
                 check_in, check_out, guests, total_price, status,
-                payment_status, notes, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                payment_status, notes, booking_source, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'manual', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         `;
 
         db().run(sql, [

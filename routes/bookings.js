@@ -237,8 +237,8 @@ function createBookingRoutes(deps) {
                         INSERT INTO bookings (
                             id, guest_name, guest_email, guest_phone,
                             accommodation, check_in, check_out, guests,
-                            total_price, status, payment_status, notes, created_at
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'pending', ?, CURRENT_TIMESTAMP)
+                            total_price, status, payment_status, notes, booking_source, created_at
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'pending', ?, 'website', CURRENT_TIMESTAMP)
                     `;
                     await tx.run(insertSql, [
                         bookingId,

@@ -201,6 +201,9 @@ class UplistingService {
         const { event, data } = parsedBody;
 
         if (event === 'booking.created' || event === 'booking.updated') {
+            // Extract booking channel (e.g. 'airbnb', 'booking_com') if provided by Uplisting
+            const channel = data.channel || data.source || data.platform || 'uplisting';
+
             const bookingData = {
                 id: `uplisting-${data.id}`,
                 guest_name: sanitizeInput(`${data.guest.first_name} ${data.guest.last_name}`.trim()),
@@ -214,15 +217,16 @@ class UplistingService {
                 status: data.status === 'confirmed' ? 'confirmed' : 'pending',
                 payment_status: data.payment_status || 'completed',
                 notes: sanitizeInput(data.notes || 'Booking from Uplisting'),
-                uplisting_id: data.id
+                uplisting_id: data.id,
+                booking_source: channel
             };
 
             const sql = `
                 INSERT INTO bookings (
                     id, guest_name, guest_email, guest_phone, accommodation,
                     check_in, check_out, guests, total_price, status,
-                    payment_status, notes, uplisting_id, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                    payment_status, notes, uplisting_id, booking_source, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
                 ON CONFLICT (id) DO UPDATE SET
                     guest_name = EXCLUDED.guest_name,
                     guest_email = EXCLUDED.guest_email,
@@ -235,7 +239,8 @@ class UplistingService {
                     status = EXCLUDED.status,
                     payment_status = EXCLUDED.payment_status,
                     notes = EXCLUDED.notes,
-                    uplisting_id = EXCLUDED.uplisting_id
+                    uplisting_id = EXCLUDED.uplisting_id,
+                    booking_source = EXCLUDED.booking_source
             `;
 
             const db = this.getDb();
@@ -245,7 +250,8 @@ class UplistingService {
                     bookingData.guest_phone, bookingData.accommodation,
                     bookingData.check_in, bookingData.check_out, bookingData.guests,
                     bookingData.total_price, bookingData.status,
-                    bookingData.payment_status, bookingData.notes, bookingData.uplisting_id
+                    bookingData.payment_status, bookingData.notes, bookingData.uplisting_id,
+                    bookingData.booking_source
                 ], (err) => {
                     if (err) {
                         console.error('Failed to sync Uplisting booking:', err.message);

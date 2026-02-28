@@ -165,7 +165,45 @@
             background: #f8d7da;
             color: #721c24;
         }
-        
+
+        .source-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .source-website {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .source-airbnb {
+            background: #ffe0de;
+            color: #d93025;
+        }
+
+        .source-booking_com, .source-booking\.com {
+            background: #d6e4f0;
+            color: #003580;
+        }
+
+        .source-manual {
+            background: #e2e3e5;
+            color: #383d41;
+        }
+
+        .source-uplisting {
+            background: #e8d5f5;
+            color: #6f42c1;
+        }
+
+        .source-unknown {
+            background: #f0f0f0;
+            color: #666;
+        }
+
         .actions {
             display: flex;
             gap: 0.5rem;
@@ -293,6 +331,17 @@
                     </select>
                 </div>
                 <div class="filter-group">
+                    <label>Source</label>
+                    <select id="filterSource">
+                        <option value="">All Sources</option>
+                        <option value="website">Website</option>
+                        <option value="airbnb">Airbnb</option>
+                        <option value="booking_com">Booking.com</option>
+                        <option value="uplisting">Uplisting</option>
+                        <option value="manual">Manual</option>
+                    </select>
+                </div>
+                <div class="filter-group">
                     <label>Date Range</label>
                     <input type="date" id="dateFrom">
                 </div>
@@ -321,12 +370,13 @@
                         <th>Guests</th>
                         <th>Total</th>
                         <th>Status</th>
+                        <th>Source</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody id="bookingsTableBody">
                     <tr>
-                        <td colspan="9" class="empty-state">Loading bookings...</td>
+                        <td colspan="10" class="empty-state">Loading bookings...</td>
                     </tr>
                 </tbody>
             </table>
@@ -405,7 +455,7 @@
             const tbody = document.getElementById('bookingsTableBody');
             
             if (bookings.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="9" class="empty-state">No bookings found</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="10" class="empty-state">No bookings found</td></tr>';
                 return;
             }
             
@@ -422,6 +472,7 @@
                     <td>${booking.guests}</td>
                     <td>$${booking.total_price}</td>
                     <td><span class="status ${booking.status}">${booking.status}</span></td>
+                    <td><span class="source-badge source-${booking.booking_source || 'unknown'}">${formatSource(booking.booking_source)}</span></td>
                     <td>
                         <div class="actions">
                             <button class="btn-action btn-view" onclick="viewBooking(${booking.id})">View</button>
@@ -431,6 +482,19 @@
                     </td>
                 </tr>
             `).join('');
+        }
+
+        function formatSource(source) {
+            const sourceMap = {
+                'website': 'Website',
+                'airbnb': 'Airbnb',
+                'booking_com': 'Booking.com',
+                'booking.com': 'Booking.com',
+                'manual': 'Manual',
+                'uplisting': 'Uplisting',
+                'unknown': 'Unknown'
+            };
+            return sourceMap[source] || (source ? source.charAt(0).toUpperCase() + source.slice(1) : 'Unknown');
         }
 
         function updateStats(bookings) {
@@ -528,10 +592,11 @@ ${booking.special_requests ? `\nSpecial Requests: ${booking.special_requests}` :
             const search = document.getElementById('searchGuest').value.trim();
             const accommodation = document.getElementById('filterAccommodation').value;
             const status = document.getElementById('filterStatus').value;
+            const source = document.getElementById('filterSource').value;
             const dateFrom = document.getElementById('dateFrom').value;
             const dateTo = document.getElementById('dateTo').value;
-            
-            loadBookingsWithFilters({ search, accommodation, status, dateFrom, dateTo });
+
+            loadBookingsWithFilters({ search, accommodation, status, source, dateFrom, dateTo });
         }
 
         async function loadBookingsWithFilters(filters = {}) {
@@ -540,6 +605,7 @@ ${booking.special_requests ? `\nSpecial Requests: ${booking.special_requests}` :
                 if (filters.search) params.append('search', filters.search);
                 if (filters.accommodation) params.append('accommodation', filters.accommodation);
                 if (filters.status) params.append('status', filters.status);
+                if (filters.source) params.append('source', filters.source);
                 if (filters.dateFrom) params.append('dateFrom', filters.dateFrom);
                 if (filters.dateTo) params.append('dateTo', filters.dateTo);
                 params.append('limit', '100'); // Get more results for filtering
@@ -573,6 +639,7 @@ ${booking.special_requests ? `\nSpecial Requests: ${booking.special_requests}` :
             document.getElementById('searchGuest').value = '';
             document.getElementById('filterAccommodation').value = '';
             document.getElementById('filterStatus').value = '';
+            document.getElementById('filterSource').value = '';
             document.getElementById('dateFrom').value = '';
             document.getElementById('dateTo').value = '';
             loadBookings();
@@ -582,13 +649,15 @@ ${booking.special_requests ? `\nSpecial Requests: ${booking.special_requests}` :
             const search = document.getElementById('searchGuest').value.trim();
             const accommodation = document.getElementById('filterAccommodation').value;
             const status = document.getElementById('filterStatus').value;
+            const source = document.getElementById('filterSource').value;
             const dateFrom = document.getElementById('dateFrom').value;
             const dateTo = document.getElementById('dateTo').value;
-            
+
             const params = new URLSearchParams();
             if (search) params.append('search', search);
             if (accommodation) params.append('accommodation', accommodation);
             if (status) params.append('status', status);
+            if (source) params.append('source', source);
             if (dateFrom) params.append('dateFrom', dateFrom);
             if (dateTo) params.append('dateTo', dateTo);
             

@@ -112,12 +112,25 @@ function createTablesPostgres() {
                     security_deposit_released_at TIMESTAMP,
                     security_deposit_claimed_amount DECIMAL(10,2) DEFAULT 0,
                     uplisting_id TEXT,
+                    booking_source TEXT DEFAULT 'unknown',
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             `);
             console.log('✅ Bookings table ready (PostgreSQL)');
-            
+
+            // Migration: add booking_source column to existing databases
+            try {
+                await db.query(`ALTER TABLE bookings ADD COLUMN booking_source TEXT DEFAULT 'unknown'`);
+                console.log('✅ Added booking_source column (PostgreSQL)');
+            } catch (e) {
+                // Column already exists — ignore
+            }
+
+            // Backfill existing rows
+            await db.query(`UPDATE bookings SET booking_source = 'website' WHERE stripe_session_id IS NOT NULL AND booking_source = 'unknown'`);
+            await db.query(`UPDATE bookings SET booking_source = 'uplisting' WHERE uplisting_id IS NOT NULL AND booking_source = 'unknown'`);
+
             // Create contact_messages table
             await db.query(`
                 CREATE TABLE IF NOT EXISTS contact_messages (
@@ -236,11 +249,12 @@ function createTablesSqlite() {
                 security_deposit_released_at DATETIME,
                 security_deposit_claimed_amount DECIMAL(10,2) DEFAULT 0,
                 uplisting_id TEXT,
+                booking_source TEXT DEFAULT 'unknown',
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         `;
-        
+
         const createContactTable = `
             CREATE TABLE IF NOT EXISTS contact_messages (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -377,7 +391,22 @@ function createTablesSqlite() {
                     return;
                 }
                 console.log('✅ Processed webhook events table ready (SQLite)');
-                resolve();
+            });
+
+            // Migration: add booking_source column to existing databases
+            db.run(`ALTER TABLE bookings ADD COLUMN booking_source TEXT DEFAULT 'unknown'`, (err) => {
+                if (err && !err.message.includes('duplicate column')) {
+                    // Column already exists — ignore
+                }
+                if (!err) {
+                    console.log('✅ Added booking_source column (SQLite)');
+                }
+
+                // Backfill existing rows
+                db.run(`UPDATE bookings SET booking_source = 'website' WHERE stripe_session_id IS NOT NULL AND booking_source = 'unknown'`);
+                db.run(`UPDATE bookings SET booking_source = 'uplisting' WHERE uplisting_id IS NOT NULL AND booking_source = 'unknown'`, () => {
+                    resolve();
+                });
             });
         });
     });
