@@ -90,6 +90,83 @@ class UplistingService {
     }
 
     // ==========================================
+    // CALENDAR PRICING
+    // ==========================================
+
+    /**
+     * Fetch nightly rates from Uplisting calendar for a date range.
+     * Returns per-day pricing so the frontend can calculate totals.
+     * Falls back to null if unavailable.
+     */
+    async getCalendarPricing(accommodation, checkIn, checkOut) {
+        if (!this.isConfigured) {
+            console.warn('⚠️ Uplisting not configured, cannot fetch calendar pricing');
+            return null;
+        }
+
+        try {
+            const propertyId = getPropertyId(accommodation);
+            if (!propertyId) {
+                console.warn(`⚠️ No Uplisting property ID for ${accommodation}`);
+                return null;
+            }
+
+            const url = `${UPLISTING_API_BASE}/properties/${propertyId}/calendar?start_date=${checkIn}&end_date=${checkOut}`;
+            console.log('💰 Fetching Uplisting calendar pricing:', url);
+
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Authorization': this.authHeader,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            console.log('📡 Uplisting calendar response status:', response.status);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('❌ Uplisting calendar API error:', response.status, errorText);
+                return null;
+            }
+
+            const data = await response.json();
+            console.log('📝 Uplisting calendar data:', JSON.stringify(data).substring(0, 500));
+
+            // Extract nightly rates from calendar response
+            // Uplisting calendar returns an array of date entries with pricing
+            const days = data.data || data.calendar || data;
+            if (!Array.isArray(days)) {
+                // If data is an object with date keys or nested structure, adapt
+                return { raw: data, propertyId, accommodation };
+            }
+
+            const rates = days.map(day => ({
+                date: day.date || day.attributes?.date,
+                price: day.price || day.nightly_price || day.rate || day.attributes?.price || day.attributes?.nightly_price,
+                available: day.available ?? day.attributes?.available,
+                minStay: day.minimum_stay || day.attributes?.minimum_stay
+            })).filter(d => d.date);
+
+            return {
+                accommodation,
+                propertyId,
+                checkIn,
+                checkOut,
+                currency: 'NZD',
+                rates,
+                averageRate: rates.length > 0
+                    ? Math.round(rates.reduce((sum, r) => sum + (r.price || 0), 0) / rates.length)
+                    : null
+            };
+
+        } catch (error) {
+            console.error('❌ Uplisting calendar pricing failed:', error);
+            return null;
+        }
+    }
+
+    // ==========================================
     // BOOKING SYNC
     // ==========================================
 

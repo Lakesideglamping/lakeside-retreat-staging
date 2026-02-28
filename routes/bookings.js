@@ -42,7 +42,7 @@ const bookingLimiter = rateLimit({
 function createBookingRoutes(deps) {
     const {
         db, stripe, DEV_MODE, bookingQueue, paymentQueue,
-        database, checkAvailability,
+        database, checkAvailability, getCalendarPricing,
         tracking: { trackBookingStart, trackBookingStep, trackBookingSuccess, trackBookingFailure }
     } = deps;
 
@@ -109,6 +109,30 @@ function createBookingRoutes(deps) {
         } catch (error) {
             console.error('Error in availability endpoint:', error);
             return res.status(503).json({ success: false, available: false, error: 'Service temporarily unavailable' });
+        }
+    });
+
+    // --- Pricing from Uplisting calendar ---
+    router.post('/api/pricing', async (req, res) => {
+        const { accommodation, checkIn, checkOut } = req.body;
+
+        if (!accommodation || !checkIn || !checkOut) {
+            return res.status(400).json({ success: false, error: 'Missing required fields' });
+        }
+
+        try {
+            const pricing = getCalendarPricing
+                ? await getCalendarPricing(accommodation, checkIn, checkOut)
+                : null;
+
+            if (pricing) {
+                res.json({ success: true, pricing, source: 'uplisting' });
+            } else {
+                res.json({ success: false, source: 'unavailable', message: 'Uplisting pricing not available' });
+            }
+        } catch (error) {
+            console.error('Error fetching pricing:', error);
+            res.status(503).json({ success: false, error: 'Pricing service temporarily unavailable' });
         }
     });
 

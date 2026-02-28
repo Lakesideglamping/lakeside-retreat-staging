@@ -492,6 +492,8 @@ app.use(createBookingRoutes({
     bookingQueue,
     paymentQueue,
     checkAvailability,
+    getCalendarPricing: (accommodation, checkIn, checkOut) =>
+        uplisting ? uplisting.getCalendarPricing(accommodation, checkIn, checkOut) : null,
     executeDbOperation: (operation, params) => executeDbOperation(operation, params),
     database,
     tracking: { trackBookingStart, trackBookingStep, trackBookingSuccess, trackBookingFailure }
