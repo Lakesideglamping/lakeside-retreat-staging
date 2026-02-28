@@ -458,16 +458,35 @@
             text-decoration: none;
         }
         
+        .mobile-menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--brand-teal);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.5rem;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
+            .mobile-menu-toggle { display: block; }
+            .nav-links {
+                display: none;
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                background: rgba(0,0,0,0.95);
+                flex-direction: column;
+                padding: 1rem;
+            }
+            .nav-links.active { display: flex; }
+            .nav-links a { color: #fff; }
             .hero h1 {
                 font-size: 2.5rem;
             }
-            
-            .nav-links {
-                display: none;
-            }
-            
+
             .btn-outline {
                 display: none;
             }
@@ -479,6 +498,7 @@
     <nav class="nav">
         <div class="container nav-content">
             <a href="/" class="nav-logo">Lakeside Retreat</a>
+            <button class="mobile-menu-toggle" onclick="document.querySelector('.nav-links').classList.toggle('active')" aria-label="Menu">&#9776;</button>
             <ul class="nav-links">
                 <li><a href="/">Home</a></li>
                 <li><a href="/?page=stay">Stay</a></li>
@@ -635,7 +655,7 @@
         <div class="container">
             <h2 class="section-title">Explore Our Other Accommodations</h2>
             <div class="accommodation-cards">
-                <a href="/dome-pinot" class="accommodation-card" style="text-decoration: none; color: inherit;">
+                <a href="/dome-pinot.html" class="accommodation-card" style="text-decoration: none; color: inherit;">
                     <img src="/images/dome-pinot-hero.jpeg" alt="Dome Pinot luxury glamping">
                     <div class="accommodation-card-content">
                         <h3>Dome Pinot</h3>
@@ -643,7 +663,7 @@
                         <p style="color: var(--brand-rose); font-weight: 600; margin-top: 1rem;">From $530/night →</p>
                     </div>
                 </a>
-                <a href="/lakeside-cottage" class="accommodation-card" style="text-decoration: none; color: inherit;">
+                <a href="/lakeside-cottage.html" class="accommodation-card" style="text-decoration: none; color: inherit;">
                     <img src="/images/lakeside-cottage-exterior.jpeg" alt="Lakeside Cottage family accommodation">
                     <div class="accommodation-card-content">
                         <h3>Lakeside Cottage</h3>
@@ -676,7 +696,7 @@
                 <a href="tel:+64213686822">021 368 682</a> | <a href="mailto:info@lakesideretreat.co.nz">info@lakesideretreat.co.nz</a>
             </p>
             <p style="opacity: 0.8;">
-                <a href="/">Home</a> | <a href="/dome-pinot">Dome Pinot</a> | <a href="/lakeside-cottage">Lakeside Cottage</a> | <a href="/?page=contact">Contact</a>
+                <a href="/">Home</a> | <a href="/dome-pinot.html">Dome Pinot</a> | <a href="/lakeside-cottage.html">Lakeside Cottage</a> | <a href="/?page=contact">Contact</a>
             </p>
             <p style="margin-top: 2rem; opacity: 0.6; font-size: 0.9rem;">
                 © 2026 Lakeside Retreat. All rights reserved.

@@ -131,6 +131,15 @@ function createTablesPostgres() {
             await db.query(`UPDATE bookings SET booking_source = 'website' WHERE stripe_session_id IS NOT NULL AND booking_source = 'unknown'`);
             await db.query(`UPDATE bookings SET booking_source = 'uplisting' WHERE uplisting_id IS NOT NULL AND booking_source = 'unknown'`);
 
+            // Create indexes for bookings table
+            await db.query(`CREATE INDEX IF NOT EXISTS idx_bookings_accommodation ON bookings(accommodation)`);
+            await db.query(`CREATE INDEX IF NOT EXISTS idx_bookings_check_in ON bookings(check_in)`);
+            await db.query(`CREATE INDEX IF NOT EXISTS idx_bookings_check_out ON bookings(check_out)`);
+            await db.query(`CREATE INDEX IF NOT EXISTS idx_bookings_status ON bookings(status)`);
+            await db.query(`CREATE INDEX IF NOT EXISTS idx_bookings_created_at ON bookings(created_at)`);
+            await db.query(`CREATE INDEX IF NOT EXISTS idx_bookings_booking_source ON bookings(booking_source)`);
+            console.log('✅ Bookings indexes ready (PostgreSQL)');
+
             // Create contact_messages table
             await db.query(`
                 CREATE TABLE IF NOT EXISTS contact_messages (
@@ -404,7 +413,16 @@ function createTablesSqlite() {
 
                 // Backfill existing rows
                 db.run(`UPDATE bookings SET booking_source = 'website' WHERE stripe_session_id IS NOT NULL AND booking_source = 'unknown'`);
-                db.run(`UPDATE bookings SET booking_source = 'uplisting' WHERE uplisting_id IS NOT NULL AND booking_source = 'unknown'`, () => {
+                db.run(`UPDATE bookings SET booking_source = 'uplisting' WHERE uplisting_id IS NOT NULL AND booking_source = 'unknown'`);
+
+                // Create indexes for bookings table
+                db.run(`CREATE INDEX IF NOT EXISTS idx_bookings_accommodation ON bookings(accommodation)`);
+                db.run(`CREATE INDEX IF NOT EXISTS idx_bookings_check_in ON bookings(check_in)`);
+                db.run(`CREATE INDEX IF NOT EXISTS idx_bookings_check_out ON bookings(check_out)`);
+                db.run(`CREATE INDEX IF NOT EXISTS idx_bookings_status ON bookings(status)`);
+                db.run(`CREATE INDEX IF NOT EXISTS idx_bookings_created_at ON bookings(created_at)`);
+                db.run(`CREATE INDEX IF NOT EXISTS idx_bookings_booking_source ON bookings(booking_source)`, () => {
+                    console.log('✅ Bookings indexes ready (SQLite)');
                     resolve();
                 });
             });

@@ -5,6 +5,7 @@
  * - GET    /api/admin/bookings — list/search/filter bookings
  * - GET    /api/admin/bookings/export — export bookings CSV
  * - GET    /api/admin/booking/:id — booking detail
+ * - PUT    /api/admin/booking/:id — update booking (full edit)
  * - PUT    /api/admin/booking/:id/status — update booking status
  * - DELETE /api/admin/booking/:id — delete booking
  * - GET    /api/admin/stats — dashboard stats
@@ -134,7 +135,12 @@ router.get('/api/admin/bookings', verifyAdmin, (req, res) => {
             countConditions.push('check_out <= ?');
             countParams.push(dateTo);
         }
-        
+
+        if (req.query.source) {
+            countConditions.push('booking_source = ?');
+            countParams.push(req.query.source);
+        }
+
         if (countConditions.length > 0) {
             countSql += ' WHERE ' + countConditions.join(' AND ');
         }
@@ -223,7 +229,7 @@ router.get('/api/admin/bookings/export', verifyAdmin, (req, res) => {
         const headers = [
             'ID', 'Guest Name', 'Email', 'Phone', 'Accommodation',
             'Check-in', 'Check-out', 'Guests', 'Total Price', 'Status',
-            'Payment Status', 'Created At', 'Stripe ID', 'Uplisting ID'
+            'Payment Status', 'Created At', 'Stripe ID', 'Uplisting ID', 'Booking Source'
         ];
         
         const csvRows = [headers.join(',')];
@@ -243,7 +249,8 @@ router.get('/api/admin/bookings/export', verifyAdmin, (req, res) => {
                 row.payment_status,
                 row.created_at,
                 row.stripe_payment_id || '',
-                row.uplisting_id || ''
+                row.uplisting_id || '',
+                row.booking_source || 'unknown'
             ];
             csvRows.push(values.join(','));
         });
@@ -278,10 +285,19 @@ router.get('/api/admin/booking/:id', verifyAdmin, (req, res) => {
     });
 });
 
-// Update booking status (admin only)
-router.put('/api/admin/booking/:id/status', verifyAdmin, [
-    body('status').isIn(['pending', 'confirmed', 'cancelled', 'completed']),
-    body('notes').optional().isLength({ max: 500 }).escape()
+// Update booking (admin only) - full edit
+router.put('/api/admin/booking/:id', verifyAdmin, [
+    body('guest_name').optional().isLength({ min: 1, max: 200 }).trim(),
+    body('guest_email').optional().isEmail().normalizeEmail(),
+    body('guest_phone').optional().isLength({ max: 50 }).trim(),
+    body('accommodation').optional().isIn(['dome-pinot', 'dome-rose', 'lakeside-cottage']),
+    body('check_in').optional().isISO8601(),
+    body('check_out').optional().isISO8601(),
+    body('guests').optional().isInt({ min: 1, max: 10 }),
+    body('status').optional().isIn(['pending', 'confirmed', 'cancelled', 'completed']),
+    body('payment_status').optional().isIn(['completed', 'pending', 'refunded']),
+    body('total_price').optional().isFloat({ min: 0 }),
+    body('notes').optional().isLength({ max: 2000 })
 ], (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -291,35 +307,131 @@ router.put('/api/admin/booking/:id/status', verifyAdmin, [
             details: errors.array()
         });
     }
-    
+
     const bookingId = req.params.id;
-    const { status, notes } = req.body;
-    
-    let sql = 'UPDATE bookings SET status = ?, updated_at = CURRENT_TIMESTAMP';
-    const params = [status];
-    
-    if (notes) {
-        sql += ', notes = ?';
-        params.push(sanitizeInput(notes));
+    const allowedFields = [
+        'guest_name', 'guest_email', 'guest_phone', 'accommodation',
+        'check_in', 'check_out', 'guests', 'status',
+        'payment_status', 'total_price', 'notes'
+    ];
+
+    const updates = [];
+    const params = [];
+
+    for (const field of allowedFields) {
+        if (req.body[field] !== undefined) {
+            updates.push(`${field} = ?`);
+            const value = typeof req.body[field] === 'string' ? sanitizeInput(req.body[field]) : req.body[field];
+            params.push(value);
+        }
     }
-    
-    sql += ' WHERE id = ?';
+
+    if (updates.length === 0) {
+        return res.status(400).json({
+            success: false,
+            error: 'No fields to update'
+        });
+    }
+
+    updates.push('updated_at = CURRENT_TIMESTAMP');
     params.push(bookingId);
-    
+
+    const sql = `UPDATE bookings SET ${updates.join(', ')} WHERE id = ?`;
+
     db().run(sql, params, function(err) {
         if (err) {
+            console.error('Error updating booking:', err);
             return sendError(res, 500, ERROR_CODES.DATABASE_ERROR, 'Database error');
         }
-        
+
         if (this.changes === 0) {
             return sendError(res, 404, ERROR_CODES.BOOKING_NOT_FOUND, 'Booking not found');
         }
-        
+
+        res.json({
+            success: true,
+            message: 'Booking updated successfully'
+        });
+    });
+});
+
+// Update booking status (admin only)
+router.put('/api/admin/booking/:id/status', verifyAdmin, [
+    body('status').isIn(['pending', 'confirmed', 'cancelled', 'completed']),
+    body('notes').optional().isLength({ max: 500 }).escape()
+], async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({
+            success: false,
+            error: 'Invalid data',
+            details: errors.array()
+        });
+    }
+
+    const bookingId = req.params.id;
+    const newStatus = req.body.status;
+    const notes = req.body.notes;
+
+    try {
+        // Fetch the booking first so we have stripe_payment_id and uplisting_id
+        const booking = await new Promise((resolve, reject) => {
+            db().get('SELECT * FROM bookings WHERE id = ?', [bookingId], (err, row) => {
+                if (err) reject(err);
+                else resolve(row);
+            });
+        });
+
+        if (!booking) {
+            return sendError(res, 404, ERROR_CODES.BOOKING_NOT_FOUND, 'Booking not found');
+        }
+
+        // Update status in DB
+        let sql = 'UPDATE bookings SET status = ?, updated_at = CURRENT_TIMESTAMP';
+        const params = [newStatus];
+
+        if (notes) {
+            sql += ', notes = ?';
+            params.push(sanitizeInput(notes));
+        }
+
+        sql += ' WHERE id = ?';
+        params.push(bookingId);
+
+        await new Promise((resolve, reject) => {
+            db().run(sql, params, function(err) {
+                if (err) reject(err);
+                else resolve();
+            });
+        });
+
+        // If cancelling, trigger Stripe refund and Uplisting cancellation
+        if (newStatus === 'cancelled') {
+            if (booking.stripe_payment_id && stripe) {
+                try {
+                    await stripe.refunds.create({ payment_intent: booking.stripe_payment_id });
+                } catch (stripeErr) {
+                    console.error('Auto-refund failed:', stripeErr.message);
+                }
+            }
+
+            if (booking.uplisting_id && cancelUplistingBooking) {
+                try {
+                    await cancelUplistingBooking(booking.uplisting_id);
+                } catch (upErr) {
+                    console.error('Uplisting cancel failed:', upErr.message);
+                }
+            }
+        }
+
         res.json({
             success: true,
             message: 'Booking status updated'
         });
-    });
+    } catch (err) {
+        console.error('Status update error:', err);
+        return sendError(res, 500, ERROR_CODES.DATABASE_ERROR, 'Database error');
+    }
 });
 
 // Delete booking (admin only)
@@ -390,9 +502,13 @@ router.get('/api/admin/uplisting-dashboard', verifyAdmin, async (req, res) => {
 
 // Get Stripe payment details for a booking
 router.get('/api/admin/stripe-payment/:sessionId', verifyAdmin, async (req, res) => {
+    if (!stripe) {
+        return res.status(503).json({ success: false, error: 'Stripe not configured' });
+    }
+
     try {
         const { sessionId } = req.params;
-        
+
         if (!sessionId || sessionId === 'null') {
             return res.json({ 
                 success: false, 
@@ -505,6 +621,10 @@ router.get('/api/admin/uplisting-booking/:bookingId', verifyAdmin, async (req, r
 
 // Process Stripe refund
 router.post('/api/admin/refund/:bookingId', verifyAdmin, async (req, res) => {
+    if (!stripe) {
+        return res.status(503).json({ success: false, error: 'Stripe not configured' });
+    }
+
     try {
         const { bookingId } = req.params;
         const { amount, reason } = req.body;
@@ -537,7 +657,7 @@ router.post('/api/admin/refund/:bookingId', verifyAdmin, async (req, res) => {
                     });
                     
                     // Update booking status
-                    const newStatus = refund.amount === booking.total_price * 100 ? 'cancelled' : 'partially_refunded';
+                    const newStatus = refund.amount === Math.round(booking.total_price * 100) ? 'cancelled' : 'partially_refunded';
                     
                     db().run(
                         'UPDATE bookings SET status = ?, payment_status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
@@ -550,7 +670,7 @@ router.post('/api/admin/refund/:bookingId', verifyAdmin, async (req, res) => {
                     );
                     
                     // Cancel in Uplisting if full refund
-                    if (booking.uplisting_id && refund.amount === booking.total_price * 100) {
+                    if (booking.uplisting_id && refund.amount === Math.round(booking.total_price * 100)) {
                         await cancelUplistingBooking(booking.uplisting_id);
                     }
                     
@@ -694,10 +814,14 @@ router.get('/api/admin/booking-stats', verifyAdmin, (req, res) => {
 // SECURITY DEPOSIT ADMIN ENDPOINTS (Must be after verifyAdmin definition)
 // Admin endpoint to manually claim security deposit
 router.post('/api/admin/claim-deposit/:bookingId', verifyAdmin, async (req, res) => {
+    if (!stripe) {
+        return res.status(503).json({ success: false, error: 'Stripe not configured' });
+    }
+
     try {
         const { bookingId } = req.params;
         const { amount, reason } = req.body;
-        
+
         if (!amount || !reason) {
             return sendError(res, 400, ERROR_CODES.VALIDATION_ERROR, 'Amount and reason are required');
         }
@@ -782,6 +906,10 @@ router.post('/api/admin/claim-deposit/:bookingId', verifyAdmin, async (req, res)
 
 // Admin endpoint to manually release security deposit
 router.post('/api/admin/release-deposit/:bookingId', verifyAdmin, async (req, res) => {
+    if (!stripe) {
+        return res.status(503).json({ success: false, error: 'Stripe not configured' });
+    }
+
     try {
         const { bookingId } = req.params;
         
@@ -894,12 +1022,22 @@ router.post('/api/admin/bookings', verifyAdmin, async (req, res) => {
             'confirmed',
             payment_status || 'completed',
             sanitizeInput(notes || '')
-        ], function(err) {
+        ], async function(err) {
             if (err) {
                 console.error('Error creating manual booking:', err);
                 return res.status(500).json({ success: false, error: 'Failed to create booking' });
             }
-            
+
+            // Sync to Uplisting if available
+            if (syncBookingToUplisting) {
+                try {
+                    const newBooking = { id: bookingId, guest_name, guest_email, guest_phone: guest_phone || '', accommodation, check_in, check_out, guests: guests || 2, total_price: total_price || 0, notes: notes || '' };
+                    await syncBookingToUplisting(newBooking);
+                } catch (syncErr) {
+                    console.error('Manual booking Uplisting sync failed:', syncErr.message);
+                }
+            }
+
             res.json({
                 success: true,
                 booking: {

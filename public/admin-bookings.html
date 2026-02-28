@@ -653,10 +653,10 @@
                 <tr>
                     <td>#${booking.id}</td>
                     <td>
-                        <strong>${booking.guest_name}</strong><br>
-                        <small>${booking.guest_email}</small>
+                        <strong>${escapeHtml(booking.guest_name)}</strong><br>
+                        <small>${escapeHtml(booking.guest_email)}</small>
                     </td>
-                    <td>${booking.accommodation}</td>
+                    <td>${escapeHtml(booking.accommodation)}</td>
                     <td>${formatDate(booking.check_in)}</td>
                     <td>${formatDate(booking.check_out)}</td>
                     <td>${booking.guests}</td>
@@ -801,8 +801,8 @@
                 if (!el) return;
 
                 let receiptHtml = '';
-                if (data.payment?.receipt_url) {
-                    receiptHtml = `<a href="${data.payment.receipt_url}" target="_blank" rel="noopener" class="btn-receipt">View Receipt ↗</a>`;
+                if (data.payment?.receipt_url && data.payment.receipt_url.startsWith('https://')) {
+                    receiptHtml = `<a href="${escapeHtml(data.payment.receipt_url)}" target="_blank" rel="noopener" class="btn-receipt">View Receipt ↗</a>`;
                 } else {
                     receiptHtml = '<span style="color:#999">No receipt available</span>';
                 }

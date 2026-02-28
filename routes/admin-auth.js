@@ -293,6 +293,12 @@ function createAdminAuthRoutes(deps) {
         }
     });
 
+    // --- Logout ---
+    router.post('/api/admin/logout', (req, res) => {
+        res.clearCookie('auth-token', { path: '/admin' });
+        res.json({ success: true, message: 'Logged out' });
+    });
+
     // --- Verify token ---
     router.get('/api/admin/verify', (req, res) => {
         try {

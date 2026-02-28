@@ -90,7 +90,8 @@ function sendSuccess(res, data = null, message = null, statusCode = 200) {
 
 function sanitizeInput(input) {
     if (typeof input !== 'string') return input;
-    return input.replace(/[<>\\\"\\']/g, '');
+    // Strip HTML tags but preserve quotes and apostrophes
+    return input.replace(/<[^>]*>/g, '').trim();
 }
 
 function escapeHtml(text) {

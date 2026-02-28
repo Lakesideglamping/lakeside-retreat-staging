@@ -68,20 +68,20 @@ describe('escapeHtml', () => {
 // sanitizeInput
 // ---------------------------------------------------------------------------
 describe('sanitizeInput', () => {
-    test('removes < and > characters', () => {
-        expect(sanitizeInput('<script>alert(1)</script>')).toBe('scriptalert(1)/script');
+    test('strips HTML tags', () => {
+        expect(sanitizeInput('<script>alert(1)</script>')).toBe('alert(1)');
     });
 
-    test('removes backslash characters', () => {
-        expect(sanitizeInput('path\\to\\file')).toBe('pathtofile');
+    test('preserves backslash characters', () => {
+        expect(sanitizeInput('path\\to\\file')).toBe('path\\to\\file');
     });
 
-    test('removes double quote characters', () => {
-        expect(sanitizeInput('say "hello"')).toBe('say hello');
+    test('preserves double quote characters', () => {
+        expect(sanitizeInput('say "hello"')).toBe('say "hello"');
     });
 
-    test('removes single quote characters', () => {
-        expect(sanitizeInput("it's")).toBe('its');
+    test('preserves single quote characters (e.g. O\'Brien)', () => {
+        expect(sanitizeInput("it's")).toBe("it's");
     });
 
     test('returns non-string input unchanged', () => {

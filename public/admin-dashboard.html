@@ -337,12 +337,8 @@
                 ]);
 
                 if (statsResponse.ok && bookingStatsResponse.ok) {
-                    const statsData = await statsResponse.json();
-                    const bookingStatsData = await bookingStatsResponse.json();
-                    
-                    // Extract the nested stats objects
-                    const stats = statsData.stats || statsData;
-                    const bookingStats = bookingStatsData.stats || bookingStatsData;
+                    const stats = await statsResponse.json();
+                    const bookingStats = await bookingStatsResponse.json();
                     
                     // Get Uplisting data if available
                     let uplistingData = null;
@@ -375,7 +371,7 @@
                                 <span class="activity-time">Properties: ${uplistingData.total_properties}</span>
                             </div>
                             <div class="activity-item">
-                                <span>🏠 Properties found: ${uplistingData.properties.map(p => p.name).join(', ')}</span>
+                                <span>🏠 Properties found: ${uplistingData.properties.map(p => escapeHtml(p.name)).join(', ')}</span>
                                 <span class="activity-time">Ready for live data</span>
                             </div>
                         `;

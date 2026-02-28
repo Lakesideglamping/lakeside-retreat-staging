@@ -504,10 +504,37 @@
             'Dome Pinot': 'dome-pinot',
             'dome-pinot': 'dome-pinot',
             'Dome Rose': 'dome-rose',
+            'Dome Rosé': 'dome-rose',
             'dome-rose': 'dome-rose',
+            'dome-rosé': 'dome-rose',
             'Lakeside Cottage': 'lakeside-cottage',
             'lakeside-cottage': 'lakeside-cottage'
         };
+        
+        // Helper function to normalize accommodation names for color mapping
+        function getPropertyClass(accommodation) {
+            if (!accommodation) return 'dome-pinot';
+            // First try direct lookup
+            if (propertyClasses[accommodation]) {
+                return propertyClasses[accommodation];
+            }
+            // Normalize: lowercase, remove accents, replace spaces with hyphens
+            const normalized = accommodation
+                .toLowerCase()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/\s+/g, '-');
+            return propertyClasses[normalized] || 'dome-pinot';
+        }
+        
+        // Helper function to normalize date strings to YYYY-MM-DD format
+        // This handles both date-only strings and ISO timestamps from Uplisting
+        function normalizeDate(dateStr) {
+            if (!dateStr) return '';
+            // If it contains 'T' (ISO timestamp), split and take date part
+            // Also handle space-separated datetime formats
+            return dateStr.split('T')[0].split(' ')[0];
+        }
 
         // Load bookings from API
         async function loadBookings() {
@@ -613,9 +640,9 @@
             html += '<div class="bookings">';
             
             dayBookings.forEach(booking => {
-                const propClass = propertyClasses[booking.accommodation] || 'dome-pinot';
+                const propClass = getPropertyClass(booking.accommodation);
                 const guestName = booking.guest_name ? booking.guest_name.split(' ')[0] : 'Guest';
-                html += `<div class="monthly-booking ${propClass}" onclick="showBookingDetails('${booking.id}')" title="${booking.guest_name} - ${booking.accommodation}">${guestName}</div>`;
+                html += `<div class="monthly-booking ${propClass}" onclick="showBookingDetails('${booking.id}')" title="${escapeHtml(booking.guest_name)} - ${escapeHtml(booking.accommodation)}">${escapeHtml(guestName)}</div>`;
             });
             
             html += '</div></div>';
@@ -665,15 +692,15 @@
                     html += `<div class="${cellClass}">`;
                     
                     if (booking) {
-                        const propClass = propertyClasses[booking.accommodation] || 'dome-pinot';
-                        const isCheckin = booking.check_in === dateStr;
-                        const isCheckout = booking.check_out === dateStr;
+                        const propClass = getPropertyClass(booking.accommodation);
+                        const isCheckin = normalizeDate(booking.check_in) === dateStr;
+                        const isCheckout = normalizeDate(booking.check_out) === dateStr;
                         let indicatorClass = `booking-indicator ${propClass}`;
                         if (isCheckin) indicatorClass += ' checkin';
                         if (isCheckout) indicatorClass += ' checkout';
                         
                         const guestName = booking.guest_name ? booking.guest_name.split(' ')[0] : 'Guest';
-                        html += `<div class="${indicatorClass}" onclick="showBookingDetails('${booking.id}')" title="${booking.guest_name}">${guestName}</div>`;
+                        html += `<div class="${indicatorClass}" onclick="showBookingDetails('${booking.id}')" title="${escapeHtml(booking.guest_name)}">${escapeHtml(guestName)}</div>`;
                     }
                     
                     html += '</div>';
@@ -688,7 +715,9 @@
         // Get bookings for a specific date
         function getBookingsForDate(dateStr) {
             return bookings.filter(b => {
-                return b.check_in <= dateStr && b.check_out > dateStr && 
+                const checkIn = normalizeDate(b.check_in);
+                const checkOut = normalizeDate(b.check_out);
+                return checkIn <= dateStr && checkOut > dateStr && 
                        (b.status === 'confirmed' || b.payment_status === 'completed');
             });
         }
@@ -698,8 +727,10 @@
             const propertyLower = property.toLowerCase().replace(' ', '-');
             return bookings.find(b => {
                 const bookingProp = (b.accommodation || '').toLowerCase().replace(' ', '-');
+                const checkIn = normalizeDate(b.check_in);
+                const checkOut = normalizeDate(b.check_out);
                 return (bookingProp === propertyLower || b.accommodation === property) &&
-                       b.check_in <= dateStr && b.check_out > dateStr &&
+                       checkIn <= dateStr && checkOut > dateStr &&
                        (b.status === 'confirmed' || b.payment_status === 'completed');
             });
         }
@@ -792,11 +823,11 @@
                 </div>
                 <div class="booking-detail">
                     <span class="booking-detail-label">Status</span>
-                    <span class="booking-detail-value">${booking.status || 'N/A'}</span>
+                    <span class="booking-detail-value">${escapeHtml(booking.status || 'N/A')}</span>
                 </div>
                 <div class="booking-detail">
                     <span class="booking-detail-label">Payment</span>
-                    <span class="booking-detail-value">${booking.payment_status || 'N/A'}</span>
+                    <span class="booking-detail-value">${escapeHtml(booking.payment_status || 'N/A')}</span>
                 </div>
             `;
             

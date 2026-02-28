@@ -444,7 +444,16 @@ router.put('/api/admin/settings', verifyAdmin, (req, res) => {
         return res.status(400).json({ success: false, error: 'Settings object required' });
     }
     
+    const BLOCKED_KEYS = ['admin_password_hash', 'admin_2fa_secret', 'jwt_secret', 'stripe_secret'];
     const entries = Object.entries(settings);
+
+    // Check for blocked keys
+    for (const [key] of entries) {
+        if (BLOCKED_KEYS.includes(key?.toLowerCase())) {
+            return res.status(403).json({ success: false, error: 'Cannot modify protected settings' });
+        }
+    }
+
     let completed = 0;
     const errors = [];
     

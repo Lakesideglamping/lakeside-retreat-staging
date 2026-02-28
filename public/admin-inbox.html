@@ -842,7 +842,7 @@ The Lakeside Retreat Team`
                     </div>
                     <div class="message-meta">
                         <div class="message-date">${formatDate(m.created_at)}</div>
-                        ${m.type ? `<span class="message-type ${m.type}">${m.type}</span>` : ''}
+                        ${m.type ? `<span class="message-type ${escapeHtml(m.type)}">${escapeHtml(m.type)}</span>` : ''}
                     </div>
                 </div>
             `).join('');

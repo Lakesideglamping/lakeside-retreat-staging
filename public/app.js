@@ -356,7 +356,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Global variables
         let currentPage = 'home';
         let currentImageIndex = 0;
-        let socialProofIndex = 0;
+        // Removed: socialProofIndex - fake social proof removed
         let reviewsLoaded = 6;
         let touchStartX = 0;
         let touchEndX = 0;
@@ -366,11 +366,11 @@ document.addEventListener('DOMContentLoaded', () => {
         let currentBookingStep = 1;
         let bookingData = {};
 
-        // Mock Uplisting API rates (NZD)
+        // Accommodation rates (NZD)
         const accommodationRates = {
-            'dome-pinot': { base: 450, peak: 530, offPeak: 350 },
-            'dome-rose': { base: 380, peak: 450, offPeak: 300 },
-            'lakeside-cottage': { base: 580, peak: 680, offPeak: 480 }
+            'dome-pinot': { base: 530, peak: 530, offPeak: 530 },
+            'dome-rose': { base: 510, peak: 510, offPeak: 510 },
+            'lakeside-cottage': { base: 295, peak: 295, offPeak: 295 }
         };
 
         const accommodationNames = {
@@ -384,16 +384,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Gallery images from stay page click
         const galleryImages = [
-            'images/galerryrose.jpeg',
-            'images/gallerydecksideview.jpeg',
-            'images/gallerydecksitting.jpeg',
-            'images/gallerypinotbed.jpeg',
             'images/dome-pinot-hero.jpeg',
-            'images/dome-pinot-interior.jpeg',
             'images/dome-rose-interior.jpeg',
             'images/gallerydeck.jpeg',
-            'images/gallerypinotbed.jpeg',
-	    'images/GallerySwingChair.jpeg',
+            'images/gallerydecksitting.jpeg',
+            'images/GallerySwingChair.jpeg',
+            'images/galleryrainbow.jpeg',
+            'images/pinotspa.jpeg',
+            'images/rosespa.jpeg',
+            'images/Pinotfront.jpeg',
+            'images/vineyarddomes.jpeg',
         ];
 
         // Carousel-specific image arrays
@@ -406,11 +406,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 'images/GallerySwingChair.jpeg'
             ],
             'rose': [
-                'images/IMG_E8919-1000x700.jpeg',
-                'images/IMG_1403-1000x700.jpeg',
+                'images/dome-rose-interior.jpeg',
                 'images/rosespa.jpeg',
+                'images/dome-rose-spa1.jpeg',
                 'images/gallerydecksitting.jpeg',
-                'images/dome-rose-interior.jpeg'
+                'images/galleryrainbow.jpeg'
             ],
             'cottage': [
                 'images/lakeside-cottage-exterior.jpeg',
@@ -438,14 +438,7 @@ document.addEventListener('DOMContentLoaded', () => {
             { title: 'Cromwell to Clyde Cycle Trail', page: 'explore', description: 'Direct access to scenic cycling routes' }
         ];
 
-        // Social proof messages
-        const socialProofMessages = [
-            { name: 'Sarah from Auckland', action: 'just booked Dome Pinot', time: '2 minutes ago' },
-            { name: 'Mike from Melbourne', action: 'just booked Lakeside Cottage', time: '5 minutes ago' },
-            { name: 'Lisa from Wellington', action: 'just booked Dome Rosé', time: '8 minutes ago' },
-            { name: 'David from Sydney', action: 'just booked an energy system tour', time: '12 minutes ago' },
-            { name: 'Emma from Christchurch', action: 'just booked Lakeside Cottage', time: '15 minutes ago' }
-        ];
+        // Removed: fake social proof notifications - use real booking data instead
 
         // CSRF Token Management
         let csrfToken = '';
@@ -493,8 +486,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }, 2000);
 
-            // Initialize social proof
-            setTimeout(showSocialProof, 5000);
+            // Removed: fake social proof initialization - use real booking data instead
 
             // Initialize scroll animations
             const observer = new IntersectionObserver((entries) => {
@@ -2266,22 +2258,9 @@ document.addEventListener('DOMContentLoaded', () => {
             alert(`Virtual tour feature coming soon! For now, browse through our ${accommodation} photo gallery above or contact us for a video tour.`);
         }
 
-        function showSocialProof() {
-            const socialProof = document.getElementById('socialProof');
-            const message = socialProofMessages[socialProofIndex];
-            
-            document.getElementById('socialProofText').textContent = `${message.name} ${message.action}!`;
-            document.getElementById('socialProofTime').textContent = message.time;
-            
-            socialProof.classList.add('show');
-            
-            setTimeout(() => {
-                socialProof.classList.remove('show');
-            }, 4000);
-            
-            socialProofIndex = (socialProofIndex + 1) % socialProofMessages.length;
-            setTimeout(showSocialProof, Math.random() * 30000 + 45000);
-        }
+        // Removed: showSocialProof() function - fake social proof notifications removed
+        // Previously displayed hardcoded fake booking notifications which could violate NZ consumer protection laws
+        // Use real booking data instead if social proof is needed
 
         window.acceptCookies = function() {
             document.getElementById('cookieButtons').style.display = 'none';

@@ -732,7 +732,7 @@
                 return `
                     <div class="review-photos">
                         ${photos.map(photo => `
-                            <img src="${photo}" alt="Guest photo" onclick="window.open('${photo}', '_blank')">
+                            <img src="${escapeHtml(photo)}" alt="Guest photo" onclick="window.open('${escapeHtml(photo)}', '_blank')">
                         `).join('')}
                     </div>
                 `;

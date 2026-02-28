@@ -23,10 +23,12 @@ class UplistingService {
      * @param {Object} opts
      * @param {string} opts.apiKey - Uplisting API key (from env)
      * @param {Function} opts.getDb - Returns the database connection
+     * @param {Object} [opts.emailNotifications] - Email notification service (optional)
      */
     constructor(opts = {}) {
         this.apiKey = opts.apiKey || process.env.UPLISTING_API_KEY;
         this.getDb = opts.getDb || (() => null);
+        this.emailNotifications = opts.emailNotifications || null;
     }
 
     /** Whether Uplisting integration is configured */
@@ -240,7 +242,8 @@ class UplistingService {
                     payment_status = EXCLUDED.payment_status,
                     notes = EXCLUDED.notes,
                     uplisting_id = EXCLUDED.uplisting_id,
-                    booking_source = EXCLUDED.booking_source
+                    booking_source = EXCLUDED.booking_source,
+                    updated_at = CURRENT_TIMESTAMP
             `;
 
             const db = this.getDb();
@@ -255,14 +258,48 @@ class UplistingService {
                 ], (err) => {
                     if (err) {
                         console.error('Failed to sync Uplisting booking:', err.message);
+                        res.status(500).json({ received: false, error: 'Database write failed' });
                     } else {
                         console.log('Uplisting booking synced:', data.id);
+                        console.log(`New external booking from ${channel}: ${bookingData.guest_name} at ${bookingData.accommodation} (${bookingData.check_in} to ${bookingData.check_out})`);
+                        if (this.emailNotifications) {
+                            try {
+                                this.emailNotifications.sendSystemAlert('New External Booking',
+                                    `New booking from ${channel}: ${bookingData.guest_name} at ${bookingData.accommodation} (${bookingData.check_in} to ${bookingData.check_out})`
+                                );
+                            } catch (emailErr) {
+                                console.error('Failed to send admin notification for external booking:', emailErr.message);
+                            }
+                        }
+                        res.json({ received: true });
                     }
                 });
+            } else {
+                res.json({ received: true });
             }
+        } else if (event === 'booking.cancelled' || event === 'booking.deleted') {
+            const bookingId = `uplisting-${data.id}`;
+            const db = this.getDb();
+            if (db) {
+                db.run(
+                    `UPDATE bookings SET status = 'cancelled', updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+                    [bookingId],
+                    (err) => {
+                        if (err) {
+                            console.error('Failed to cancel Uplisting booking:', err.message);
+                            res.status(500).json({ received: false, error: 'Database write failed' });
+                        } else {
+                            console.log('Uplisting booking cancelled:', data.id);
+                            res.json({ received: true });
+                        }
+                    }
+                );
+            } else {
+                res.json({ received: true });
+            }
+        } else {
+            res.json({ received: true });
         }
-
-        res.json({ received: true });
     }
 
     // ==========================================

@@ -93,7 +93,7 @@ class SlidingWindowLimiter {
  * @param {Object} opts
  * @param {number} opts.windowMs - Time window in milliseconds
  * @param {number} opts.maxRequests - Max requests per window
- * @param {Function} opts.keyFn - Extract rate limit key from request (default: req.adminId || req.ip)
+ * @param {Function} opts.keyFn - Extract rate limit key from request (default: req.admin?.username || req.ip)
  * @param {string} opts.message - Error message when rate limited
  */
 function rateLimitByKey({ windowMs, maxRequests, keyFn, message, keyPrefix }) {
@@ -103,7 +103,7 @@ function rateLimitByKey({ windowMs, maxRequests, keyFn, message, keyPrefix }) {
         keyPrefix: keyPrefix || 'custom'
     });
 
-    const defaultKeyFn = (req) => req.adminId || req.ip;
+    const defaultKeyFn = (req) => req.admin?.username || req.ip;
     const getKey = keyFn || defaultKeyFn;
 
     return function rateLimitMiddleware(req, res, next) {
@@ -141,7 +141,7 @@ const adminActionLimiter = rateLimitByKey({
     windowMs: 5 * 60 * 1000,
     maxRequests: 30,
     keyPrefix: 'admin-action',
-    keyFn: (req) => req.adminId || req.ip,
+    keyFn: (req) => req.admin?.username || req.ip,
     message: 'Too many admin actions. Please wait before making more changes.'
 });
 
@@ -154,7 +154,7 @@ const adminBurstLimiter = rateLimitByKey({
     windowMs: 60 * 1000,
     maxRequests: 200,
     keyPrefix: 'admin-burst',
-    keyFn: (req) => req.adminId || req.ip,
+    keyFn: (req) => req.admin?.username || req.ip,
     message: 'Request rate exceeded. Please slow down.'
 });
 
@@ -166,7 +166,7 @@ const adminDestructiveLimiter = rateLimitByKey({
     windowMs: 10 * 60 * 1000,
     maxRequests: 5,
     keyPrefix: 'admin-destructive',
-    keyFn: (req) => req.adminId || req.ip,
+    keyFn: (req) => req.admin?.username || req.ip,
     message: 'Too many destructive operations. Please wait before continuing.'
 });
 

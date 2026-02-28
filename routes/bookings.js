@@ -18,6 +18,7 @@ const { body, validationResult } = require('express-validator');
 const { v4: uuidv4 } = require('uuid');
 
 const { sendError, sanitizeInput, ERROR_CODES } = require('../middleware/auth');
+const accommodations = require('../config/accommodations');
 
 const bookingLimiter = rateLimit({
     windowMs: 5 * 60 * 1000,
@@ -42,7 +43,7 @@ const bookingLimiter = rateLimit({
 function createBookingRoutes(deps) {
     const {
         db, stripe, DEV_MODE, bookingQueue, paymentQueue,
-        database, checkAvailability,
+        database, checkAvailability, sendBookingConfirmation,
         tracking: { trackBookingStart, trackBookingStep, trackBookingSuccess, trackBookingFailure }
     } = deps;
 
@@ -201,6 +202,31 @@ function createBookingRoutes(deps) {
                     return sendError(res, 400, ERROR_CODES.INVALID_DATE_RANGE, 'Check-out date must be after check-in date');
                 }
 
+                // Validate guests against accommodation maxGuests
+                const accommodationConfig = accommodations.getById(sanitizedData.accommodation);
+                if (!accommodationConfig) {
+                    return sendError(res, 400, ERROR_CODES.VALIDATION_ERROR, 'Invalid accommodation');
+                }
+                const maxGuests = accommodationConfig.maxGuests || 6;
+                if (sanitizedData.guests > maxGuests) {
+                    return res.status(400).json({ success: false, error: `Maximum ${maxGuests} guests for ${accommodationConfig.name}` });
+                }
+
+                // Validate minimum stay
+                const nights = Math.ceil((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));
+                const minStay = accommodationConfig.minStay || 1;
+                if (nights < minStay) {
+                    return res.status(400).json({ success: false, error: `Minimum stay for ${accommodationConfig.name} is ${minStay} nights` });
+                }
+
+                // Server-side price validation
+                const expectedBase = accommodationConfig.basePrice * nights;
+                const minExpected = expectedBase * 0.9; // 10% tolerance
+                const maxExpected = expectedBase * 1.5; // 50% tolerance for fees
+                if (sanitizedData.total_price < minExpected || sanitizedData.total_price > maxExpected) {
+                    return res.status(400).json({ success: false, error: 'Price validation failed. Please try again.' });
+                }
+
                 trackBookingStep('availability_check', req.requestId, {
                     checkIn: sanitizedData.check_in,
                     checkOut: sanitizedData.check_out
@@ -210,11 +236,12 @@ function createBookingRoutes(deps) {
 
                 const booking = await database.transaction(async (tx) => {
                     // Atomic availability check inside transaction
+                    const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
                     const availSql = `
                         SELECT COUNT(*) as conflicts
                         FROM bookings
                         WHERE accommodation = ?
-                        AND (payment_status = 'completed' OR (status = 'pending' AND created_at > datetime('now', '-30 minutes')))
+                        AND (payment_status = 'completed' OR (status = 'pending' AND created_at > ?))
                         AND (
                             (check_in <= ? AND check_out > ?) OR
                             (check_in < ? AND check_out >= ?) OR
@@ -223,6 +250,7 @@ function createBookingRoutes(deps) {
                     `;
                     const row = await tx.get(availSql, [
                         sanitizedData.accommodation,
+                        thirtyMinAgo,
                         sanitizedData.check_in, sanitizedData.check_in,
                         sanitizedData.check_out, sanitizedData.check_out,
                         sanitizedData.check_in, sanitizedData.check_out
@@ -267,6 +295,15 @@ function createBookingRoutes(deps) {
                 });
 
                 trackBookingSuccess(booking.id, req.requestId, booking.total_price);
+
+                // Send booking confirmation email (non-blocking)
+                if (sendBookingConfirmation) {
+                    try {
+                        await sendBookingConfirmation(booking);
+                    } catch (emailErr) {
+                        console.error('Booking confirmation email failed:', emailErr.message);
+                    }
+                }
 
                 res.status(201).json({
                     success: true,

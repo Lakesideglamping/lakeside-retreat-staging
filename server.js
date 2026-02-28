@@ -102,7 +102,8 @@ database.initializeDatabase()
         // Initialize Uplisting service
         uplisting = new UplistingService({
             apiKey: process.env.UPLISTING_API_KEY,
-            getDb: () => db
+            getDb: () => db,
+            emailNotifications
         });
         if (uplisting.isConfigured) {
             console.log('🏨 Uplisting service initialized');
@@ -494,6 +495,7 @@ app.use(createBookingRoutes({
     checkAvailability,
     executeDbOperation: (operation, params) => executeDbOperation(operation, params),
     database,
+    sendBookingConfirmation,
     tracking: { trackBookingStart, trackBookingStep, trackBookingSuccess, trackBookingFailure }
 }));
 
@@ -575,19 +577,20 @@ async function checkAvailability(accommodation, checkIn, checkOut) {
     try {
         // Check local database first
         localAvailable = await new Promise((resolve, reject) => {
+            const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
             const sql = `
-                SELECT COUNT(*) as conflicts 
-                FROM bookings 
+                SELECT COUNT(*) as conflicts
+                FROM bookings
                 WHERE accommodation = ?
-                AND (payment_status = 'completed' OR (status = 'pending' AND created_at > datetime('now', '-30 minutes')))
+                AND (payment_status = 'completed' OR (status = 'pending' AND created_at > ?))
                 AND (
                     (check_in <= ? AND check_out > ?) OR
                     (check_in < ? AND check_out >= ?) OR
                     (check_in >= ? AND check_out <= ?)
                 )
             `;
-            
-            db.get(sql, [accommodation, checkIn, checkIn, checkOut, checkOut, checkIn, checkOut], (err, row) => {
+
+            db.get(sql, [accommodation, thirtyMinAgo, checkIn, checkIn, checkOut, checkOut, checkIn, checkOut], (err, row) => {
                 if (err) {
                     reject(err);
                 } else {
@@ -967,11 +970,12 @@ function recoverPendingDepositReleases() {
 // Hourly polling for overdue deposit releases (safety net for timer overflow or missed timers)
 setInterval(async () => {
     try {
+        const now = new Date().toISOString();
         const overdueDeposits = await new Promise((resolve, reject) => {
             db.all(`SELECT id, security_deposit_intent_id FROM bookings
                     WHERE security_deposit_status = 'authorized'
                     AND deposit_release_due IS NOT NULL
-                    AND deposit_release_due <= datetime('now')`, [], (err, rows) => {
+                    AND deposit_release_due <= ?`, [now], (err, rows) => {
                 if (err) reject(err); else resolve(rows || []);
             });
         });
