@@ -111,39 +111,54 @@ class UplistingService {
                 return null;
             }
 
-            const url = `${UPLISTING_API_BASE}/properties/${propertyId}/calendar?start_date=${checkIn}&end_date=${checkOut}`;
-            console.log('💰 Fetching Uplisting calendar pricing:', url);
+            // Try multiple possible calendar endpoint paths
+            const endpoints = [
+                `${UPLISTING_API_BASE}/properties/${propertyId}/calendar?start_date=${checkIn}&end_date=${checkOut}`,
+                `${UPLISTING_API_BASE}/calendars?property_id=${propertyId}&start_date=${checkIn}&end_date=${checkOut}`,
+                `${UPLISTING_API_BASE}/properties/${propertyId}/availability?start_date=${checkIn}&end_date=${checkOut}`
+            ];
 
-            const response = await fetch(url, {
-                method: 'GET',
-                headers: {
-                    'Authorization': this.authHeader,
-                    'Content-Type': 'application/json'
+            let data = null;
+            let successUrl = null;
+
+            for (const url of endpoints) {
+                console.log('💰 Trying Uplisting endpoint:', url);
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': this.authHeader,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                console.log(`📡 ${url} → ${response.status}`);
+
+                if (response.ok) {
+                    data = await response.json();
+                    successUrl = url;
+                    console.log('📝 Uplisting data:', JSON.stringify(data).substring(0, 500));
+                    break;
                 }
-            });
+            }
 
-            console.log('📡 Uplisting calendar response status:', response.status);
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('❌ Uplisting calendar API error:', response.status, errorText);
+            if (!data) {
+                console.error('❌ All Uplisting calendar endpoints failed');
                 return null;
             }
 
-            const data = await response.json();
-            console.log('📝 Uplisting calendar data:', JSON.stringify(data).substring(0, 500));
-
-            // Extract nightly rates from calendar response
-            // Uplisting calendar returns an array of date entries with pricing
+            // Parse the response - adapt to whatever structure Uplisting returns
             const days = data.data || data.calendar || data;
+
+            // Return raw data so we can inspect the structure
             if (!Array.isArray(days)) {
-                // If data is an object with date keys or nested structure, adapt
-                return { raw: data, propertyId, accommodation };
+                return { raw: data, propertyId, accommodation, endpoint: successUrl };
             }
 
             const rates = days.map(day => ({
                 date: day.date || day.attributes?.date,
-                price: day.price || day.nightly_price || day.rate || day.attributes?.price || day.attributes?.nightly_price,
+                price: day.price || day.nightly_price || day.rate ||
+                       day.attributes?.price || day.attributes?.nightly_price ||
+                       day.attributes?.rate,
                 available: day.available ?? day.attributes?.available,
                 minStay: day.minimum_stay || day.attributes?.minimum_stay
             })).filter(d => d.date);
@@ -154,6 +169,7 @@ class UplistingService {
                 checkIn,
                 checkOut,
                 currency: 'NZD',
+                endpoint: successUrl,
                 rates,
                 averageRate: rates.length > 0
                     ? Math.round(rates.reduce((sum, r) => sum + (r.price || 0), 0) / rates.length)
