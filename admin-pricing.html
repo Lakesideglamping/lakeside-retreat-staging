@@ -376,7 +376,7 @@
                         <label class="price-label">Per Night:</label>
                         <div class="price-input">
                             <span class="currency-prefix">$</span>
-                            <input type="number" id="cottage-base" value="245" min="0">
+                            <input type="number" id="cottage-base" value="295" min="0">
                         </div>
                     </div>
                     <div class="price-input-group">
@@ -589,7 +589,7 @@
                     // Load Lakeside Cottage pricing
                     if (data.pricing.pricing_lakeside_cottage) {
                         const cottage = data.pricing.pricing_lakeside_cottage;
-                        document.getElementById('cottage-base').value = cottage.base || 245;
+                        document.getElementById('cottage-base').value = cottage.base || 295;
                         document.getElementById('cottage-weekend').value = cottage.weekend || 275;
                         document.getElementById('cottage-peak').value = cottage.peak || 300;
                         document.getElementById('cottage-cleaning').value = cottage.cleaning || 50;

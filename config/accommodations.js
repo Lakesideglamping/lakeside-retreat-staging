@@ -35,7 +35,7 @@ const accommodations = [
         name: 'Lakeside Cottage',
         description: 'Family-friendly cottage with direct lake access',
         maxGuests: 6,
-        basePrice: 245,
+        basePrice: 295,
         minStay: 2,
         extraGuestFee: 100,
         petFee: 25,
