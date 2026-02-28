@@ -1,4 +1,3 @@
-const nodemailer = require('nodemailer');
 const database = require('./database');
 
 class MarketingAutomation {
@@ -408,7 +407,7 @@ class MarketingAutomation {
                     const checkOut = new Date(booking.check_out);
                     
                     // Add all dates from check-in to check-out (exclusive of check-out)
-                    let current = new Date(checkIn);
+                    const current = new Date(checkIn);
                     while (current < checkOut) {
                         const dateStr = current.toISOString().split('T')[0];
                         // Only include dates within the requested month
@@ -421,7 +420,7 @@ class MarketingAutomation {
 
                 // Generate all dates in the month
                 const allDates = [];
-                let currentDate = new Date(startDate);
+                const currentDate = new Date(startDate);
                 while (currentDate <= endDate) {
                     const dateStr = currentDate.toISOString().split('T')[0];
                     allDates.push({
@@ -452,14 +451,14 @@ class MarketingAutomation {
     // Get next available weekends for quick display
     async getNextAvailableWeekends(accommodation, count = 4) {
         const weekends = [];
-        let currentDate = new Date();
+        const currentDate = new Date();
         
         // Move to next Friday
         while (currentDate.getDay() !== 5) {
             currentDate.setDate(currentDate.getDate() + 1);
         }
 
-        const checkedWeeks = 0;
+        let checkedWeeks = 0;
         const maxWeeks = 16; // Check up to 16 weeks ahead
 
         while (weekends.length < count && checkedWeeks < maxWeeks) {
@@ -483,6 +482,7 @@ class MarketingAutomation {
 
             // Move to next Friday
             currentDate.setDate(currentDate.getDate() + 7);
+            checkedWeeks++;
         }
 
         return weekends;

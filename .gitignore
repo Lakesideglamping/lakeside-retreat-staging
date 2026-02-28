@@ -73,3 +73,12 @@ temp/
 *.sqlite
 *.sqlite3
 lakeside.db
+
+# Test snapshots
+tests/__snapshots__/
+
+# Linter cache
+.eslintcache
+
+# TypeScript build info
+*.tsbuildinfo

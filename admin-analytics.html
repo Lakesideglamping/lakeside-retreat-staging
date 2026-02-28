@@ -670,15 +670,15 @@
             }
             
             tbody.innerHTML = uplistingAnalyticsData.propertyPerformance.map(property => {
-                const badgeClass = property.name.includes('Pinot') ? 'badge-pinot' : 
+                const badgeClass = property.name.includes('Pinot') ? 'badge-pinot' :
                                   property.name.includes('Rosé') ? 'badge-rose' : 'badge-cottage';
                 return `
                     <tr>
-                        <td><span class="property-badge ${badgeClass}">${property.name}</span></td>
-                        <td>${property.bookings || 'Connected'}</td>
+                        <td><span class="property-badge ${escapeHtml(badgeClass)}">${escapeHtml(property.name)}</span></td>
+                        <td>${escapeHtml(property.bookings || 'Connected')}</td>
                         <td>${property.revenue ? '$' + property.revenue.toLocaleString() : 'Uplisting Data'}</td>
                         <td>${property.occupancy ? property.occupancy + '%' : 'Live Sync'}</td>
-                        <td>${property.avgRate ? '$' + property.avgRate : property.currency || 'NZD'}</td>
+                        <td>${property.avgRate ? '$' + property.avgRate : escapeHtml(property.currency || 'NZD')}</td>
                         <td>${property.rating ? '⭐ ' + property.rating : 'Channel Manager'}</td>
                     </tr>
                 `;
@@ -821,7 +821,7 @@
                             <div style="background: #e8f5e8; border: 1px solid #c3e6c3; padding: 1rem; border-radius: 8px; margin: 1rem 0;">
                                 <strong>✅ Connected to Uplisting Channel Manager</strong><br>
                                 Properties: ${uplistingData.total_properties} | Bookings: ${uplistingData.total_bookings || 0} | Revenue: $${(uplistingData.total_revenue || 0).toLocaleString()}<br>
-                                <small>${uplistingData.properties.map(p => p.name).join(', ')}</small>
+                                <small>${uplistingData.properties.map(p => escapeHtml(p.name)).join(', ')}</small>
                             </div>
                         `;
                         

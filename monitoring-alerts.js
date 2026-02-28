@@ -5,8 +5,8 @@ const EmailNotifications = require('./email-notifications.js');
 require('dotenv').config();
 
 class MonitoringAlerts {
-    constructor() {
-        this.emailService = new EmailNotifications();
+    constructor(transporter = null) {
+        this.emailService = new EmailNotifications(transporter);
         this.checkInterval = 5 * 60 * 1000; // 5 minutes
         this.alertThresholds = {
             diskSpace: 90, // Alert when disk usage > 90%
@@ -66,25 +66,25 @@ class MonitoringAlerts {
                 tables: []
             };
             
-            const db = new sqlite3.Database('./lakeside.db', (err) => {
+            const db = new sqlite3.Database('./lakeside.db', async (err) => {
                 if (err) {
                     dbHealth.status = 'error';
                     dbHealth.error = err.message;
                     resolve(dbHealth);
                     return;
                 }
-                
+
                 dbHealth.connected = true;
-                
-                // Check database file size
+
+                // Check database file size (async to avoid blocking the event loop)
                 try {
-                    const stats = fs.statSync('./lakeside.db');
+                    const stats = await fs.promises.stat('./lakeside.db');
                     dbHealth.size = stats.size;
-                    
+
                     if (stats.size > this.alertThresholds.dbSize) {
                         dbHealth.status = 'warning';
                         dbHealth.alerts = [`Database size: ${Math.round(stats.size / 1024 / 1024)}MB`];
-                        
+
                         this.sendAlert('warning', 'Large Database Size', {
                             'Database Size': `${Math.round(stats.size / 1024 / 1024)}MB`,
                             'Threshold': `${Math.round(this.alertThresholds.dbSize / 1024 / 1024)}MB`
@@ -94,18 +94,18 @@ class MonitoringAlerts {
                     dbHealth.status = 'warning';
                     dbHealth.error = 'Could not read database file stats';
                 }
-                
+
                 // Check table counts
                 db.get("SELECT COUNT(*) as count FROM bookings", (err, row) => {
                     if (!err) {
                         dbHealth.tables.push({ name: 'bookings', count: row.count });
                     }
-                    
+
                     db.get("SELECT COUNT(*) as count FROM contact_messages", (err, row) => {
                         if (!err) {
                             dbHealth.tables.push({ name: 'contact_messages', count: row.count });
                         }
-                        
+
                         db.close();
                         resolve(dbHealth);
                     });

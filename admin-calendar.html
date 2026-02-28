@@ -642,7 +642,7 @@
             dayBookings.forEach(booking => {
                 const propClass = getPropertyClass(booking.accommodation);
                 const guestName = booking.guest_name ? booking.guest_name.split(' ')[0] : 'Guest';
-                html += `<div class="monthly-booking ${propClass}" onclick="showBookingDetails('${booking.id}')" title="${booking.guest_name} - ${booking.accommodation}">${guestName}</div>`;
+                html += `<div class="monthly-booking ${propClass}" onclick="showBookingDetails('${booking.id}')" title="${escapeHtml(booking.guest_name)} - ${escapeHtml(booking.accommodation)}">${escapeHtml(guestName)}</div>`;
             });
             
             html += '</div></div>';
@@ -700,7 +700,7 @@
                         if (isCheckout) indicatorClass += ' checkout';
                         
                         const guestName = booking.guest_name ? booking.guest_name.split(' ')[0] : 'Guest';
-                        html += `<div class="${indicatorClass}" onclick="showBookingDetails('${booking.id}')" title="${booking.guest_name}">${guestName}</div>`;
+                        html += `<div class="${indicatorClass}" onclick="showBookingDetails('${booking.id}')" title="${escapeHtml(booking.guest_name)}">${escapeHtml(guestName)}</div>`;
                     }
                     
                     html += '</div>';
@@ -823,11 +823,11 @@
                 </div>
                 <div class="booking-detail">
                     <span class="booking-detail-label">Status</span>
-                    <span class="booking-detail-value">${booking.status || 'N/A'}</span>
+                    <span class="booking-detail-value">${escapeHtml(booking.status || 'N/A')}</span>
                 </div>
                 <div class="booking-detail">
                     <span class="booking-detail-label">Payment</span>
-                    <span class="booking-detail-value">${booking.payment_status || 'N/A'}</span>
+                    <span class="booking-detail-value">${escapeHtml(booking.payment_status || 'N/A')}</span>
                 </div>
             `;
             

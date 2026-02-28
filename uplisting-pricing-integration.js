@@ -85,7 +85,7 @@ async function getUplistingRealPricing() {
             console.log(`Max Capacity: ${property.maximum_capacity}`);
             
             console.log('\n💵 FEES:');
-            Object.entries(property.fees).forEach(([key, fee]) => {
+            Object.entries(property.fees).forEach(([_key, fee]) => {
                 if (fee.enabled) {
                     console.log(`  ${fee.name}: $${fee.amount} ${property.currency}`);
                     if (fee.guests_included !== null) {
@@ -95,14 +95,14 @@ async function getUplistingRealPricing() {
             });
             
             console.log('\n📊 TAXES:');
-            Object.entries(property.taxes).forEach(([key, tax]) => {
+            Object.entries(property.taxes).forEach(([_key, tax]) => {
                 if (tax.amount > 0) {
                     console.log(`  ${tax.name}: ${tax.type === 'percentage' ? tax.amount + '%' : '$' + tax.amount} per ${tax.per}`);
                 }
             });
             
             console.log('\n🎯 DISCOUNTS:');
-            Object.entries(property.discounts).forEach(([key, discount]) => {
+            Object.entries(property.discounts).forEach(([_key, discount]) => {
                 if (discount.amount > 0) {
                     console.log(`  ${discount.name}: ${discount.amount}% off for ${discount.days}+ days`);
                 }

@@ -1,10 +1,32 @@
 const { Pool } = require('pg');
 
+// Build SSL configuration
+function buildSslConfig() {
+    const databaseUrl = process.env.DATABASE_URL || '';
+    const isProduction = process.env.NODE_ENV === 'production';
+    const needsSsl = isProduction || databaseUrl.includes('render.com');
+
+    if (!needsSsl) return false;
+
+    const sslConfig = {};
+    if (process.env.DATABASE_SSL_CA) {
+        // Use explicit CA certificate if provided
+        const fs = require('fs');
+        sslConfig.ca = fs.readFileSync(process.env.DATABASE_SSL_CA, 'utf8');
+        sslConfig.rejectUnauthorized = true;
+    } else if (process.env.DATABASE_SSL_REJECT_UNAUTHORIZED === 'false') {
+        // Explicit opt-in to disable certificate validation (e.g. Render deployments)
+        sslConfig.rejectUnauthorized = false;
+    } else {
+        // Default: enforce SSL certificate validation in production
+        sslConfig.rejectUnauthorized = true;
+    }
+    return sslConfig;
+}
+
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    ssl: process.env.DATABASE_URL && process.env.DATABASE_URL.includes('render.com') 
-        ? { rejectUnauthorized: false } 
-        : false,
+    ssl: buildSslConfig(),
     max: 20,
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 2000

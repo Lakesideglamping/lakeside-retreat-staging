@@ -6,7 +6,7 @@
  * databases that already have these tables.
  */
 
-const { promisify } = require('util');
+require('util');
 
 function dbRun(db, sql) {
     return new Promise((resolve, reject) => {
@@ -211,7 +211,7 @@ exports.up = async function(db, isPostgres) {
     }
 };
 
-exports.down = async function(db, isPostgres) {
+exports.down = async function(_db, _isPostgres) {
     // Baseline migration cannot be rolled back safely
     console.warn('⚠️  Cannot rollback baseline migration — would destroy all data');
 };

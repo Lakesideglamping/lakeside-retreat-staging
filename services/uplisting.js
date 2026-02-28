@@ -286,7 +286,7 @@ class UplistingService {
             const totalProperties = propertiesData.data ? propertiesData.data.length : 0;
 
             // Try to get bookings
-            let bookingData = { total_bookings: 0, total_revenue: 0, bookings: [] };
+            const bookingData = { total_bookings: 0, total_revenue: 0, bookings: [] };
 
             try {
                 const bookingsResponse = await fetch(`${UPLISTING_API_BASE}/bookings?per_page=100`, {

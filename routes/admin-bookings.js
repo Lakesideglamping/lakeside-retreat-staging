@@ -24,7 +24,7 @@ const router = express.Router();
 const { body, validationResult } = require('express-validator');
 const { v4: uuidv4 } = require('uuid');
 
-const { verifyAdmin, sendError, sendSuccess, sanitizeInput, ERROR_CODES } = require('../middleware/auth');
+const { verifyAdmin, sendError, sanitizeInput, ERROR_CODES } = require('../middleware/auth');
 
 /**
  * @param {Object} deps
@@ -38,13 +38,13 @@ const { verifyAdmin, sendError, sendSuccess, sanitizeInput, ERROR_CODES } = requ
  * @param {Object} deps.database - Database abstraction layer
  */
 function createAdminBookingRoutes(deps) {
-    const { db, stripe, DEV_MODE, syncBookingToUplisting, cancelUplistingBooking,
-             sendBookingConfirmation, scheduleDepositRelease, database } = deps;
+    const { db, stripe, syncBookingToUplisting, cancelUplistingBooking, emailNotifications } = deps;
+    const { getUplistingDashboardData } = require('../uplisting-dashboard-api');
 
 // Get all bookings (admin only) - Enhanced with search, filters, and Stripe/Uplisting status
 router.get('/api/admin/bookings', verifyAdmin, (req, res) => {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
+    const page = Math.max(parseInt(req.query.page) || 1, 1);
+    const limit = Math.min(Math.max(parseInt(req.query.limit) || 20, 1), 100);
     const offset = (page - 1) * limit;
     const status = req.query.status;
     const search = req.query.search;
@@ -60,8 +60,8 @@ router.get('/api/admin/bookings', verifyAdmin, (req, res) => {
         FROM bookings
     `;
     
-    let params = [];
-    let conditions = [];
+    const params = [];
+    const conditions = [];
     
     if (status) {
         conditions.push('status = ?');
@@ -102,8 +102,8 @@ router.get('/api/admin/bookings', verifyAdmin, (req, res) => {
         
         // Get total count with same filters
         let countSql = 'SELECT COUNT(*) as total FROM bookings';
-        let countParams = [];
-        let countConditions = [];
+        const countParams = [];
+        const countConditions = [];
         
         if (status) {
             countConditions.push('status = ?');
@@ -153,6 +153,13 @@ router.get('/api/admin/bookings', verifyAdmin, (req, res) => {
     });
 });
 
+// CSV formula injection protection - prefix dangerous characters with a tab
+function sanitizeCsvValue(val) {
+    if (typeof val !== 'string') return val;
+    if (/^[=+\-@\t\r]/.test(val)) return '\t' + val;
+    return val;
+}
+
 // Export bookings to CSV (admin only)
 router.get('/api/admin/bookings/export', verifyAdmin, (req, res) => {
     const status = req.query.status;
@@ -168,8 +175,8 @@ router.get('/api/admin/bookings/export', verifyAdmin, (req, res) => {
         FROM bookings
     `;
     
-    let params = [];
-    let conditions = [];
+    const params = [];
+    const conditions = [];
     
     if (status) {
         conditions.push('status = ?');
@@ -219,10 +226,10 @@ router.get('/api/admin/bookings/export', verifyAdmin, (req, res) => {
         rows.forEach(row => {
             const values = [
                 row.id,
-                `"${(row.guest_name || '').replace(/"/g, '""')}"`,
-                `"${(row.guest_email || '').replace(/"/g, '""')}"`,
-                `"${(row.guest_phone || '').replace(/"/g, '""')}"`,
-                `"${(row.accommodation || '').replace(/"/g, '""')}"`,
+                `"${sanitizeCsvValue((row.guest_name || '').replace(/"/g, '""'))}"`,
+                `"${sanitizeCsvValue((row.guest_email || '').replace(/"/g, '""'))}"`,
+                `"${sanitizeCsvValue((row.guest_phone || '').replace(/"/g, '""'))}"`,
+                `"${sanitizeCsvValue((row.accommodation || '').replace(/"/g, '""'))}"`,
                 row.check_in,
                 row.check_out,
                 row.guests,
@@ -284,7 +291,7 @@ router.put('/api/admin/booking/:id/status', verifyAdmin, [
     const { status, notes } = req.body;
     
     let sql = 'UPDATE bookings SET status = ?, updated_at = CURRENT_TIMESTAMP';
-    let params = [status];
+    const params = [status];
     
     if (notes) {
         sql += ', notes = ?';

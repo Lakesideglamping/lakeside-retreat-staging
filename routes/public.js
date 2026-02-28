@@ -56,13 +56,13 @@ const chatbotLimiter = rateLimit({
  * @param {Object} deps.database - Database abstraction layer
  */
 function createPublicRoutes(deps) {
-    const { db, emailTransporter, accommodationCache, chatbot, getMarketingAutomation, database } = deps;
+    const { db, emailTransporter, accommodationCache, chatbot } = deps;
 
     // --- Accommodations (cached) ---
     router.get('/api/accommodations',
         accommodationCache.middleware({
             ttl: 600000,
-            keyGenerator: (req) => 'accommodations:all'
+            keyGenerator: (_req) => 'accommodations:all'
         }),
         (req, res) => {
             try {
@@ -319,7 +319,7 @@ function createPublicRoutes(deps) {
                 });
 
                 const availableWeekends = [];
-                let current = new Date(today);
+                const current = new Date(today);
                 while (current <= searchEnd && availableWeekends.length < maxCount) {
                     const dayOfWeek = current.getDay();
                     if (dayOfWeek === 5) {

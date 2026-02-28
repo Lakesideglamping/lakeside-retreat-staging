@@ -1,0 +1,7 @@
+node_modules/
+public/vendor/
+public/app.js
+sw.js
+coverage/
+backups/
+*.min.js

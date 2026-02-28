@@ -14,7 +14,7 @@ function dbRun(db, sql) {
     });
 }
 
-exports.up = async function(db, isPostgres) {
+exports.up = async function(db, _isPostgres) {
     // Booking lookup indexes
     await dbRun(db, `CREATE INDEX IF NOT EXISTS idx_bookings_accommodation ON bookings(accommodation)`);
     await dbRun(db, `CREATE INDEX IF NOT EXISTS idx_bookings_payment_status ON bookings(payment_status)`);
@@ -34,7 +34,7 @@ exports.up = async function(db, isPostgres) {
     await dbRun(db, `CREATE INDEX IF NOT EXISTS idx_settings_key ON system_settings(setting_key)`);
 };
 
-exports.down = async function(db, isPostgres) {
+exports.down = async function(db, _isPostgres) {
     await dbRun(db, `DROP INDEX IF EXISTS idx_bookings_accommodation`);
     await dbRun(db, `DROP INDEX IF EXISTS idx_bookings_payment_status`);
     await dbRun(db, `DROP INDEX IF EXISTS idx_bookings_stripe_session`);

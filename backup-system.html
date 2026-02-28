@@ -587,11 +587,11 @@
             tbody.innerHTML = backups.slice(0, 10).map(backup => `
                 <tr>
                     <td><strong>${new Date(backup.created_at).toLocaleString()}</strong><br><small>Automatic</small></td>
-                    <td><span class="backup-type type-${backup.type}">${backup.type}</span></td>
+                    <td><span class="backup-type type-${escapeHtml(backup.type)}">${escapeHtml(backup.type)}</span></td>
                     <td>${backup.size} KB</td>
                     <td><div class="backup-status"><span class="status-dot success"></span>Completed</div></td>
                     <td><div class="action-buttons">
-                        <button class="btn btn-secondary btn-sm" onclick="downloadBackup('${backup.filename}')">Download</button>
+                        <button class="btn btn-secondary btn-sm" onclick="downloadBackup('${escapeHtml(backup.filename)}')">Download</button>
                     </div></td>
                 </tr>
             `).join('');

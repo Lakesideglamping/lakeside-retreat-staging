@@ -92,7 +92,9 @@ class MonitoringSystem {
         console.log(`${color}[${timestamp}] ${level}: ${message}${meta.requestId ? ` (${meta.requestId})` : ''}\x1b[0m`);
         
         // File output
-        fs.appendFileSync(this.logFile, JSON.stringify(logEntry) + '\n');
+        fs.appendFile(this.logFile, JSON.stringify(logEntry) + '\n', (err) => {
+            if (err) console.error('Failed to write log:', err.message);
+        });
         
         // Update error metrics
         if (level === 'ERROR' || level === 'CRITICAL') {
@@ -270,23 +272,23 @@ class MonitoringSystem {
     
     startMetricUpdates() {
         // Update system health every 5 minutes
-        setInterval(() => {
+        const healthTimer = setInterval(() => {
             this.trackSystemHealth();
             this.saveMetrics();
         }, 5 * 60 * 1000);
-        
+        if (healthTimer.unref) healthTimer.unref();
+
         // Save metrics every minute
-        setInterval(() => {
+        const metricsTimer = setInterval(() => {
             this.saveMetrics();
         }, 60 * 1000);
+        if (metricsTimer.unref) metricsTimer.unref();
     }
     
     saveMetrics() {
-        try {
-            fs.writeFileSync(this.metricsFile, JSON.stringify(metrics, null, 2));
-        } catch (error) {
-            console.error('Failed to save metrics:', error);
-        }
+        fs.writeFile(this.metricsFile, JSON.stringify(metrics, null, 2), (err) => {
+            if (err) console.error('Failed to save metrics:', err.message);
+        });
     }
     
     // Generate monitoring report

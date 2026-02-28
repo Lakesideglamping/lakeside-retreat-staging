@@ -98,7 +98,7 @@ function setupProcessHandlers(log) {
         setTimeout(() => process.exit(1), 1000);
     });
 
-    process.on('unhandledRejection', (reason, promise) => {
+    process.on('unhandledRejection', (reason, _promise) => {
         const message = reason instanceof Error ? reason.message : String(reason);
         const stack = reason instanceof Error ? reason.stack : undefined;
 

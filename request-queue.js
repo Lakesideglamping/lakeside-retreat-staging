@@ -99,7 +99,7 @@ class RequestQueue {
     
     // Express middleware
     middleware(options = {}) {
-        const queueName = options.queueName || 'default';
+        const _queueName = options.queueName || 'default';
         const priority = options.priority || 'normal';
         
         return async (req, res, next) => {

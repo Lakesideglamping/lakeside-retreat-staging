@@ -5,17 +5,17 @@ const nodemailer = require('nodemailer');
 require('dotenv').config();
 
 class BackupSystem {
-    constructor() {
+    constructor(emailTransporter = null) {
         this.backupDir = './backups';
         this.maxBackups = 30; // Keep 30 days of backups
-        
+
         // Create backup directory if it doesn't exist
         if (!fs.existsSync(this.backupDir)) {
             fs.mkdirSync(this.backupDir, { recursive: true });
         }
-        
+
         // Email transporter for notifications
-        this.emailTransporter = nodemailer.createTransport({
+        this.emailTransporter = emailTransporter || nodemailer.createTransport({
             host: process.env.EMAIL_HOST || 'smtp.gmail.com',
             port: process.env.EMAIL_PORT || 587,
             secure: false,

@@ -632,9 +632,9 @@
                             <tbody>
                                 ${data.abandonedCheckouts.map(b => `
                                     <tr>
-                                        <td>${b.guest_name || 'Unknown'}<br><small>${b.guest_email || ''}</small></td>
-                                        <td>${b.accommodation}</td>
-                                        <td>${b.check_in} to ${b.check_out}</td>
+                                        <td>${escapeHtml(b.guest_name || 'Unknown')}<br><small>${escapeHtml(b.guest_email || '')}</small></td>
+                                        <td>${escapeHtml(b.accommodation)}</td>
+                                        <td>${escapeHtml(b.check_in)} to ${escapeHtml(b.check_out)}</td>
                                         <td>$${b.total_price || 0}</td>
                                         <td>${new Date(b.created_at).toLocaleDateString()}</td>
                                         <td><span class="badge badge-info">${b.reminder_count || 0} sent</span></td>
@@ -709,10 +709,10 @@
                             <tbody>
                                 ${data.reviewRequests.map(r => `
                                     <tr>
-                                        <td>${r.guest_name || 'Unknown'}<br><small>${r.guest_email || ''}</small></td>
-                                        <td>${r.accommodation}</td>
-                                        <td>${r.check_out}</td>
-                                        <td><span class="badge badge-${r.status === 'sent' ? 'success' : 'warning'}">${r.status || 'pending'}</span></td>
+                                        <td>${escapeHtml(r.guest_name || 'Unknown')}<br><small>${escapeHtml(r.guest_email || '')}</small></td>
+                                        <td>${escapeHtml(r.accommodation)}</td>
+                                        <td>${escapeHtml(r.check_out)}</td>
+                                        <td><span class="badge badge-${escapeHtml(r.status === 'sent' ? 'success' : 'warning')}">${escapeHtml(r.status || 'pending')}</span></td>
                                         <td>${r.request_count || 0}</td>
                                         <td class="actions">
                                             <button class="btn btn-sm btn-success" onclick="sendReviewRequest('${r.booking_id}')">Send Request</button>
@@ -825,12 +825,12 @@
                         <div style="border-bottom: 1px solid #eee; padding: 1rem 0;">
                             <div style="display: flex; justify-content: space-between; align-items: start;">
                                 <div>
-                                    <span class="badge badge-${d.platform === 'instagram' ? 'info' : 'secondary'}">${d.platform}</span>
-                                    <span class="badge badge-${d.status === 'draft' ? 'warning' : 'success'}">${d.status}</span>
+                                    <span class="badge badge-${d.platform === 'instagram' ? 'info' : 'secondary'}">${escapeHtml(d.platform)}</span>
+                                    <span class="badge badge-${d.status === 'draft' ? 'warning' : 'success'}">${escapeHtml(d.status)}</span>
                                 </div>
                                 <small>${new Date(d.created_at).toLocaleDateString()}</small>
                             </div>
-                            <p style="margin: 0.5rem 0; font-size: 0.9rem;">${d.generated_caption.substring(0, 100)}...</p>
+                            <p style="margin: 0.5rem 0; font-size: 0.9rem;">${escapeHtml(d.generated_caption.substring(0, 100))}...</p>
                             <div class="actions">
                                 <button class="btn btn-sm" onclick="viewDraft(${d.id})">View</button>
                                 <button class="btn btn-sm btn-success" onclick="markPosted(${d.id})">Mark Posted</button>

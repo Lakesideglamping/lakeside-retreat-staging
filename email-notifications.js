@@ -2,8 +2,12 @@ const nodemailer = require('nodemailer');
 require('dotenv').config();
 
 class EmailNotifications {
-    constructor() {
-        this.transporter = nodemailer.createTransport({
+    constructor(transporter = null) {
+        if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+            console.warn('⚠️ Email credentials not configured (EMAIL_USER/EMAIL_PASS). Email notifications will be disabled.');
+        }
+
+        this.transporter = transporter || nodemailer.createTransport({
             host: process.env.EMAIL_HOST || 'smtp.gmail.com',
             port: process.env.EMAIL_PORT || 587,
             secure: false,
@@ -12,7 +16,7 @@ class EmailNotifications {
                 pass: process.env.EMAIL_PASS
             }
         });
-        
+
         this.adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
         this.fromEmail = process.env.EMAIL_USER;
     }

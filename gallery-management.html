@@ -382,13 +382,13 @@
             const grid = document.querySelector('.gallery-grid');
             grid.innerHTML = images.map((img, idx) => `
                 <div class="gallery-item">
-                    <img src="${img.url}" alt="${img.title}" onerror="this.src='https://placehold.co/400x300/2d5a5a/white?text=Image'">
+                    <img src="${escapeHtml(img.url)}" alt="${escapeHtml(img.title)}" onerror="this.src='https://placehold.co/400x300/2d5a5a/white?text=Image'">
                     <div class="gallery-item-info">
-                        <h4>${img.title}</h4>
-                        <p>${img.property || 'All'}</p>
+                        <h4>${escapeHtml(img.title)}</h4>
+                        <p>${escapeHtml(img.property || 'All')}</p>
                     </div>
                     <div class="gallery-item-actions">
-                        <button class="btn btn-secondary btn-sm" onclick="editImage('${img.filename}')">Edit</button>
+                        <button class="btn btn-secondary btn-sm" onclick="editImage('${escapeHtml(img.filename)}')">Edit</button>
                     </div>
                 </div>
             `).join('');

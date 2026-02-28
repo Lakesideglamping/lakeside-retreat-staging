@@ -112,7 +112,7 @@ async function ensureMigrationsTable(db, isPostgres) {
     await dbRun(db, sql);
 }
 
-async function getAppliedMigrations(db, isPostgres) {
+async function getAppliedMigrations(db, _isPostgres) {
     const rows = await dbAll(db, 'SELECT filename FROM schema_migrations ORDER BY filename');
     return rows.map(r => r.filename);
 }

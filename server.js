@@ -1,11 +1,9 @@
 const express = require('express');
 const path = require('path');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
+// bcrypt and jwt are used in route modules (admin-auth.js)
 const compression = require('compression');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-const { body, validationResult } = require('express-validator');
 require('dotenv').config();
 const nodemailer = require('nodemailer');
 
@@ -14,21 +12,19 @@ const database = require('./database');
 
 // Validate environment variables at startup (see config/env.js)
 const { validateEnv } = require('./config/env');
-const envConfig = validateEnv();
+validateEnv();
 
 // Development mode for local testing without Stripe
 const DEV_MODE = process.env.NODE_ENV !== 'production' && !process.env.STRIPE_SECRET_KEY;
 
 const stripe = process.env.STRIPE_SECRET_KEY ? require('stripe')(process.env.STRIPE_SECRET_KEY) : null;
-const { v4: uuidv4 } = require('uuid');
 const crypto = require('crypto');
 
 // Import monitoring system
-const { 
-    monitor, 
-    trackBookingStart, 
-    trackBookingStep, 
-    trackBookingSuccess, 
+const {
+    trackBookingStart,
+    trackBookingStep,
+    trackBookingSuccess,
     trackBookingFailure,
     log,
     middleware: monitoringMiddleware,
@@ -50,9 +46,7 @@ const chatbot = new ChatbotService();
 const MarketingAutomation = require('./marketing-automation');
 let marketingAutomation = null;
 
-// Import shared configuration modules
-const { getPropertyId, getAccommodationName } = require('./config/properties');
-const accommodationsConfig = require('./config/accommodations');
+// Shared configuration modules are used in route modules
 
 // Import Uplisting service (consolidated from server.js + uplisting-*.js files)
 const UplistingService = require('./services/uplisting');
@@ -67,12 +61,10 @@ const createAdminAuthRoutes = require('./routes/admin-auth');
 const createAdminBookingRoutes = require('./routes/admin-bookings');
 const createAdminOperationsRoutes = require('./routes/admin-operations');
 const createAdminSettingsRoutes = require('./routes/admin-settings');
-const { verifyAdmin: verifyAdminMiddleware, sendError: sendErrorUtil, sendSuccess: sendSuccessUtil, 
-        sanitizeInput: sanitizeInputUtil, escapeHtml: escapeHtmlUtil, ERROR_CODES: ERROR_CODES_SHARED,
-        executeDbOperation: executeDbOpUtil } = require('./middleware/auth');
+const { escapeHtml: escapeHtmlUtil,
+        executeDbOperation: executeDbOpUtil, verifyCsrf, generateCsrfToken } = require('./middleware/auth');
 const { errorMiddleware, setupProcessHandlers, setupGracefulShutdown } = require('./middleware/error-handler');
-const { adminActionLimiter, adminBurstLimiter, adminDestructiveLimiter } = require('./middleware/rate-limit');
-const { verifyLatestBackup } = require('./services/backup-verify');
+const { adminActionLimiter, adminDestructiveLimiter } = require('./middleware/rate-limit');
 
 const app = express();
 const PORT = process.env.PORT || 10000;
@@ -123,6 +115,25 @@ database.initializeDatabase()
         } catch (err) {
             console.error('⚠️ Marketing automation initialization failed:', err.message);
         }
+
+        // Ensure deposit_release_due column exists (idempotent migration)
+        try {
+            await new Promise((resolve, reject) => {
+                db.run(`ALTER TABLE bookings ADD COLUMN deposit_release_due TEXT`, (err) => {
+                    // Ignore "duplicate column" errors - column already exists
+                    if (err && !err.message.includes('duplicate') && !err.message.includes('already exists')) {
+                        reject(err);
+                    } else {
+                        resolve();
+                    }
+                });
+            });
+        } catch (err) {
+            console.error('⚠️ Could not add deposit_release_due column:', err.message);
+        }
+
+        // Recover any pending deposit releases that were lost due to server restart
+        recoverPendingDepositReleases();
     })
     .catch(err => {
         console.error('❌ Failed to initialize database:', err.message);
@@ -140,6 +151,10 @@ const emailTransporter = nodemailer.createTransport({
     }
 });
 
+// Initialize email notifications early so it can be passed to route modules
+const EmailNotifications = require('./email-notifications');
+const emailNotifications = new EmailNotifications(emailTransporter);
+
 // Health check endpoints - MUST be before rate limiting to avoid 429 errors on health checks
 // These endpoints are used by Render to verify the service is running
 // Health check endpoints
@@ -148,8 +163,16 @@ app.get('/health', (req, res) => {
 });
 
 // CSRF token endpoint (used by frontend security manager)
+// Generates a signed token, sets it in a secure cookie, and returns it in JSON.
+// The frontend must send the token back via the X-CSRF-Token header on mutations.
 app.get('/api/csrf-token', (req, res) => {
-    res.json({ csrfToken: crypto.randomBytes(32).toString('hex') });
+    const token = generateCsrfToken();
+    const isProduction = process.env.NODE_ENV === 'production';
+
+    res.setHeader('Set-Cookie',
+        `csrf-token=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Strict${isProduction ? '; Secure' : ''}; Max-Age=86400`
+    );
+    res.json({ csrfToken: token });
 });
 
 app.get('/api/health', (req, res) => {
@@ -165,29 +188,28 @@ const generalLimiter = rateLimit({
     legacyHeaders: false,
 });
 
-const bookingLimiter = rateLimit({
-    windowMs: 5 * 60 * 1000, // 5 minutes
-    max: 3, // limit each IP to 3 booking attempts per 5 minutes
-    message: { error: 'Too many booking attempts, please try again later' },
-    standardHeaders: true,
-    legacyHeaders: false,
-});
+// Rate limiters for specific routes are defined in route modules
 
-const adminLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 5, // limit each IP to 5 login attempts per 15 minutes
-    message: { error: 'Too many login attempts, please try again later' },
-    standardHeaders: true,
-    legacyHeaders: false,
-});
+// CORS middleware (must be before rate limiting so preflight OPTIONS are handled first)
+app.use((req, res, next) => {
+    const allowedOrigins = [
+        process.env.PUBLIC_BASE_URL,
+        'http://localhost:10000',
+        'http://localhost:3000'
+    ].filter(Boolean);
 
-// Enhanced contact form rate limiter (prevent spam)
-const contactLimiter = rateLimit({
-    windowMs: 10 * 60 * 1000, // 10 minutes
-    max: 3, // limit each IP to 3 contact form submissions per 10 minutes
-    message: { error: 'Too many messages sent, please try again in 10 minutes' },
-    standardHeaders: true,
-    legacyHeaders: false,
+    const origin = req.headers.origin;
+    if (allowedOrigins.includes(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-CSRF-Token');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(204);
+    }
+    next();
 });
 
 // Apply rate limiting
@@ -322,7 +344,9 @@ app.post('/api/uplisting/webhook', express.raw({type: 'application/json'}), (req
                 .update(rawBody)
                 .digest('hex');
             
-            if (signature !== expectedSignature) {
+            const sigBuffer = Buffer.from(signature || '');
+            const expectedBuffer = Buffer.from(expectedSignature);
+            if (sigBuffer.length !== expectedBuffer.length || !crypto.timingSafeEqual(sigBuffer, expectedBuffer)) {
                 console.error('Invalid Uplisting webhook signature');
                 return res.status(400).json({ error: 'Invalid signature' });
             }
@@ -351,6 +375,11 @@ app.post('/api/uplisting/webhook', express.raw({type: 'application/json'}), (req
 // Middleware (AFTER webhook routes that need raw body)
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
+
+// CSRF protection middleware (double-submit cookie pattern)
+// Skips GET/HEAD/OPTIONS and webhook endpoints automatically.
+// Must be AFTER body parsing and BEFORE route handlers.
+app.use(verifyCsrf);
 
 // SECURITY: Block access to sensitive files before static file serving
 // This prevents exposure of server code, database, and configuration files
@@ -412,7 +441,7 @@ app.use((req, res, next) => {
 // Enhanced static file serving with proper caching
 // First: redirect responsive image subdirectories to flat images/ directory
 // (Desktop/, MobileLarge/, MobileSmall/, Tablet/ were planned but never populated)
-app.use('/images/:subdir(Desktop|MobileLarge|MobileSmall|Tablet)/:filename', (req, res, next) => {
+app.use('/images/:subdir(Desktop|MobileLarge|MobileSmall|Tablet)/:filename', (req, res, _next) => {
     res.redirect(301, `/images/${req.params.filename}`);
 });
 
@@ -464,6 +493,7 @@ app.use(createBookingRoutes({
     paymentQueue,
     checkAvailability,
     executeDbOperation: (operation, params) => executeDbOperation(operation, params),
+    database,
     tracking: { trackBookingStart, trackBookingStep, trackBookingSuccess, trackBookingFailure }
 }));
 
@@ -484,7 +514,8 @@ app.use(createAdminBookingRoutes({
     scheduleDepositRelease,
     database,
     adminActionLimiter,
-    adminDestructiveLimiter
+    adminDestructiveLimiter,
+    emailNotifications
 }));
 
 // Admin operations routes (monitoring, metrics, cache, analytics, notifications, chatbot admin, marketing)
@@ -498,7 +529,8 @@ app.use(createAdminOperationsRoutes({
     generalQueue,
     paymentQueue,
     chatbot,
-    getMarketingAutomation: () => marketingAutomation
+    getMarketingAutomation: () => marketingAutomation,
+    database
 }));
 
 // Admin settings routes (seasonal rates, gallery, reviews, pricing, settings, backups)
@@ -546,8 +578,8 @@ async function checkAvailability(accommodation, checkIn, checkOut) {
             const sql = `
                 SELECT COUNT(*) as conflicts 
                 FROM bookings 
-                WHERE accommodation = ? 
-                AND payment_status = 'completed'
+                WHERE accommodation = ?
+                AND (payment_status = 'completed' OR (status = 'pending' AND created_at > datetime('now', '-30 minutes')))
                 AND (
                     (check_in <= ? AND check_out > ?) OR
                     (check_in < ? AND check_out >= ?) OR
@@ -695,21 +727,32 @@ async function sendPaymentConfirmation(bookingData) {
 
 // Stripe webhook handler function (called from route defined before express.json middleware)
 async function handleStripeWebhook(event, res) {
+    // Check idempotency
+    const existing = await new Promise((resolve, reject) => {
+        db.get('SELECT event_id FROM processed_webhook_events WHERE event_id = ?', [event.id], (err, row) => {
+            if (err) reject(err); else resolve(row);
+        });
+    });
+    if (existing) {
+        console.log(`⏭️ Webhook event ${event.id} already processed, skipping`);
+        return res.json({ received: true });
+    }
+
     if (event.type === 'checkout.session.completed') {
         const session = event.data.object;
-        
+
         // Handle payment with security deposit
         if (session.metadata.hasSecurityDeposit === 'true') {
             const paymentIntent = await stripe.paymentIntents.retrieve(session.payment_intent);
-            const totalAmount = paymentIntent.amount;
+            const _totalAmount = paymentIntent.amount;
             const bookingAmount = parseInt(paymentIntent.metadata.booking_amount);
             const depositAmount = parseInt(paymentIntent.metadata.security_deposit_amount);
-            
+
             // Capture only the booking amount, keep deposit as authorization hold
             const capturedPayment = await stripe.paymentIntents.capture(session.payment_intent, {
                 amount_to_capture: bookingAmount
             });
-            
+
             // Create separate payment intent for security deposit authorization hold
             const depositIntent = await stripe.paymentIntents.create({
                 amount: depositAmount,
@@ -723,91 +766,112 @@ async function handleStripeWebhook(event, res) {
                     type: 'security_deposit'
                 }
             });
-            
+
             // Update booking with both payment IDs and security deposit status
-            const sql = `
-                UPDATE bookings 
-                SET payment_status = 'completed', 
-                    status = 'confirmed', 
+            const updateSql = `
+                UPDATE bookings
+                SET payment_status = 'completed',
+                    status = 'confirmed',
                     stripe_payment_id = ?,
                     security_deposit_intent_id = ?,
                     security_deposit_status = 'authorized'
                 WHERE stripe_session_id = ?
             `;
-            
-            db.run(sql, [capturedPayment.id, depositIntent.id, session.id], function(err) {
-                if (err) {
-                    console.error('Failed to update booking status:', err.message);
-                } else {
-                    console.log('Booking confirmed with security deposit for session:', session.id);
-                    
-                    // Schedule automatic release of security deposit
-                    scheduleDepositRelease(session.metadata.bookingId, depositIntent.id);
-                    
-                    // Get booking data for sync to Uplisting
-                    db.get('SELECT * FROM bookings WHERE stripe_session_id = ?', [session.id], async (err, booking) => {
-                        if (!err && booking) {
-                            // Sync to Uplisting
-                            await syncBookingToUplisting(booking);
-                            
-                            // Send payment confirmation email
-                            await sendPaymentConfirmation({
-                                guest_name: session.metadata.guest_name,
-                                guest_email: session.metadata.guest_email,
-                                accommodation: session.metadata.accommodation,
-                                check_in: session.metadata.check_in,
-                                check_out: session.metadata.check_out,
-                                guests: session.metadata.guests,
-                                total_price: (bookingAmount / 100).toFixed(2),
-                                security_deposit: (depositAmount / 100).toFixed(2),
-                                booking_id: booking.id
-                            });
-                        }
-                    });
-                }
+
+            await new Promise((resolve, reject) => {
+                db.run(updateSql, [capturedPayment.id, depositIntent.id, session.id], function(err) {
+                    if (err) reject(err); else resolve();
+                });
             });
+
+            console.log('Booking confirmed with security deposit for session:', session.id);
+
+            // Schedule automatic release of security deposit
+            scheduleDepositRelease(session.metadata.bookingId, depositIntent.id);
+
+            // Get booking data for sync to Uplisting
+            const booking = await new Promise((resolve, reject) => {
+                db.get('SELECT * FROM bookings WHERE stripe_session_id = ?', [session.id], (err, row) => {
+                    if (err) reject(err); else resolve(row);
+                });
+            });
+
+            if (booking) {
+                try {
+                    // Sync to Uplisting
+                    await syncBookingToUplisting(booking);
+
+                    // Send payment confirmation email
+                    await sendPaymentConfirmation({
+                        guest_name: session.metadata.guest_name,
+                        guest_email: session.metadata.guest_email,
+                        accommodation: session.metadata.accommodation,
+                        check_in: session.metadata.check_in,
+                        check_out: session.metadata.check_out,
+                        guests: session.metadata.guests,
+                        total_price: (bookingAmount / 100).toFixed(2),
+                        security_deposit: (depositAmount / 100).toFixed(2),
+                        booking_id: booking.id
+                    });
+                } catch (asyncErr) {
+                    console.error('Post-payment processing error:', asyncErr);
+                }
+            }
         } else {
             // Original logic for bookings without security deposit
-            const sql = `
-                UPDATE bookings 
+            const updateSql = `
+                UPDATE bookings
                 SET payment_status = 'completed', status = 'confirmed', stripe_payment_id = ?
                 WHERE stripe_session_id = ?
             `;
-            
-            db.run(sql, [session.payment_intent, session.id], function(err) {
-                if (err) {
-                    console.error('Failed to update booking status:', err.message);
-                } else {
-                    console.log('Booking confirmed for session:', session.id);
-                    
-                    // Get booking data for sync to Uplisting
-                    db.get('SELECT * FROM bookings WHERE stripe_session_id = ?', [session.id], async (err, booking) => {
-                        if (!err && booking) {
-                            // Sync to Uplisting
-                            await syncBookingToUplisting(booking);
-                            
-                            // Send payment confirmation email
-                            await sendPaymentConfirmation({
-                                guest_name: session.metadata.guest_name,
-                                guest_email: session.metadata.guest_email,
-                                accommodation: session.metadata.accommodation,
-                                check_in: session.metadata.check_in,
-                                check_out: session.metadata.check_out,
-                                guests: session.metadata.guests,
-                                total_price: (session.amount_total / 100).toFixed(2),
-                                booking_id: booking.id
-                            });
-                        }
-                    });
-                }
+
+            await new Promise((resolve, reject) => {
+                db.run(updateSql, [session.payment_intent, session.id], function(err) {
+                    if (err) reject(err); else resolve();
+                });
             });
+
+            console.log('Booking confirmed for session:', session.id);
+
+            // Get booking data for sync to Uplisting
+            const booking = await new Promise((resolve, reject) => {
+                db.get('SELECT * FROM bookings WHERE stripe_session_id = ?', [session.id], (err, row) => {
+                    if (err) reject(err); else resolve(row);
+                });
+            });
+
+            if (booking) {
+                try {
+                    // Sync to Uplisting
+                    await syncBookingToUplisting(booking);
+
+                    // Send payment confirmation email
+                    await sendPaymentConfirmation({
+                        guest_name: session.metadata.guest_name,
+                        guest_email: session.metadata.guest_email,
+                        accommodation: session.metadata.accommodation,
+                        check_in: session.metadata.check_in,
+                        check_out: session.metadata.check_out,
+                        guests: session.metadata.guests,
+                        total_price: (session.amount_total / 100).toFixed(2),
+                        booking_id: booking.id
+                    });
+                } catch (asyncErr) {
+                    console.error('Post-payment processing error:', asyncErr);
+                }
+            }
         }
     }
+
+    // Record this event as processed for idempotency
+    db.run('INSERT OR IGNORE INTO processed_webhook_events (event_id) VALUES (?)', [event.id]);
 
     res.json({received: true});
 }
 
 // Security Deposit Management Functions
+const MAX_TIMER_DELAY = 24 * 60 * 60 * 1000; // 24 hours - prevent setTimeout 32-bit overflow
+
 function scheduleDepositRelease(bookingId, depositIntentId) {
     // Get booking checkout date to calculate release time
     db.get('SELECT check_out FROM bookings WHERE id = ?', [bookingId], (err, booking) => {
@@ -815,24 +879,109 @@ function scheduleDepositRelease(bookingId, depositIntentId) {
             console.error('❌ Failed to get booking for deposit release:', err);
             return;
         }
-        
+
         const checkoutDate = new Date(booking.check_out);
         const releaseDate = new Date(checkoutDate.getTime() + (48 * 60 * 60 * 1000)); // 48 hours after checkout
         const now = new Date();
         const timeUntilRelease = releaseDate.getTime() - now.getTime();
-        
+
+        // Persist the scheduled release date in the DB so it survives server restarts
+        db.run(
+            `UPDATE bookings SET deposit_release_due = ? WHERE id = ?`,
+            [releaseDate.toISOString(), bookingId],
+            (updateErr) => {
+                if (updateErr) {
+                    console.error('❌ Failed to persist deposit release date:', updateErr.message);
+                }
+            }
+        );
+
         if (timeUntilRelease > 0) {
-            setTimeout(async () => {
-                await autoReleaseSecurityDeposit(bookingId, depositIntentId);
-            }, timeUntilRelease);
-            
-            console.log(`⏰ Security deposit scheduled for release on: ${releaseDate.toLocaleString('en-NZ')} for booking ${bookingId}`);
+            if (timeUntilRelease > MAX_TIMER_DELAY) {
+                // Delay exceeds safe setTimeout limit; schedule a re-check instead
+                setTimeout(() => {
+                    scheduleDepositRelease(bookingId, depositIntentId);
+                }, MAX_TIMER_DELAY);
+                console.log(`⏰ Deposit release for booking ${bookingId} is >24h away (${releaseDate.toLocaleString('en-NZ')}), scheduling re-check`);
+            } else {
+                setTimeout(async () => {
+                    await autoReleaseSecurityDeposit(bookingId, depositIntentId);
+                }, timeUntilRelease);
+                console.log(`⏰ Security deposit scheduled for release on: ${releaseDate.toLocaleString('en-NZ')} for booking ${bookingId}`);
+            }
         } else {
             // Release immediately if checkout + 48 hours has already passed
             autoReleaseSecurityDeposit(bookingId, depositIntentId);
         }
     });
 }
+
+// Recover any pending deposit releases that were lost due to server restart
+function recoverPendingDepositReleases() {
+    const sql = `
+        SELECT id, security_deposit_intent_id, deposit_release_due
+        FROM bookings
+        WHERE security_deposit_status = 'authorized'
+          AND security_deposit_intent_id IS NOT NULL
+          AND deposit_release_due IS NOT NULL
+    `;
+
+    db.all(sql, [], (err, rows) => {
+        if (err) {
+            console.error('❌ Failed to recover pending deposit releases:', err.message);
+            return;
+        }
+
+        if (!rows || rows.length === 0) {
+            console.log('✅ No pending deposit releases to recover');
+            return;
+        }
+
+        console.log(`🔄 Recovering ${rows.length} pending deposit release(s)...`);
+
+        for (const booking of rows) {
+            const releaseDate = new Date(booking.deposit_release_due);
+            const timeUntilRelease = releaseDate.getTime() - Date.now();
+
+            if (timeUntilRelease <= 0) {
+                // Release immediately - past due
+                console.log(`⏰ Releasing overdue deposit for booking ${booking.id}`);
+                autoReleaseSecurityDeposit(booking.id, booking.security_deposit_intent_id);
+            } else if (timeUntilRelease > MAX_TIMER_DELAY) {
+                // Cap the timer to avoid 32-bit overflow; re-check later
+                setTimeout(() => {
+                    scheduleDepositRelease(booking.id, booking.security_deposit_intent_id);
+                }, MAX_TIMER_DELAY);
+                console.log(`⏰ Deposit release for booking ${booking.id} is >24h away, scheduling re-check`);
+            } else {
+                // Re-schedule the timeout
+                setTimeout(async () => {
+                    await autoReleaseSecurityDeposit(booking.id, booking.security_deposit_intent_id);
+                }, timeUntilRelease);
+                console.log(`⏰ Re-scheduled deposit release for booking ${booking.id} at ${releaseDate.toLocaleString('en-NZ')}`);
+            }
+        }
+    });
+}
+
+// Hourly polling for overdue deposit releases (safety net for timer overflow or missed timers)
+setInterval(async () => {
+    try {
+        const overdueDeposits = await new Promise((resolve, reject) => {
+            db.all(`SELECT id, security_deposit_intent_id FROM bookings
+                    WHERE security_deposit_status = 'authorized'
+                    AND deposit_release_due IS NOT NULL
+                    AND deposit_release_due <= datetime('now')`, [], (err, rows) => {
+                if (err) reject(err); else resolve(rows || []);
+            });
+        });
+        for (const booking of overdueDeposits) {
+            await autoReleaseSecurityDeposit(booking.id, booking.security_deposit_intent_id);
+        }
+    } catch (err) {
+        console.error('Deposit release poll error:', err.message);
+    }
+}, 60 * 60 * 1000).unref();
 
 async function autoReleaseSecurityDeposit(bookingId, depositIntentId) {
     try {
@@ -856,18 +1005,20 @@ async function autoReleaseSecurityDeposit(bookingId, depositIntentId) {
                 // Send notification email to admin
                 db.get('SELECT * FROM bookings WHERE id = ?', [bookingId], async (err, booking) => {
                     if (!err && booking) {
-                        const EmailNotifications = require('./email-notifications');
-                        const emailService = new EmailNotifications();
-                        await emailService.sendSystemAlert('info', 
-                            `Security deposit automatically released for ${booking.guest_name}`, 
-                            {
-                                'Booking ID': booking.id,
-                                'Guest': booking.guest_name,
-                                'Accommodation': booking.accommodation,
-                                'Deposit Amount': `$${booking.security_deposit_amount}`,
-                                'Release Date': new Date().toLocaleString('en-NZ')
-                            }
-                        );
+                        try {
+                            await emailNotifications.sendSystemAlert('info',
+                                `Security deposit automatically released for ${booking.guest_name}`,
+                                {
+                                    'Booking ID': booking.id,
+                                    'Guest': booking.guest_name,
+                                    'Accommodation': booking.accommodation,
+                                    'Deposit Amount': `$${booking.security_deposit_amount}`,
+                                    'Release Date': new Date().toLocaleString('en-NZ')
+                                }
+                            );
+                        } catch (asyncErr) {
+                            console.error('Post-deposit-release notification error:', asyncErr);
+                        }
                     }
                 });
             }
@@ -877,10 +1028,8 @@ async function autoReleaseSecurityDeposit(bookingId, depositIntentId) {
         console.error('❌ Failed to auto-release security deposit:', error);
         
         // Send alert to admin about failed release
-        const EmailNotifications = require('./email-notifications');
-        const emailService = new EmailNotifications();
-        await emailService.sendSystemAlert('error', 
-            `Failed to auto-release security deposit for booking ${bookingId}`, 
+        await emailNotifications.sendSystemAlert('error',
+            `Failed to auto-release security deposit for booking ${bookingId}`,
             {
                 'Booking ID': bookingId,
                 'Deposit Intent ID': depositIntentId,
@@ -892,12 +1041,7 @@ async function autoReleaseSecurityDeposit(bookingId, depositIntentId) {
 }
 
 // Admin middleware — use the extracted version from middleware/auth.js
-const verifyAdmin = verifyAdminMiddleware;
-const sendError = sendErrorUtil;
-const sendSuccess = sendSuccessUtil;
-const sanitizeInput = sanitizeInputUtil;
 const escapeHtml = escapeHtmlUtil;
-const ERROR_CODES = ERROR_CODES_SHARED;
 const executeDbOperation = executeDbOpUtil;
 
 
@@ -916,23 +1060,11 @@ app.get('/sw.js', (req, res) => {
 });
 
 // Enhanced Admin API Endpoints for Stripe/Uplisting Integration
-
-// Add Uplisting dashboard endpoint
-const { getUplistingDashboardData } = require('./uplisting-dashboard-api.js');
-
 // IMPORTANT: These must be defined BEFORE the catch-all route
 
-// Cancel Uplisting booking helper
-// Delegates to Uplisting service (see services/uplisting.js)
-async function cancelUplistingBooking(uplistingId) {
-    return uplisting ? uplisting.cancelBooking(uplistingId) : null;
-}
-
-// Initialize backup system and email notifications
+// Initialize backup system
 const BackupSystem = require('./backup-system');
-const EmailNotifications = require('./email-notifications');
 const backupSystem = new BackupSystem();
-const emailNotifications = new EmailNotifications();
 
 // Schedule automated backups
 if (process.env.NODE_ENV === 'production') {

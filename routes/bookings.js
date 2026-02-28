@@ -17,7 +17,7 @@ const rateLimit = require('express-rate-limit');
 const { body, validationResult } = require('express-validator');
 const { v4: uuidv4 } = require('uuid');
 
-const { sendError, sendSuccess, sanitizeInput, ERROR_CODES } = require('../middleware/auth');
+const { sendError, sanitizeInput, ERROR_CODES } = require('../middleware/auth');
 
 const bookingLimiter = rateLimit({
     windowMs: 5 * 60 * 1000,
@@ -35,15 +35,14 @@ const bookingLimiter = rateLimit({
  * @param {boolean} deps.DEV_MODE - Whether running in dev mode
  * @param {Object} deps.bookingQueue - Request queue for bookings
  * @param {Object} deps.paymentQueue - Request queue for payments
- * @param {Function} deps.checkAvailability - Availability check function
- * @param {Function} deps.executeDbOperation - DB operation wrapper
+ * @param {Object} deps.database - Database module for transactions
  * @param {Function} deps.sendBookingConfirmation - Email confirmation sender
  * @param {Object} deps.tracking - Booking tracking functions
  */
 function createBookingRoutes(deps) {
-    const { 
+    const {
         db, stripe, DEV_MODE, bookingQueue, paymentQueue,
-        checkAvailability, executeDbOperation,
+        database,
         tracking: { trackBookingStart, trackBookingStep, trackBookingSuccess, trackBookingFailure }
     } = deps;
 
@@ -89,7 +88,7 @@ function createBookingRoutes(deps) {
 
     // --- Availability check ---
     router.post('/api/availability', async (req, res) => {
-        const { accommodation, checkIn, checkOut, guests, propertyId } = req.body;
+        const { accommodation, checkIn, checkOut, guests: _guests, propertyId: _propertyId } = req.body;
 
         if (!accommodation || !checkIn || !checkOut) {
             return res.status(400).json({ success: false, error: 'Missing required fields', available: false });
@@ -111,7 +110,7 @@ function createBookingRoutes(deps) {
             db().get(sql, [accommodation, checkIn, checkIn, checkOut, checkOut, checkIn, checkOut], (err, row) => {
                 if (err) {
                     console.error('Error checking availability:', err);
-                    return res.json({ success: true, available: true, source: 'dev-fallback' });
+                    return res.status(503).json({ success: false, available: false, error: 'Service temporarily unavailable' });
                 }
 
                 const isAvailable = row.count === 0;
@@ -125,7 +124,7 @@ function createBookingRoutes(deps) {
             });
         } catch (error) {
             console.error('Error in availability endpoint:', error);
-            res.json({ success: true, available: true, source: 'dev-fallback' });
+            return res.status(503).json({ success: false, available: false, error: 'Service temporarily unavailable' });
         }
     });
 
@@ -223,59 +222,65 @@ function createBookingRoutes(deps) {
                     checkOut: sanitizedData.check_out
                 });
 
-                const isAvailable = await checkAvailability(
-                    sanitizedData.accommodation,
-                    sanitizedData.check_in,
-                    sanitizedData.check_out
-                );
-
-                if (!isAvailable) {
-                    return sendError(res, 409, ERROR_CODES.DATES_NOT_AVAILABLE, 'Selected dates are not available');
-                }
-
                 const bookingId = uuidv4();
 
-                const sql = `
-                    INSERT INTO bookings (
-                        id, guest_name, guest_email, guest_phone, 
-                        accommodation, check_in, check_out, guests, 
-                        total_price, status, payment_status, notes, created_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'pending', ?, CURRENT_TIMESTAMP)
-                `;
+                const booking = await database.transaction(async (tx) => {
+                    // Atomic availability check inside transaction
+                    const availSql = `
+                        SELECT COUNT(*) as conflicts
+                        FROM bookings
+                        WHERE accommodation = ?
+                        AND (payment_status = 'completed' OR (status = 'pending' AND created_at > datetime('now', '-30 minutes')))
+                        AND (
+                            (check_in <= ? AND check_out > ?) OR
+                            (check_in < ? AND check_out >= ?) OR
+                            (check_in >= ? AND check_out <= ?)
+                        )
+                    `;
+                    const row = await tx.get(availSql, [
+                        sanitizedData.accommodation,
+                        sanitizedData.check_in, sanitizedData.check_in,
+                        sanitizedData.check_out, sanitizedData.check_out,
+                        sanitizedData.check_in, sanitizedData.check_out
+                    ]);
 
-                const booking = await executeDbOperation(
-                    (database, params, callback) => {
-                        database.run(sql, params, function(err) {
-                            if (err) {
-                                callback(err);
-                            } else {
-                                trackBookingStep('database_save', req.requestId, { bookingId });
-                                callback(null, {
-                                    id: bookingId,
-                                    guest_name: sanitizedData.guest_name,
-                                    guest_email: sanitizedData.guest_email,
-                                    guest_phone: sanitizedData.guest_phone,
-                                    accommodation: sanitizedData.accommodation,
-                                    check_in: sanitizedData.check_in,
-                                    check_out: sanitizedData.check_out,
-                                    guests: sanitizedData.guests,
-                                    total_price: sanitizedData.total_price,
-                                    status: 'pending',
-                                    payment_status: 'pending'
-                                });
-                            }
-                        });
-                    },
-                    db(),
-                    [
+                    if (row.conflicts > 0) {
+                        throw { isAvailabilityConflict: true };
+                    }
+
+                    // Insert booking within same transaction
+                    const insertSql = `
+                        INSERT INTO bookings (
+                            id, guest_name, guest_email, guest_phone,
+                            accommodation, check_in, check_out, guests,
+                            total_price, status, payment_status, notes, created_at
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'pending', ?, CURRENT_TIMESTAMP)
+                    `;
+                    await tx.run(insertSql, [
                         bookingId,
                         sanitizedData.guest_name, sanitizedData.guest_email,
                         sanitizedData.guest_phone, sanitizedData.accommodation,
                         sanitizedData.check_in, sanitizedData.check_out,
                         sanitizedData.guests, sanitizedData.total_price,
                         sanitizedData.notes || ''
-                    ]
-                );
+                    ]);
+
+                    trackBookingStep('database_save', req.requestId, { bookingId });
+
+                    return {
+                        id: bookingId,
+                        guest_name: sanitizedData.guest_name,
+                        guest_email: sanitizedData.guest_email,
+                        guest_phone: sanitizedData.guest_phone,
+                        accommodation: sanitizedData.accommodation,
+                        check_in: sanitizedData.check_in,
+                        check_out: sanitizedData.check_out,
+                        guests: sanitizedData.guests,
+                        total_price: sanitizedData.total_price,
+                        status: 'pending',
+                        payment_status: 'pending'
+                    };
+                });
 
                 trackBookingSuccess(booking.id, req.requestId, booking.total_price);
 
@@ -287,6 +292,9 @@ function createBookingRoutes(deps) {
                 });
 
             } catch (error) {
+                if (error.isAvailabilityConflict) {
+                    return sendError(res, 409, ERROR_CODES.DATES_NOT_AVAILABLE, 'Selected dates are not available');
+                }
                 console.error('❌ Booking creation error:', error);
                 trackBookingFailure(error, req.requestId, 'unknown');
                 return sendError(res, 500, ERROR_CODES.INTERNAL_SERVER_ERROR, 'Failed to create booking', error.message);
@@ -326,7 +334,7 @@ function createBookingRoutes(deps) {
                     return sendError(res, 404, ERROR_CODES.BOOKING_NOT_FOUND, 'Booking not found');
                 }
 
-                const securityDepositAmount = booking.security_deposit_amount || 350.00;
+                const securityDepositAmount = booking.security_deposit_amount ?? 350.00;
                 const hasSecurityDeposit = securityDepositAmount > 0;
 
                 const lineItems = [
@@ -363,7 +371,13 @@ function createBookingRoutes(deps) {
                     customer_email: booking.guest_email,
                     metadata: {
                         bookingId: booking.id,
-                        hasSecurityDeposit: hasSecurityDeposit.toString()
+                        hasSecurityDeposit: hasSecurityDeposit.toString(),
+                        guest_name: booking.guest_name,
+                        guest_email: booking.guest_email,
+                        accommodation: booking.accommodation,
+                        check_in: booking.check_in,
+                        check_out: booking.check_out,
+                        guests: String(booking.guests)
                     },
                     line_items: lineItems,
                     success_url: `${process.env.PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`}/booking-success?session_id={CHECKOUT_SESSION_ID}`,

@@ -728,19 +728,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // CSRF Token Management
         let csrfToken = '';
 
-        async window.getCSRFToken = function() {
-          try {
-            const response = await fetch('/api/csrf-token', {
-              credentials: 'include'
-            });
-            const data = await response.json();
-            csrfToken = data.csrfToken;
-            return csrfToken;
-          } catch (error) {
-            // Console statement removed for production
-            return null;
-          }
-        }
+        // getCSRFToken is defined in the booking system IIFE below
 
         // Initialize website
         document.addEventListener('DOMContentLoaded', async function() {
@@ -1210,14 +1198,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Console statement removed for production
 
-            // Simulate API call to Uplisting
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            // Check availability via API
+            const availabilityResponse = await fetch('/api/availability', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ accommodation: selectedAccommodation, checkIn: bookingData.checkin, checkOut: bookingData.checkout })
+            });
+            const availabilityData = await availabilityResponse.json();
+            const isAvailable = availabilityData.available;
 
-            // Mock availability check (90% chance of availability)
-            const isAvailable = Math.random() > 0.1;
-            
             // Console statement removed for production
-            
+
             if (isAvailable) {
                 // Console statement removed for production
                 calculatePricingWithGST();
@@ -1659,6 +1650,11 @@ document.addEventListener('DOMContentLoaded', () => {
             goToBookingStep(3);
         }
 
+        function escapeHtml(text) {
+            if (typeof text !== 'string') return String(text);
+            return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+        }
+
         // BUTTON 3: Process booking and show confirmation
         async window.processBookingAndConfirm = function() {
             // Collect guest data
@@ -1700,9 +1696,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     <h3 style="color: var(--brand-teal); margin-bottom: 1rem;">Booking Confirmed!</h3>
                     <p>Thank you for choosing Lakeside Retreat. You'll receive a confirmation email shortly with all the details for your stay.</p>
                     <div style="background: #FAF4F5; padding: 1rem; border-radius: 10px; margin: 1.5rem 0;">
-                        <p><strong>Booking Reference:</strong> ${bookingReference}</p>
-                        <p><strong>Total Paid (incl. GST):</strong> ${bookingData.total} NZD</p>
-                        <p><strong>Confirmation sent to:</strong> ${guestData.email}</p>
+                        <p><strong>Booking Reference:</strong> ${escapeHtml(bookingReference)}</p>
+                        <p><strong>Total Paid (incl. GST):</strong> ${escapeHtml(String(bookingData.total))} NZD</p>
+                        <p><strong>Confirmation sent to:</strong> ${escapeHtml(guestData.email)}</p>
                     </div>
                     <button class="btn btn-primary" onclick="closeBookingModal()" style="margin-top: 1rem;">Close & Plan Your Stay</button>
                 </div>

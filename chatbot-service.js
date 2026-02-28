@@ -1,16 +1,44 @@
 const fs = require('fs');
 const path = require('path');
 
+const SESSION_TTL = 30 * 60 * 1000; // 30 minutes
+const CLEANUP_INTERVAL = 5 * 60 * 1000; // 5 minutes
+
 class ChatbotService {
     constructor() {
         this.knowledgeBase = this.loadKnowledgeBase();
         this.conversationHistory = new Map();
+        this.sessionLastActivity = new Map();
         this.aiEnabled = !!process.env.OPENAI_API_KEY;
-        
+
+        // Periodically evict stale sessions to prevent memory leaks
+        this._cleanupTimer = setInterval(() => {
+            this._evictStaleSessions();
+        }, CLEANUP_INTERVAL);
+        // Allow the timer to not prevent Node from exiting
+        if (this._cleanupTimer.unref) {
+            this._cleanupTimer.unref();
+        }
+
         if (this.aiEnabled) {
             console.log('ChatbotService: AI enhancement enabled (OpenAI API key detected)');
         } else {
             console.log('ChatbotService: Running in deterministic mode (no AI API key)');
+        }
+    }
+
+    _evictStaleSessions() {
+        const now = Date.now();
+        let evicted = 0;
+        for (const [sessionId, lastActivity] of this.sessionLastActivity) {
+            if (now - lastActivity > SESSION_TTL) {
+                this.conversationHistory.delete(sessionId);
+                this.sessionLastActivity.delete(sessionId);
+                evicted++;
+            }
+        }
+        if (evicted > 0) {
+            console.log(`ChatbotService: Evicted ${evicted} stale session(s). Active sessions: ${this.conversationHistory.size}`);
         }
     }
 
@@ -35,7 +63,10 @@ class ChatbotService {
         }
 
         const normalizedMessage = userMessage.toLowerCase().trim();
-        
+
+        // Track last activity for session TTL eviction
+        this.sessionLastActivity.set(sessionId, Date.now());
+
         if (!this.conversationHistory.has(sessionId)) {
             this.conversationHistory.set(sessionId, []);
         }
@@ -92,7 +123,7 @@ class ChatbotService {
     matchIntent(message) {
         const intents = this.knowledgeBase.intents;
         
-        for (const [intentName, intentData] of Object.entries(intents)) {
+        for (const [_intentName, intentData] of Object.entries(intents)) {
             for (const pattern of intentData.patterns) {
                 if (message.includes(pattern.toLowerCase())) {
                     return intentData.response;
@@ -196,8 +227,6 @@ class ChatbotService {
     }
 
     async getAIResponse(userMessage, history) {
-        const fetch = require('node-fetch');
-        
         const systemPrompt = this.buildSystemPrompt();
         
         const messages = [
@@ -269,8 +298,6 @@ Keep responses concise and helpful. If the question is not about Lakeside Retrea
     }
 
     async generateEmailReply(emailContent, context = {}) {
-        const kb = this.knowledgeBase;
-        
         const emailLower = emailContent.toLowerCase();
         let suggestedReply = '';
 
@@ -396,8 +423,6 @@ Central Otago, New Zealand`;
     }
 
     async enhanceEmailWithAI(originalEmail, templateReply, context) {
-        const fetch = require('node-fetch');
-        
         const prompt = `You are helping draft an email reply for Lakeside Retreat, a luxury glamping accommodation in Central Otago, New Zealand.
 
 Original customer email:
@@ -446,6 +471,7 @@ Return only the enhanced email reply, nothing else.`;
 
     clearSession(sessionId) {
         this.conversationHistory.delete(sessionId);
+        this.sessionLastActivity.delete(sessionId);
     }
 
     getSessionHistory(sessionId) {

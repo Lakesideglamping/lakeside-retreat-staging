@@ -371,7 +371,7 @@
                                 <span class="activity-time">Properties: ${uplistingData.total_properties}</span>
                             </div>
                             <div class="activity-item">
-                                <span>🏠 Properties found: ${uplistingData.properties.map(p => p.name).join(', ')}</span>
+                                <span>🏠 Properties found: ${uplistingData.properties.map(p => escapeHtml(p.name)).join(', ')}</span>
                                 <span class="activity-time">Ready for live data</span>
                             </div>
                         `;

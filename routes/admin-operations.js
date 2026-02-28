@@ -35,7 +35,7 @@ const { verifyAdmin, sendError, ERROR_CODES } = require('../middleware/auth');
 function createAdminOperationsRoutes(deps) {
     const { db, getMetrics, generateReport, log, CacheManager,
              bookingQueue, generalQueue, paymentQueue,
-             chatbot, getMarketingAutomation } = deps;
+             chatbot, getMarketingAutomation, database } = deps;
 
 // Get system metrics (admin only)
 router.get('/api/admin/metrics', verifyAdmin, (req, res) => {
@@ -359,6 +359,7 @@ router.get('/api/admin/chatbot/status', verifyAdmin, (req, res) => {
 // Admin endpoint - Get marketing stats
 router.get('/api/admin/marketing/stats', verifyAdmin, async (req, res) => {
     try {
+        const marketingAutomation = getMarketingAutomation();
         if (!marketingAutomation) {
             return res.status(503).json({ 
                 success: false, 
@@ -377,6 +378,7 @@ router.get('/api/admin/marketing/stats', verifyAdmin, async (req, res) => {
 // Admin endpoint - Get abandoned checkouts
 router.get('/api/admin/marketing/abandoned-checkouts', verifyAdmin, async (req, res) => {
     try {
+        const marketingAutomation = getMarketingAutomation();
         if (!marketingAutomation) {
             return res.status(503).json({ 
                 success: false, 
@@ -397,6 +399,7 @@ router.post('/api/admin/marketing/send-reminder/:bookingId', verifyAdmin, async 
     try {
         const { bookingId } = req.params;
         
+        const marketingAutomation = getMarketingAutomation();
         if (!marketingAutomation) {
             return res.status(503).json({ 
                 success: false, 
@@ -415,6 +418,7 @@ router.post('/api/admin/marketing/send-reminder/:bookingId', verifyAdmin, async 
 // Admin endpoint - Run abandoned checkout check manually
 router.post('/api/admin/marketing/run-abandoned-check', verifyAdmin, async (req, res) => {
     try {
+        const marketingAutomation = getMarketingAutomation();
         if (!marketingAutomation) {
             return res.status(503).json({ 
                 success: false, 
@@ -435,6 +439,7 @@ router.get('/api/admin/marketing/review-requests', verifyAdmin, async (req, res)
     try {
         const { status } = req.query;
         
+        const marketingAutomation = getMarketingAutomation();
         if (!marketingAutomation) {
             return res.status(503).json({ 
                 success: false, 
@@ -455,6 +460,7 @@ router.post('/api/admin/marketing/send-review-request/:bookingId', verifyAdmin, 
     try {
         const { bookingId } = req.params;
         
+        const marketingAutomation = getMarketingAutomation();
         if (!marketingAutomation) {
             return res.status(503).json({ 
                 success: false, 
@@ -473,6 +479,7 @@ router.post('/api/admin/marketing/send-review-request/:bookingId', verifyAdmin, 
 // Admin endpoint - Run review request check manually
 router.post('/api/admin/marketing/run-review-check', verifyAdmin, async (req, res) => {
     try {
+        const marketingAutomation = getMarketingAutomation();
         if (!marketingAutomation) {
             return res.status(503).json({ 
                 success: false, 
@@ -500,6 +507,7 @@ router.post('/api/admin/marketing/generate-social', verifyAdmin, async (req, res
             });
         }
         
+        const marketingAutomation = getMarketingAutomation();
         if (!marketingAutomation) {
             return res.status(503).json({ 
                 success: false, 
@@ -526,6 +534,7 @@ router.get('/api/admin/marketing/social-drafts', verifyAdmin, async (req, res) =
     try {
         const { status } = req.query;
         
+        const marketingAutomation = getMarketingAutomation();
         if (!marketingAutomation) {
             return res.status(503).json({ 
                 success: false, 
@@ -554,6 +563,7 @@ router.put('/api/admin/marketing/social-drafts/:draftId', verifyAdmin, async (re
             });
         }
         
+        const marketingAutomation = getMarketingAutomation();
         if (!marketingAutomation) {
             return res.status(503).json({ 
                 success: false, 

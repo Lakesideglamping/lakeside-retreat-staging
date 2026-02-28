@@ -13,9 +13,7 @@
 const express = require('express');
 const router = express.Router();
 const path = require('path');
-const fs = require('fs');
-
-const { verifyAdmin, sendError, ERROR_CODES } = require('../middleware/auth');
+const { verifyAdmin, sanitizeInput } = require('../middleware/auth');
 
 /**
  * @param {Object} deps
@@ -448,7 +446,7 @@ router.put('/api/admin/settings', verifyAdmin, (req, res) => {
     
     const entries = Object.entries(settings);
     let completed = 0;
-    let errors = [];
+    const errors = [];
     
     entries.forEach(([key, value]) => {
         let settingType = 'string';

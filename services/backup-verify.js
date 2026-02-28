@@ -68,7 +68,7 @@ function getTableCounts(dbPath) {
  * Get row counts from the live database connection.
  */
 function getLiveCounts(db) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve, _reject) => {
         const counts = {};
         let completed = 0;
 

@@ -17,7 +17,11 @@ class CacheSystem {
         };
         
         // Cleanup expired entries every minute
-        setInterval(() => this.cleanup(), 60000);
+        this._cleanupTimer = setInterval(() => this.cleanup(), 60000);
+        // Allow the timer to not prevent Node/Jest from exiting
+        if (this._cleanupTimer.unref) {
+            this._cleanupTimer.unref();
+        }
     }
     
     // Generate cache key
@@ -51,19 +55,19 @@ class CacheSystem {
     // Set value in cache
     set(key, value, ttl = null) {
         const expires = Date.now() + (ttl || this.defaultTTL);
-        
-        // Check if we need to evict entries
-        if (this.cache.size >= this.maxSize && !this.cache.has(key)) {
+
+        // Evict if at capacity (check after potential concurrent sets)
+        while (this.cache.size >= this.maxSize && !this.cache.has(key)) {
             this.evictLeastRecentlyUsed();
         }
-        
+
         this.cache.set(key, {
             value,
             expires,
             lastAccess: Date.now(),
             created: Date.now()
         });
-        
+
         this.stats.sets++;
         return true;
     }

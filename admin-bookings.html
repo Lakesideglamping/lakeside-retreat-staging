@@ -453,15 +453,15 @@
                 <tr>
                     <td>#${booking.id}</td>
                     <td>
-                        <strong>${booking.guest_name}</strong><br>
-                        <small>${booking.guest_email}</small>
+                        <strong>${escapeHtml(booking.guest_name)}</strong><br>
+                        <small>${escapeHtml(booking.guest_email)}</small>
                     </td>
-                    <td>${booking.accommodation}</td>
+                    <td>${escapeHtml(booking.accommodation)}</td>
                     <td>${formatDate(booking.check_in)}</td>
                     <td>${formatDate(booking.check_out)}</td>
                     <td>${booking.guests}</td>
                     <td>$${booking.total_price}</td>
-                    <td><span class="status ${booking.status}">${booking.status}</span></td>
+                    <td><span class="status ${escapeHtml(booking.status)}">${escapeHtml(booking.status)}</span></td>
                     <td>
                         <div class="actions">
                             <button class="btn-action btn-view" onclick="viewBooking(${booking.id})">View</button>

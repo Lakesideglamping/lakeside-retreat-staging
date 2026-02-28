@@ -27,7 +27,7 @@ async function getUplistingDashboardData() {
         const totalProperties = propertiesData.data ? propertiesData.data.length : 0;
         
         // Try to get booking data from Uplisting - try different approaches
-        let bookingData = { total_bookings: 0, total_revenue: 0, bookings: [] };
+        const bookingData = { total_bookings: 0, total_revenue: 0, bookings: [] };
         
         // Try the general bookings endpoint first
         try {

@@ -20,9 +20,22 @@ function initializeDatabase() {
                 connectionTimeoutMillis: 10000,
             };
             
-            // Add SSL config for production (Render requires SSL for external connections)
+            // Add SSL config for production
             if (process.env.NODE_ENV === 'production' || databaseUrl.includes('render.com')) {
-                poolConfig.ssl = { rejectUnauthorized: false };
+                const sslConfig = {};
+                if (process.env.DATABASE_SSL_CA) {
+                    // Use explicit CA certificate if provided
+                    const fs = require('fs');
+                    sslConfig.ca = fs.readFileSync(process.env.DATABASE_SSL_CA, 'utf8');
+                    sslConfig.rejectUnauthorized = true;
+                } else if (process.env.DATABASE_SSL_REJECT_UNAUTHORIZED === 'false') {
+                    // Explicit opt-in to disable certificate validation (e.g. Render deployments)
+                    sslConfig.rejectUnauthorized = false;
+                } else {
+                    // Default: enforce SSL certificate validation in production
+                    sslConfig.rejectUnauthorized = true;
+                }
+                poolConfig.ssl = sslConfig;
             }
             
             db = new Pool(poolConfig);
@@ -181,7 +194,16 @@ function createTablesPostgres() {
                 )
             `);
             console.log('✅ System settings table ready (PostgreSQL)');
-            
+
+            // Create processed_webhook_events table for idempotency
+            await db.query(`
+                CREATE TABLE IF NOT EXISTS processed_webhook_events (
+                    event_id TEXT PRIMARY KEY,
+                    processed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            `);
+            console.log('✅ Processed webhook events table ready (PostgreSQL)');
+
             resolve();
         } catch (err) {
             console.error('❌ Error creating PostgreSQL tables:', err.message);
@@ -285,7 +307,14 @@ function createTablesSqlite() {
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         `;
-        
+
+        const createProcessedWebhookEventsTable = `
+            CREATE TABLE IF NOT EXISTS processed_webhook_events (
+                event_id TEXT PRIMARY KEY,
+                processed_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        `;
+
         db.serialize(() => {
             db.run(createBookingsTable, (err) => {
                 if (err) {
@@ -339,6 +368,15 @@ function createTablesSqlite() {
                     return;
                 }
                 console.log('✅ System settings table ready (SQLite)');
+            });
+
+            db.run(createProcessedWebhookEventsTable, (err) => {
+                if (err) {
+                    console.error('❌ Error creating processed_webhook_events table:', err.message);
+                    reject(err);
+                    return;
+                }
+                console.log('✅ Processed webhook events table ready (SQLite)');
                 resolve();
             });
         });
@@ -448,6 +486,12 @@ async function transaction(callback) {
                     const pgSql = sql.replace(/\?/g, () => `$${++paramIndex}`);
                     return client.query(pgSql, params);
                 },
+                get: async (sql, params) => {
+                    let paramIndex = 0;
+                    const pgSql = sql.replace(/\?/g, () => `$${++paramIndex}`);
+                    const result = await client.query(pgSql, params);
+                    return result.rows[0] || null;
+                },
                 run: async (sql, params) => {
                     let paramIndex = 0;
                     let pgSql = sql.replace(/\?/g, () => `$${++paramIndex}`);
@@ -473,6 +517,7 @@ async function transaction(callback) {
                 try {
                     const result = await callback({
                         query: (sql, params) => query(sql, params),
+                        get: (sql, params) => get(sql, params),
                         run: (sql, params) => run(sql, params)
                     });
                     db.run('COMMIT', (err) => {
