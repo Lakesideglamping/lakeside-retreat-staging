@@ -3461,9 +3461,10 @@ Local activities and adventures:
                     </div>
                 </div>
             </section>
+        </div>
+        <!-- END stayPage -->
 
-      <section class="section">     
-        <!-- Gallery Page for the stay-->
+        <!-- Gallery Page -->
         <div class="page" id="galleryPage">
             <section class="hero parallax-container">
                 <!-- Parallax Layers - Photos will be added here -->
@@ -3693,7 +3694,7 @@ Local activities and adventures:
                 </div>
             </section>
         </div>
-      </section>
+        <!-- END galleryPage -->
 
         <!-- Blog Page -->
         <div class="page" id="blogPage">
@@ -5264,16 +5265,6 @@ Local activities and adventures:
        
     </footer>
 
-    
-	<!-- STEP 1: Find the end of your existing JavaScript (around line 1800-2000) -->
-        
-        // ... your existing functions end here
-        
-    </script>
-    
-    <!-- STEP 2: ADD THIS NEW SCRIPT SECTION RIGHT HERE -->
-    
-    
     <!-- Back to Top Button -->
     <button id="backToTopBtn" onclick="scrollToTop()" style="
         position: fixed !important;
@@ -8403,9 +8394,6 @@ document.addEventListener('DOMContentLoaded', () => {
             initWebPSupport();
             initPerformanceMonitoring();
             
-            // Initialize back to top button
-            initBackToTopButton();
-            
             // FAQ dropdowns use inline onclick - no initialization needed
             
             // Force replace old voucher HTML with new V2 system
@@ -8699,6 +8687,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize the home page as active
             showPage('home');
+            // Initialize back to top button
+            initBackToTopButton();
         });
 })();
 
