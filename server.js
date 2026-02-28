@@ -245,12 +245,10 @@ app.use(helmet({
             defaultSrc: ["'self'"],
             scriptSrc: [
                 "'self'", 
-                "'unsafe-inline'",  // Required for Clarity + Web Vitals inline scripts
+                "'unsafe-inline'",
                 "https://js.stripe.com",
                 "https://www.googletagmanager.com",
-                "https://www.google-analytics.com",
-                "https://www.clarity.ms",
-                "https://scripts.clarity.ms"
+                "https://www.google-analytics.com"
             ],
             scriptSrcAttr: ["'unsafe-inline'"],  // Required for inline event handlers (onclick etc.)
             styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
@@ -260,7 +258,6 @@ app.use(helmet({
                 "'self'",
                 "https://api.stripe.com",
                 "https://www.google-analytics.com",
-                "https://www.clarity.ms",
                 "https://connect.uplisting.io"
             ],
             frameSrc: ["'self'", "https://js.stripe.com", "https://hooks.stripe.com"],

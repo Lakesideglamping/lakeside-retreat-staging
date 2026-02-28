@@ -159,20 +159,8 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       
       function implementProgressiveImageLoading() {
-        // Convert JPEG images to WebP format dynamically for supported browsers
-        document.querySelectorAll('img[src*=".jpeg"], img[src*=".jpg"]').forEach(img => {
-          const webpSrc = img.src.replace(/\.(jpe?g)$/i, '.webp');
-          
-          // Test if WebP version exists
-          const testImg = new Image();
-          testImg.onload = () => {
-            img.src = webpSrc;
-          };
-          testImg.onerror = () => {
-            // Keep original if WebP doesn't exist
-          };
-          testImg.src = webpSrc;
-        });
+        // No-op: WebP probing removed to avoid 404 console errors
+        // Images are served as JPEG which all browsers support
       }
       
       // Service Worker for caching
@@ -608,16 +596,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // === VOUCHER SYSTEM ===
-        
 
 
-        // === VOUCHER PURCHASE SYSTEM ===
-        
-        // OLD SYSTEM VARIABLES - NOW REDIRECT TO V2NEW
-        let selectedVoucherAmount = 'flexible-550-v2'; // Redirect to V2New
-        let currentVoucherStep = 1;
-        let voucherData = {}; // Will be populated from V2New data
 
 
 
@@ -2822,89 +2802,18 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        // Initialize floating button, FAQ system, and FORCE V2 VOUCHER SYSTEM  
+        // Initialize floating button and performance optimizations
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('🎁 FORCING V2 VOUCHER SYSTEM ON PAGE LOAD');
-            
-            // Initialize performance optimizations
             initLazyLoading();
             addResourceHints();
             initWebPSupport();
             initPerformanceMonitoring();
-            
-            // Initialize back to top button
             initBackToTopButton();
-            
-            // FAQ dropdowns use inline onclick - no initialization needed
-            
-            // Force replace old voucher HTML with new V2 system
-            setTimeout(() => {
-                const oldVoucherOptions = document.querySelectorAll('.voucher-option:not(.voucher-option-v2-new)');
-                console.log('Found old voucher elements to replace:', oldVoucherOptions.length);
-                
-                oldVoucherOptions.forEach(oldOption => {
-                    const amount = oldOption.getAttribute('data-amount');
-                    if (amount && !amount.includes('-v2')) {
-                        oldOption.setAttribute('data-amount', amount + '-v2');
-                        oldOption.className = oldOption.className.replace('voucher-option', 'voucher-option-v2-new');
-                        
-                        // Update all child elements
-                        const header = oldOption.querySelector('.voucher-option-header');
-                        if (header) header.className = 'voucher-option-header-v2-new';
-                        
-                        const price = oldOption.querySelector('.voucher-price');
-                        if (price) price.className = 'voucher-price-v2-new';
-                        
-                        // Update onclick handler
-                        const newAmount = amount + '-v2';
-                        oldOption.setAttribute('onclick', `selectVoucherAmountV2New('${newAmount}')`);
-                        console.log('✅ Converted voucher option:', amount, '→', newAmount);
-                    }
-                });
-                
-                // Force initialize new system
-                if (typeof selectVoucherAmountV2New === 'function') {
-                    selectVoucherAmountV2New('flexible-550-v2');
-                    console.log('✅ V2 voucher system forcefully initialized');
-                } else {
-                    console.error('❌ V2 voucher functions not loaded');
-                }
-            }, 100);
-            
+
             createFloatingBookButton();
             window.addEventListener('scroll', handleFloatingButton);
-
-            // Initialize Parallax Scrolling System
             initializeParallaxScrolling();
         });
-
-        // DUPLICATE FAQ FUNCTION REMOVED - NOW DEFINED ABOVE
-
-        // VOUCHER SYSTEM V2 - NEW FUNCTIONS - FORCE OVERRIDE
-        console.log('🎁 NEW VOUCHER SYSTEM V2 LOADING...', new Date());
-        let selectedVoucherAmountV2New = 'flexible-550-v2'; // Default selection
-        let voucherDataV2New = {
-            amount: 'flexible-550-v2',
-            recipientName: '',
-            recipientEmail: '',
-            message: '',
-            occasion: '',
-            purchaserName: '',
-            purchaserEmail: '',
-            purchaserPhone: '',
-            voucherCode: '',
-            customAmount: null
-        };
-        
-        // FORCE OVERRIDE OLD FUNCTIONS
-        if (typeof selectVoucherAmount !== 'undefined') {
-            console.log('⚠️ Overriding old selectVoucherAmount function');
-            window.selectVoucherAmount = selectVoucherAmountV2New;
-        }
-        if (typeof updateVoucherSummary !== 'undefined') {
-            console.log('⚠️ Overriding old updateVoucherSummary function');
-            window.updateVoucherSummary = updateVoucherSummaryV2New;
-        }
 })();
 
 // --- Script block 14 ---
