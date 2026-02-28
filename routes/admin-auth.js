@@ -278,7 +278,7 @@ function createAdminAuthRoutes(deps) {
                 secure: true,
                 sameSite: 'strict',
                 maxAge: 60 * 60 * 1000,
-                path: '/admin'
+                path: '/'
             });
 
             res.json({
@@ -304,7 +304,7 @@ function createAdminAuthRoutes(deps) {
             blacklistToken(token);
         }
 
-        res.clearCookie('auth-token', { path: '/admin', secure: true, httpOnly: true, sameSite: 'strict' });
+        res.clearCookie('auth-token', { path: '/', secure: true, httpOnly: true, sameSite: 'strict' });
         res.json({ success: true, message: 'Logged out' });
     });
 
