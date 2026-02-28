@@ -163,6 +163,20 @@
     </div>
     
     <script>
+        let csrfToken = null;
+
+        // Fetch CSRF token on page load
+        async function fetchCsrfToken() {
+            try {
+                const res = await fetch('/api/csrf-token', { credentials: 'same-origin' });
+                const data = await res.json();
+                csrfToken = data.csrfToken;
+            } catch (err) {
+                console.error('Failed to fetch CSRF token:', err);
+            }
+        }
+        fetchCsrfToken();
+
         // Check if already logged in via httpOnly cookie
         fetch('/api/admin/verify', { credentials: 'same-origin' })
             .then(response => {
@@ -173,25 +187,33 @@
             .catch(() => {
                 // Not logged in, stay on login page
             });
-        
+
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            
+
             const loginBtn = document.getElementById('loginBtn');
             const errorMessage = document.getElementById('errorMessage');
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
-            
+
             loginBtn.disabled = true;
             loginBtn.textContent = 'Signing in...';
             errorMessage.style.display = 'none';
-            
+
+            // Re-fetch CSRF token if missing
+            if (!csrfToken) {
+                await fetchCsrfToken();
+            }
+
             try {
+                const headers = { 'Content-Type': 'application/json' };
+                if (csrfToken) {
+                    headers['X-CSRF-Token'] = csrfToken;
+                }
+
                 const response = await fetch('/api/admin/login', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers,
                     credentials: 'same-origin',
                     body: JSON.stringify({ username, password })
                 });
