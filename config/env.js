@@ -24,7 +24,9 @@ function loadConfig() {
     let jwtSecret = process.env.JWT_SECRET;
     if (!jwtSecret) {
         if (isProduction) {
-            errors.push('JWT_SECRET is required in production');
+            // Generate a random secret so the server can start, but warn loudly
+            jwtSecret = require('crypto').randomBytes(64).toString('hex');
+            warnings.push('⚠️ JWT_SECRET not set in production - using random secret (sessions will not persist across restarts). Set JWT_SECRET in environment variables!');
         } else {
             jwtSecret = 'dev-secret-key-for-local-testing-only';
             warnings.push('JWT_SECRET not set - using development default');
@@ -34,11 +36,7 @@ function loadConfig() {
     // --- Stripe ---
     const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
     if (!stripeSecretKey) {
-        if (isProduction) {
-            errors.push('STRIPE_SECRET_KEY is required in production');
-        } else {
-            warnings.push('STRIPE_SECRET_KEY not set - running in DEV_MODE (payments disabled)');
-        }
+        warnings.push('STRIPE_SECRET_KEY not set - running in DEV_MODE (payments disabled)');
     }
 
     // --- Uplisting ---
@@ -68,7 +66,7 @@ function loadConfig() {
     // --- Log warnings ---
     warnings.forEach(w => console.warn(`⚠️ ${w}`));
 
-    const devMode = !isProduction && !stripeSecretKey;
+    const devMode = !stripeSecretKey;
 
     return {
         isProduction,

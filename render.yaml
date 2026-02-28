@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: lakeside-retreat-production
+    name: lakeside-retreat-staging
     repo: https://github.com/Lakesideglamping/lakeside-retreat-staging
     branch: main
     env: node
