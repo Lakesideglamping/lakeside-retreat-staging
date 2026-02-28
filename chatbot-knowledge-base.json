@@ -188,11 +188,11 @@
     },
     "booking": {
       "patterns": ["book", "reserve", "availability", "available", "dates", "stay"],
-      "response": "I'd be happy to help you book! You can check availability and book directly on our website by clicking the 'Book Now' button. We have three accommodation options: Dome Pinot ($530/night), Dome Rosé ($498/night), and Lakeside Cottage ($295/night). Would you like more details about any of these?"
+      "response": "I'd be happy to help you book! You can check availability and book directly on our website by clicking the 'Book Now' button. We have three accommodation options: Dome Pinot ($530/night), Dome Rosé ($510/night), and Lakeside Cottage ($295/night). Would you like more details about any of these?"
     },
     "pricing": {
       "patterns": ["price", "cost", "rate", "how much", "expensive", "cheap", "afford"],
-      "response": "Our nightly rates are: Dome Pinot (50sqm luxury dome) - $530 NZD, Dome Rosé (40sqm romantic dome) - $498 NZD, and Lakeside Cottage (family cottage) - $295 NZD. The cottage has an extra guest fee of $100 and pet fee of $25. All prices include continental breakfast for dome guests. Would you like to know more about what's included?"
+      "response": "Our nightly rates are: Dome Pinot (50sqm luxury dome) - $530 NZD, Dome Rosé (40sqm romantic dome) - $510 NZD, and Lakeside Cottage (family cottage) - $295 NZD. The cottage has an extra guest fee of $100 and pet fee of $25. All prices include continental breakfast for dome guests. Would you like to know more about what's included?"
     },
     "contact_human": {
       "patterns": ["speak to someone", "talk to human", "real person", "contact", "call", "phone", "email"],

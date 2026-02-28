@@ -315,7 +315,7 @@ You can also check availability and book directly on our website at lakesideretr
 
 Our accommodations:
 - Dome Pinot (50sqm luxury dome): $530/night, perfect for couples
-- Dome Rosé (40sqm romantic dome): $498/night, ideal for romantic getaways
+- Dome Rosé (40sqm romantic dome): $510/night, ideal for romantic getaways
 - Lakeside Cottage: $295/night, great for families (pet-friendly)
 
 We look forward to hosting you in beautiful Central Otago!
@@ -331,7 +331,7 @@ Thank you for your enquiry about our rates at Lakeside Retreat.
 
 Our current nightly rates are:
 - Dome Pinot (50sqm luxury dome): $530 NZD - includes continental breakfast, private spa
-- Dome Rosé (40sqm romantic dome): $498 NZD - includes continental breakfast, outdoor spa
+- Dome Rosé (40sqm romantic dome): $510 NZD - includes continental breakfast, outdoor spa
 - Lakeside Cottage: $295 NZD - full kitchen, wood-fired hot tub, direct lake access
   (Extra guest fee: $100, Pet fee: $25)
 

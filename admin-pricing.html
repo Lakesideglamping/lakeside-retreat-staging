@@ -282,7 +282,7 @@
                         <label class="price-label">Per Night:</label>
                         <div class="price-input">
                             <span class="currency-prefix">$</span>
-                            <input type="number" id="pinot-base" value="295" min="0">
+                            <input type="number" id="pinot-base" value="530" min="0">
                         </div>
                     </div>
                     <div class="price-input-group">
@@ -329,7 +329,7 @@
                         <label class="price-label">Per Night:</label>
                         <div class="price-input">
                             <span class="currency-prefix">$</span>
-                            <input type="number" id="rose-base" value="295" min="0">
+                            <input type="number" id="rose-base" value="510" min="0">
                         </div>
                     </div>
                     <div class="price-input-group">
@@ -569,7 +569,7 @@
                     // Load Dome Pinot pricing
                     if (data.pricing.pricing_dome_pinot) {
                         const pinot = data.pricing.pricing_dome_pinot;
-                        document.getElementById('pinot-base').value = pinot.base || 295;
+                        document.getElementById('pinot-base').value = pinot.base || 530;
                         document.getElementById('pinot-weekend').value = pinot.weekend || 325;
                         document.getElementById('pinot-peak').value = pinot.peak || 350;
                         document.getElementById('pinot-cleaning').value = pinot.cleaning || 50;
@@ -579,7 +579,7 @@
                     // Load Dome Rosé pricing
                     if (data.pricing.pricing_dome_rosé) {
                         const rose = data.pricing.pricing_dome_rosé;
-                        document.getElementById('rose-base').value = rose.base || 295;
+                        document.getElementById('rose-base').value = rose.base || 510;
                         document.getElementById('rose-weekend').value = rose.weekend || 325;
                         document.getElementById('rose-peak').value = rose.peak || 350;
                         document.getElementById('rose-cleaning').value = rose.cleaning || 50;

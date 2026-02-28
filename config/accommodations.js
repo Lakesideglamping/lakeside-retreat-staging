@@ -25,7 +25,7 @@ const accommodations = [
         name: 'Dome Rosé',
         description: 'Romantic 40sqm retreat perfect for couples',
         maxGuests: 2,
-        basePrice: 498,
+        basePrice: 510,
         minStay: 1,
         amenities: ['King bed', 'Outdoor spa', 'Mountain views', 'Solar powered'],
         images: ['dome-rose-exterior.jpeg', 'dome-rose-interior.jpeg']
