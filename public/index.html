@@ -326,28 +326,40 @@
                 <div class="booking-step active" id="bookingStep1">
                     <h3 style="color: var(--brand-teal); margin-bottom: 1.5rem;">Choose Your Accommodation</h3>
 
-                    <div style="background: #f0fdf4; border: 1px solid #86efac; padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
-                        <span style="font-size: 1.1rem;">💰</span>
-                        <span style="color: #166534; font-size: 0.9rem; font-weight: 500;">Book direct and save — no Airbnb or Booking.com fees. Same price, more in your pocket.</span>
+                    <div style="background: linear-gradient(135deg, #f0fdf4, #dcfce7); border: 1px solid #86efac; padding: 1rem 1.25rem; border-radius: 10px; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem;">
+                        <span style="font-size: 1.4rem; flex-shrink: 0;">🏷️</span>
+                        <div>
+                            <strong style="color: #166534; font-size: 0.95rem;">Book direct &amp; save up to 18%</strong>
+                            <p style="margin: 0.2rem 0 0; color: #15803d; font-size: 0.85rem;">No Airbnb or Booking.com service fees. Same great stay, better price.</p>
+                        </div>
                     </div>
                     
                     <div class="booking-accommodation-selector">
                         <div class="accommodation-option" data-accommodation="dome-pinot" data-select-accommodation="dome-pinot">
-                            <h4>Dome Pinot <span style="background: #dc3545; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: 600; vertical-align: middle;">Adults Only</span></h4>
-                            <p>Flagship 50sqm luxury dome with panoramic views and private spa</p>
-                            <div class="accommodation-price">From $530/night <span style="font-size: 0.8em; color: #666;">(GST incl.)</span></div>
+                            <img class="accom-thumb" src="images/dome-pinot-hero.jpeg" alt="Dome Pinot">
+                            <div class="accom-info">
+                                <h4>Dome Pinot <span style="background: #dc3545; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: 600; vertical-align: middle;">Adults Only</span></h4>
+                                <p>Flagship 50sqm luxury dome with panoramic views and private spa</p>
+                                <div class="accommodation-price">From $530/night <span style="font-size: 0.8em; color: #666;">(GST incl.)</span></div>
+                            </div>
                         </div>
 
                         <div class="accommodation-option" data-accommodation="dome-rose" data-select-accommodation="dome-rose">
-                            <h4>Dome Rosé <span style="background: #dc3545; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: 600; vertical-align: middle;">Adults Only</span></h4>
-                            <p>Romantic 40sqm retreat perfect for couples</p>
-                            <div class="accommodation-price">From $510/night <span style="font-size: 0.8em; color: #666;">(GST incl.)</span></div>
+                            <img class="accom-thumb" src="images/dome-rose-spa1.jpeg" alt="Dome Rosé">
+                            <div class="accom-info">
+                                <h4>Dome Rosé <span style="background: #dc3545; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: 600; vertical-align: middle;">Adults Only</span></h4>
+                                <p>Romantic 40sqm retreat perfect for couples</p>
+                                <div class="accommodation-price">From $510/night <span style="font-size: 0.8em; color: #666;">(GST incl.)</span></div>
+                            </div>
                         </div>
 
                         <div class="accommodation-option" data-accommodation="lakeside-cottage" data-select-accommodation="lakeside-cottage">
-                            <h4>Lakeside Cottage</h4>
-                            <p>Family-friendly cottage with direct lake access</p>
-                            <div class="accommodation-price">From $295/night <span style="font-size: 0.8em; color: #666;">(GST incl.)</span></div>
+                            <img class="accom-thumb" src="images/lakeside-cottage-exterior.jpeg" alt="Lakeside Cottage">
+                            <div class="accom-info">
+                                <h4>Lakeside Cottage</h4>
+                                <p>Family-friendly cottage with direct lake access</p>
+                                <div class="accommodation-price">From $295/night <span style="font-size: 0.8em; color: #666;">(GST incl.)</span></div>
+                            </div>
                         </div>
                     </div>
 
@@ -5144,28 +5156,32 @@ document.addEventListener('DOMContentLoaded', () => {
             // Show selected step
             document.getElementById(`bookingStep${stepNumber}`).classList.add('active');
 
-            // Update progress indicator
+            // Update progress indicator with checkmarks for completed steps
             document.querySelectorAll('.progress-step').forEach((step, index) => {
                 const stepNum = index + 1;
+                const circle = step.querySelector('div');
                 if (stepNum < stepNumber) {
                     step.classList.add('completed');
                     step.classList.remove('active');
+                    if (circle) circle.innerHTML = '✓';
+                    step.style.color = 'var(--brand-teal)';
                 } else if (stepNum === stepNumber) {
                     step.classList.add('active');
                     step.classList.remove('completed');
+                    if (circle) { circle.innerHTML = stepNum; circle.style.background = 'var(--brand-teal)'; circle.style.color = 'white'; }
+                    step.style.color = 'var(--brand-teal)';
                 } else {
                     step.classList.remove('active', 'completed');
+                    if (circle) { circle.innerHTML = stepNum; circle.style.background = '#e5e7eb'; circle.style.color = '#6b7280'; }
+                    step.style.color = '#6b7280';
                 }
             });
 
-            // Update progress bars
-            document.querySelectorAll('.progress-bar').forEach((bar, index) => {
-                if (index + 1 < stepNumber) {
-                    bar.classList.add('completed');
-                } else {
-                    bar.classList.remove('completed');
-                }
-            });
+            // Update progress bar fills
+            const bar1 = document.getElementById('progressBar1');
+            const bar2 = document.getElementById('progressBar2');
+            if (bar1) bar1.style.width = stepNumber > 1 ? '100%' : '0%';
+            if (bar2) bar2.style.width = stepNumber > 2 ? '100%' : '0%';
 
             // Update final booking summary if going to step 3
             if (stepNumber === 3) {
