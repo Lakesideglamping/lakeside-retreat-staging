@@ -2359,3 +2359,42 @@
     transform: scale(1.1);
 }
 
+/* --- Flatpickr Booking Theme --- */
+.flatpickr-day.selected,
+.flatpickr-day.startRange,
+.flatpickr-day.endRange,
+.flatpickr-day.selected:hover,
+.flatpickr-day.startRange:hover,
+.flatpickr-day.endRange:hover {
+    background: var(--brand-teal, #2D5A5A);
+    border-color: var(--brand-teal, #2D5A5A);
+    color: white;
+}
+
+.flatpickr-day:hover {
+    background: #FAF4F5;
+    border-color: #FAF4F5;
+}
+
+.flatpickr-day.today {
+    border-color: var(--brand-teal, #2D5A5A);
+}
+
+.flatpickr-day.flatpickr-disabled,
+.flatpickr-day.flatpickr-disabled:hover {
+    background: #fee2e2;
+    color: #b91c1c;
+    text-decoration: line-through;
+    opacity: 0.7;
+}
+
+.flatpickr-calendar {
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+}
+
+/* Ensure Flatpickr renders above booking modal */
+.flatpickr-calendar {
+    z-index: 4000 !important;
+}
+
