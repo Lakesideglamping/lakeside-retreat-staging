@@ -461,19 +461,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const checkinInput = document.getElementById('bookingCheckin');
             const checkoutInput = document.getElementById('bookingCheckout');
             
-            if (checkinInput) {
-                checkinInput.min = today;
-                checkinInput.addEventListener('click', function() {
-                    this.showPicker();
-                });
-            }
-            
-            if (checkoutInput) {
-                checkoutInput.min = today;
-                checkoutInput.addEventListener('click', function() {
-                    this.showPicker();
-                });
-            }
+            // Date picker initialization handled by Flatpickr (see end of file)
+            // Legacy native date picker setup removed
 
             // Initialize mobile optimizations
             detectTouch();
@@ -521,14 +510,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-            // Booking form event listeners (only if elements exist)
-            if (checkinInput) {
-                checkinInput.addEventListener('change', updateCheckoutMinDate);
-            }
-            
-            if (checkoutInput) {
-                checkoutInput.addEventListener('change', validateCottageMinimumStay);
-            }
+            // Booking form date change listeners handled by Flatpickr (see end of file)
+            // Cottage minimum stay validation triggers from Flatpickr onChange
             
             // Mobile-specific performance optimizations
             if (window.innerWidth <= 768) {
@@ -3034,6 +3017,128 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Init background lazy loading
         initBackgroundLazyLoad();
+    });
+})();
+
+// --- Flatpickr Date Pickers for Booking Modal ---
+(function() {
+    'use strict';
+
+    let checkinPicker = null;
+    let checkoutPicker = null;
+    let currentBlockedDates = [];
+
+    function initBookingDatePickers() {
+        if (typeof flatpickr === 'undefined') return;
+
+        const checkinEl = document.getElementById('bookingCheckin');
+        const checkoutEl = document.getElementById('bookingCheckout');
+        if (!checkinEl || !checkoutEl) return;
+
+        // Check-in picker
+        checkinPicker = flatpickr(checkinEl, {
+            dateFormat: 'Y-m-d',
+            minDate: 'today',
+            disable: currentBlockedDates,
+            disableMobile: true,
+            onChange(selectedDates) {
+                if (selectedDates.length > 0) {
+                    // Set checkout min to checkin + 1 day
+                    const nextDay = new Date(selectedDates[0]);
+                    nextDay.setDate(nextDay.getDate() + 1);
+                    checkoutPicker.set('minDate', nextDay);
+
+                    // Clear checkout if it's before the new min
+                    const currentCheckout = checkoutPicker.selectedDates[0];
+                    if (currentCheckout && currentCheckout <= selectedDates[0]) {
+                        checkoutPicker.clear();
+                    }
+
+                    // Open checkout picker automatically
+                    setTimeout(() => checkoutPicker.open(), 150);
+                }
+                clearFormError('date');
+                updateNightsCount();
+            }
+        });
+
+        // Check-out picker
+        checkoutPicker = flatpickr(checkoutEl, {
+            dateFormat: 'Y-m-d',
+            minDate: 'today',
+            disable: currentBlockedDates,
+            disableMobile: true,
+            onChange() {
+                clearFormError('date');
+                updateNightsCount();
+            }
+        });
+    }
+
+    // Fetch blocked dates from the API when accommodation is selected
+    async function fetchBlockedDates(accommodation) {
+        try {
+            const response = await fetch(`/api/blocked-dates?accommodation=${encodeURIComponent(accommodation)}`);
+            const data = await response.json();
+            if (data.success && data.blockedDates) {
+                currentBlockedDates = data.blockedDates;
+            } else {
+                currentBlockedDates = [];
+            }
+        } catch {
+            currentBlockedDates = [];
+        }
+
+        // Update pickers with new blocked dates
+        if (checkinPicker) checkinPicker.set('disable', currentBlockedDates);
+        if (checkoutPicker) checkoutPicker.set('disable', currentBlockedDates);
+
+        // Show/hide hint
+        const hint = document.getElementById('blockedDatesHint');
+        if (hint) hint.style.display = currentBlockedDates.length > 0 ? 'block' : 'none';
+    }
+
+    // Show "X nights" between date pickers
+    function updateNightsCount() {
+        const group = document.getElementById('nightsCountGroup');
+        const label = document.getElementById('nightsCount');
+        if (!group || !label) return;
+
+        const checkin = checkinPicker?.selectedDates[0];
+        const checkout = checkoutPicker?.selectedDates[0];
+
+        if (checkin && checkout && checkout > checkin) {
+            const nights = Math.round((checkout - checkin) / (86400000));
+            label.textContent = `${nights} night${nights !== 1 ? 's' : ''}`;
+            group.style.display = 'flex';
+        } else {
+            group.style.display = 'none';
+        }
+    }
+
+    // Helper to clear inline errors (mirrors the function in index.html inline script)
+    function clearFormError(fieldId) {
+        const errorEl = document.getElementById(fieldId + 'Error');
+        if (errorEl) errorEl.classList.remove('show');
+    }
+
+    // Hook into accommodation selection to fetch blocked dates
+    function hookAccommodationSelection() {
+        document.querySelectorAll('.accommodation-option').forEach(option => {
+            option.addEventListener('click', () => {
+                const accom = option.dataset.accommodation;
+                if (accom) {
+                    fetchBlockedDates(accom);
+                    clearFormError('accommodation');
+                }
+            });
+        });
+    }
+
+    // Initialize on DOM ready
+    document.addEventListener('DOMContentLoaded', () => {
+        initBookingDatePickers();
+        hookAccommodationSelection();
     });
 })();
 

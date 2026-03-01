@@ -167,6 +167,7 @@
 
     <!-- Main Stylesheet -->
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="vendor/flatpickr/flatpickr.min.css">
 
  <!-- Google Analytics 4 -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-M6TC9MB5CR"></script>
@@ -216,6 +217,9 @@
 
     <!-- Blog Collection Schema -->
     
+
+    <!-- Flatpickr date picker -->
+    <script src="vendor/flatpickr/flatpickr.min.js" defer></script>
 
     <!-- Security and Performance optimization -->
     <script src="security-fixes-immediate.js"></script>
@@ -359,16 +363,24 @@
                             </div>
                         </div>
                     </div>
+                    <div class="form-error-message" id="accommodationError" role="alert" aria-live="polite">Please select an accommodation</div>
 
                     <div class="booking-date-row">
                         <div class="booking-form-group">
                             <label class="booking-form-label" for="bookingCheckin">Check-in</label>
-                            <input type="date" class="booking-form-input" id="bookingCheckin" required data-focus-action="scrollToBookingButton">
+                            <input type="text" class="booking-form-input" id="bookingCheckin" placeholder="Select date" required readonly>
+                        </div>
+                        <div class="booking-form-group" id="nightsCountGroup" style="display: none; align-self: flex-end; text-align: center; padding-bottom: 0.5rem;">
+                            <span id="nightsCount" style="font-weight: 600; color: var(--brand-teal); font-size: 0.95rem;"></span>
                         </div>
                         <div class="booking-form-group">
                             <label class="booking-form-label" for="bookingCheckout">Check-out</label>
-                            <input type="date" class="booking-form-input" id="bookingCheckout" required data-focus-action="scrollToBookingButton">
+                            <input type="text" class="booking-form-input" id="bookingCheckout" placeholder="Select date" required readonly>
                         </div>
+                    </div>
+                    <div class="form-error-message" id="dateError" role="alert" aria-live="polite"></div>
+                    <div id="blockedDatesHint" style="display: none; font-size: 0.8rem; color: #9ca3af; margin-top: 0.25rem;">
+                        <i class="fas fa-info-circle"></i> Greyed-out dates are unavailable
                     </div>
 
                     <!-- Cottage Minimum Stay Warning -->
@@ -4333,19 +4345,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const checkinInput = document.getElementById('bookingCheckin');
             const checkoutInput = document.getElementById('bookingCheckout');
             
-            if (checkinInput) {
-                checkinInput.min = today;
-                checkinInput.addEventListener('click', function() {
-                    this.showPicker();
-                });
-            }
-            
-            if (checkoutInput) {
-                checkoutInput.min = today;
-                checkoutInput.addEventListener('click', function() {
-                    this.showPicker();
-                });
-            }
+            // Date picker initialization handled by Flatpickr (see app.js)
 
             // Initialize mobile optimizations
             detectTouch();
@@ -4399,15 +4399,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-            // Booking form event listeners (only if elements exist)
-            if (checkinInput) {
-                checkinInput.addEventListener('change', updateCheckoutMinDate);
-            }
-            
-            if (checkoutInput) {
-                checkoutInput.addEventListener('change', validateCottageMinimumStay);
-            }
-            
+            // Booking date listeners handled by Flatpickr (see app.js)
+
             // Mobile-specific performance optimizations
             if (window.innerWidth <= 768) {
                 // Reduce animation frequency on mobile
@@ -4736,8 +4729,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // Console statement removed for production
             
             if (!selectedAccommodation) {
-                // Console statement removed for production
-                alert('Please select an accommodation type');
+                showFormError('accommodation', 'Please select an accommodation');
+                document.getElementById('accommodationError')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 return;
             }
 
@@ -4750,8 +4743,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Console statement removed for production
 
             if (!checkin || !checkout) {
-                // Console statement removed for production
-                alert('Please select both check-in and check-out dates');
+                showFormError('date', 'Please select both check-in and check-out dates');
                 return;
             }
 
@@ -4761,14 +4753,13 @@ document.addEventListener('DOMContentLoaded', () => {
             // Console statement removed for production
             
             if (checkoutDate <= checkinDate) {
-                // Console statement removed for production
-                alert('Check-out date must be after check-in date');
+                showFormError('date', 'Check-out date must be after check-in date');
                 return;
             }
 
             // Validate cottage minimum stay requirements
             if (!validateCottageMinimumStay()) {
-                alert('Minimum 2-night stay required for Lakeside Cottage during peak season (October to May)');
+                showFormError('date', 'Minimum 2-night stay required for Lakeside Cottage during peak season (Oct–May)');
                 return;
             }
 
