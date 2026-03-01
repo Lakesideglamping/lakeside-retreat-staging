@@ -2986,3 +2986,67 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 })();
 
+// --- Lazy Loading for SPA Pages ---
+(function() {
+    'use strict';
+
+    const loadedPages = new Set(['home']);
+
+    function loadPageImages(pageId) {
+        const page = document.getElementById(pageId);
+        if (!page) return;
+
+        page.querySelectorAll('source[data-srcset]').forEach(source => {
+            source.srcset = source.dataset.srcset;
+            source.removeAttribute('data-srcset');
+        });
+
+        page.querySelectorAll('img[data-src]').forEach(img => {
+            img.src = img.dataset.src;
+            img.removeAttribute('data-src');
+            img.classList.remove('lazy');
+        });
+    }
+
+    function initBackgroundLazyLoad() {
+        if (!('IntersectionObserver' in window)) {
+            document.querySelectorAll('.section-transition[data-bg]').forEach(el => {
+                el.style.backgroundImage = el.dataset.bg;
+            });
+            return;
+        }
+
+        const bgObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const el = entry.target;
+                    el.style.backgroundImage = el.dataset.bg;
+                    el.removeAttribute('data-bg');
+                    bgObserver.unobserve(el);
+                }
+            });
+        }, { rootMargin: '300px 0px' });
+
+        document.querySelectorAll('.section-transition[data-bg]').forEach(el => {
+            bgObserver.observe(el);
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // Hook into showPage for SPA image loading
+        const originalShowPage = window.showPage;
+        if (originalShowPage) {
+            window.showPage = function(pageName) {
+                if (!loadedPages.has(pageName)) {
+                    loadPageImages(pageName + 'Page');
+                    loadedPages.add(pageName);
+                }
+                originalShowPage.call(this, pageName);
+            };
+        }
+
+        // Init background lazy loading
+        initBackgroundLazyLoad();
+    });
+})();
+
