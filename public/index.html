@@ -378,6 +378,13 @@
         .mobile-nav .nav-link {
             font-size: 1.5rem;
             padding: 1rem;
+            color: #302E41;
+            text-shadow: none;
+            -webkit-text-fill-color: #302E41;
+        }
+        .mobile-nav .nav-link:hover, .mobile-nav .nav-link.active {
+            color: var(--brand-teal);
+            -webkit-text-fill-color: var(--brand-teal);
         }
 
         .close-mobile-menu {
@@ -557,7 +564,7 @@
         /* Section Transitions with Parallax */
         .section-transition {
             position: relative;
-            min-height: 70vh;
+            min-height: 45vh;
             background-attachment: fixed;
             background-size: cover;
             background-position: center;
@@ -2160,7 +2167,7 @@
 
             /* Parallax section transitions — shorter on mobile */
             .section-transition {
-                min-height: 40vh !important;
+                min-height: 30vh !important;
             }
 
             /* Welcome section text — responsive */
@@ -2573,7 +2580,7 @@
     </div>
 
     <!-- Floating Cookie Buttons Only -->
-    <div id="cookieButtons" style="position: fixed; bottom: 20px; right: 20px; z-index: 1001; display: none; gap: 10px;">
+    <div id="cookieButtons" style="position: fixed; bottom: 100px; right: 20px; z-index: 1001; display: none; gap: 10px;">
         <button class="btn btn-primary" data-action="acceptCookies" style="margin-right: 10px;">Accept</button>
         <button class="btn btn-outline" data-action="declineCookies" style="background: white; color: var(--dark);">Decline</button>
     </div>
@@ -3071,7 +3078,7 @@
                             </div>
                         </div>
                         <div>
-                            <img src="images/solarpanel.jpeg" alt="Lakeside Retreat sustainability features" class="about-sustainability-image" style="width: 100%; height: 400px; object-fit: cover; border-radius: 12px;" loading="lazy" decoding="async">
+                            <img src="images/ViewfromVineyard.jpeg" alt="Vineyard views at Lakeside Retreat Central Otago" class="about-sustainability-image" style="width: 100%; height: 400px; object-fit: cover; border-radius: 12px;" loading="lazy" decoding="async">
                         </div>
                     </div>
                 </div>
@@ -3325,7 +3332,7 @@
                                     <div style="font-weight: 600; margin-bottom: 0.5rem;">🚴 Direct Trail Access</div>
                                     <div style="margin-bottom: 1rem;">
                                         • <strong>300m to famous cycle trail</strong><br>
-                                        • <strong>Cromwell to Clyde route</strong> - scenic lakshore<br>
+                                        • <strong>Cromwell to Clyde route</strong> - scenic lakeshore<br>
                                         • <strong>All skill levels</strong> welcome
                                     </div>
                                 </div>
@@ -4062,9 +4069,9 @@
                             </div>
                         </div>
                         <div class="card">
-                            <img src="images/solarpanel.jpeg" alt="38 solar panels - luxury meets sustainability" class="card-image" loading="lazy" decoding="async" data-lightbox="true">
+                            <img src="images/gallerydeck.jpeg" alt="Relaxing on the deck with vineyard views" class="card-image" loading="lazy" decoding="async" data-lightbox="true">
                             <div style="padding: 1rem; text-align: center;">
-                                <p style="font-size: 0.9rem; color: var(--text);">38 solar panels - guilt-free luxury</p>
+                                <p style="font-size: 0.9rem; color: var(--text);">Your private retreat awaits</p>
                             </div>
                         </div>
                     </div>
@@ -5603,7 +5610,7 @@
                             <div style="padding: 1.5rem; border-top: 1px solid #f0f0f0; color: var(--text); line-height: 1.6;">
                                 <strong>Dome guests receive:</strong> Continental breakfast, private spa access, stovetop cooking & Weber BBQ, 55" OLED TV, air conditioning, free WiFi, and parking.<br><br>
                                 <strong>Cottage guests receive:</strong> Complete cooking facilities with outdoor BBQ, wood-fired hot tub, garage parking, washing machine, pet-friendly accommodation, and direct lake access.<br><br>
-                                <strong>All guests enjoy:</strong> Access to 16.72kW solar system tours, cycle trail maps, local winery recommendations, and Stephen & Sandy's personal hosting.
+                                <strong>All guests enjoy:</strong> Vineyard walks, cycle trail maps, local winery recommendations, and Stephen & Sandy's personal hosting.
                             </div>
                         </div>
                     </div>
@@ -5880,7 +5887,7 @@ document.addEventListener('DOMContentLoaded', () => {
       "@id": "https://lakesideretreat.co.nz/#organization",
       "name": "Lakeside Retreat Central Otago",
       "alternateName": "Lakeside Glamping",
-      "description": "Central Otago's premier luxury glamping accommodation on Lake Dunstan with solar power system, Powerwall, direct Otago Rail Trail access, and proximity to 30+ wineries",
+      "description": "Central Otago's premier luxury glamping accommodation on Lake Dunstan with private spas, vineyard views, direct Lake Dunstan Trail access, and proximity to 30+ wineries",
       "url": "https://lakesideretreat.co.nz/",
       "logo": "https://lakesideretreat.co.nz/images/logo.png",
       "image": [
@@ -5997,14 +6004,14 @@ document.addEventListener('DOMContentLoaded', () => {
         "@type": "Person",
         "name": "Stephen & Sandy"
       },
-      "description": "Sustainable luxury accommodation specialists in Central Otago, pioneering grid-tied solar tourism experiences",
+      "description": "Luxury glamping and lakefront accommodation specialists in Central Otago's wine country on Lake Dunstan",
       "knowsAbout": [
-        "Solar Energy Systems",
-        "Sustainable Tourism", 
+        "Luxury Glamping",
         "Central Otago Wine Region",
+        "Lake Dunstan Accommodation",
         "Otago Rail Trail",
         "Lake Dunstan Activities",
-        "Eco Glamping"
+        "Eco Tourism"
       ],
       "contactPoint": {
         "@type": "ContactPoint",
@@ -6038,7 +6045,7 @@ document.addEventListener('DOMContentLoaded', () => {
         "name": "What type of accommodation do you offer in Central Otago?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "We offer luxury glamping domes and a family cottage, all with Lake Dunstan and mountains view. Dome Pinot (50sqm) and Dome Rosé (40sqm) are perfect for couples, while our Lakeside Cottage accommodates families with direct lake access. All accommodation is powered by grid-tied solar with battery backup."
+          "text": "We offer luxury glamping domes and a family cottage, all with Lake Dunstan and mountain views. Dome Pinot (50sqm) and Dome Rosé (40sqm) are perfect for couples with private spas and breakfast included, while our Lakeside Cottage accommodates families with direct lake access and a wood-fired hot tub."
         }
       },{
         "@type": "Question",
@@ -6533,7 +6540,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 2000);
 
             // Initialize scroll animations
-            const observer = new IntersectionObserver((entries) => {
+            const cardObserver = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
                     if (entry.isIntersecting) {
                         entry.target.classList.add('visible');
@@ -6542,8 +6549,16 @@ document.addEventListener('DOMContentLoaded', () => {
             }, { threshold: 0.1 });
 
             document.querySelectorAll('.card').forEach(card => {
-                observer.observe(card);
+                cardObserver.observe(card);
             });
+
+            // Re-observe cards when SPA page changes (fixes cards stuck at opacity:0)
+            window.reObserveCards = function() {
+                document.querySelectorAll('.card').forEach(card => {
+                    cardObserver.unobserve(card);
+                    cardObserver.observe(card);
+                });
+            };
 
             // Initialize scroll indicator
             window.addEventListener('scroll', updateScrollIndicator);
@@ -7821,7 +7836,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (pageName === 'stay') {
                 initializeCarousels();
             }
-            
+
+            // Re-observe cards so IntersectionObserver fires for newly-visible page
+            setTimeout(() => {
+                if (window.reObserveCards) window.reObserveCards();
+            }, 100);
+
             // FORCE scroll to top - multiple methods for reliability
             document.documentElement.scrollTop = 0;
             document.body.scrollTop = 0;
