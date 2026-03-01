@@ -2787,21 +2787,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Critical Resource Hints
         function addResourceHints() {
-            const head = document.head;
-            
-            // Preload critical images
-            const criticalImages = [
-                'images/vineyard.jpeg',
-                'images/logormbg.png'
-            ];
-            
-            criticalImages.forEach(src => {
-                const link = document.createElement('link');
-                link.rel = 'preload';
-                link.as = 'image';
-                link.href = src;
-                head.appendChild(link);
-            });
+            // Logo is already loading="eager"; vineyard.jpeg is on a lazy-loaded page
+            // No additional JS preloads needed
         }
 
         // Initialize floating button and performance optimizations

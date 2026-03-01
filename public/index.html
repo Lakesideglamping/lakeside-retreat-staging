@@ -138,9 +138,6 @@
     <link rel="alternate" hreflang="en-au" href="https://lakesideretreat.co.nz/">
     <link rel="alternate" hreflang="en" href="https://lakesideretreat.co.nz/">
     
-    <!-- Hero image preload for LCP -->
-    <link rel="preload" as="image" href="/images/domes-vineyard-sunset.jpg">
-
     <!-- Performance Optimizations -->
     <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -3535,26 +3532,17 @@
                 <div style="margin: 1.5rem 0; display: flex; justify-content: center; align-items: center; gap: 1.5rem;">
                     <!-- Instagram -->
                     <a href="https://instagram.com/lakesideretreatnz" target="_blank" rel="noopener noreferrer" class="hover-scale" style="display: inline-block; transition: transform 0.3s ease;" >
-                        <picture>
-  <source srcset="images/Newinstagram.webp" type="image/webp">
-  <img src="images/Newinstagram.png" alt="Follow us on Instagram" style="width: 35px; height: 35px; object-fit: contain;" loading="lazy" decoding="async">
-</picture>
+                        <img src="images/Newinstagram.png" alt="Follow us on Instagram" style="width: 35px; height: 35px; object-fit: contain;" loading="lazy" decoding="async">
                     </a>
 
                     <!-- Facebook -->
                     <a href="https://facebook.com/lakesideretreatnz" target="_blank" rel="noopener noreferrer" class="hover-scale" style="display: inline-block; transition: transform 0.3s ease;" >
-                        <picture>
-  <source srcset="images/facebook-logo.webp" type="image/webp">
-  <img src="images/facebook-logo.png" alt="Follow us on Facebook" style="width: 35px; height: 35px; object-fit: contain;" loading="lazy" decoding="async">
-</picture>
+                        <img src="images/facebook-logo.png" alt="Follow us on Facebook" style="width: 35px; height: 35px; object-fit: contain;" loading="lazy" decoding="async">
                     </a>
 
                     <!-- Email -->
                     <a href="mailto:info@lakesideretreat.co.nz" class="hover-scale" style="display: inline-block; transition: transform 0.3s ease;" >
-                        <picture>
-  <source srcset="images/email-icon.webp" type="image/webp">
-  <img src="images/email-icon.png" alt="Email us" style="width: 35px; height: 35px; object-fit: contain;" loading="lazy" decoding="async">
-</picture>
+                        <img src="images/email-icon.png" alt="Email us" style="width: 35px; height: 35px; object-fit: contain;" loading="lazy" decoding="async">
                     </a>
                 </div>
 
@@ -6771,21 +6759,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Critical Resource Hints
         function addResourceHints() {
-            const head = document.head;
-            
-            // Preload critical images
-            const criticalImages = [
-                'images/vineyard.jpeg',
-                'images/logormbg.png'
-            ];
-            
-            criticalImages.forEach(src => {
-                const link = document.createElement('link');
-                link.rel = 'preload';
-                link.as = 'image';
-                link.href = src;
-                head.appendChild(link);
-            });
+            // Logo is already loading="eager"; vineyard.jpeg is on a lazy-loaded page
+            // No additional JS preloads needed
         }
 
         // Initialize floating button and performance optimizations
