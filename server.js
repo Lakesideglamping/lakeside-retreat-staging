@@ -378,6 +378,20 @@ app.post('/api/uplisting/webhook', express.raw({type: 'application/json'}), (req
     }
 });
 
+// Maintenance mode: serve a "Coming Soon" page for all public requests
+// Enable by setting MAINTENANCE_MODE=true in environment variables.
+// Health check and webhook endpoints remain accessible for monitoring.
+if (process.env.MAINTENANCE_MODE === 'true') {
+    app.use((req, res, next) => {
+        // Allow health check, webhooks, and static assets needed by maintenance page
+        const allowedPaths = ['/api/health', '/api/stripe/webhook', '/api/uplisting/webhook', '/images/', '/maintenance.html'];
+        if (allowedPaths.some(p => req.path.startsWith(p))) {
+            return next();
+        }
+        return res.status(503).sendFile(path.join(__dirname, 'public', 'maintenance.html'));
+    });
+}
+
 // Middleware (AFTER webhook routes that need raw body)
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
