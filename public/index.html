@@ -29,7 +29,7 @@
 <!-- Content Security Policy - Inline event handlers blocked via scriptSrcAttr; inline script blocks allowed for app logic -->
 <meta http-equiv="Content-Security-Policy" content="
     default-src 'self';
-    script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://js.stripe.com;
+    script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://www.clarity.ms https://scripts.clarity.ms https://js.stripe.com;
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com;
     font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com;
     img-src 'self' data: https: blob:;
@@ -332,17 +332,16 @@
 
         .nav-link {
             text-decoration: none;
-            color: #753742;
+            color: white;
             font-weight: 500;
             transition: color 0.3s ease;
             cursor: pointer;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.3);
         }
 
         .nav-link:hover, .nav-link.active {
-            background: var(--primary);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: #2dd4bf;
+            -webkit-text-fill-color: #2dd4bf;
         }
 
         .mobile-menu-btn {
@@ -351,7 +350,8 @@
             border: none;
             font-size: 1.5rem;
             cursor: pointer;
-            color: var(--text);
+            color: white;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.3);
         }
 
         /* Mobile Navigation */
@@ -573,15 +573,14 @@
             padding-top: 80px;
         }
 
-        .hero h1 {
+        .hero h1, .hero h2 {
             font-family: 'Roboto', sans-serif;
             font-size: 3.5rem;
             font-weight: 600;
             margin-bottom: 1rem;
-            background: var(--primary);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: white;
+            -webkit-text-fill-color: white;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.3);
             line-height: 1.2;
         }
 
@@ -590,8 +589,10 @@
             font-weight: 600;
             letter-spacing: 2px;
             margin-bottom: 1rem;
-            color: var(--brand-teal);
+            color: rgba(255,255,255,0.85);
+            -webkit-text-fill-color: rgba(255,255,255,0.85);
             text-transform: uppercase;
+            text-shadow: 0 1px 4px rgba(0,0,0,0.3);
         }
 
         .hero p {
@@ -600,8 +601,9 @@
             max-width: 700px;
             margin-left: auto;
             margin-right: auto;
-            opacity: 0.9;
+            opacity: 0.95;
             line-height: 1.7;
+            text-shadow: 0 1px 4px rgba(0,0,0,0.2);
         }
 
         /* Buttons */
@@ -1998,15 +2000,15 @@
             opacity: 0;
         }
 
-        /* Progressive Enhancement - Unique hero backgrounds per page */
-        #homePage .hero { background-image: url('images/domes-vineyard-sunset.jpg'); }
-        #stayPage .hero { background-image: url('images/domesmountainview.jpeg'); }
-        #galleryPage .hero { background-image: url('images/dome-pinot-hero.jpeg'); }
-        #blogPage .hero { background-image: url('images/lakeviewautumn.jpeg'); }
-        #reviewsPage .hero { background-image: url('images/dome-rose-spa1.jpeg'); }
-        #storyPage .hero { background-image: url('images/lake-mountains-perfect.jpg'); }
-        #explorePage .hero { background-image: url('images/galleryrainbow.jpeg'); }
-        #contactPage .hero { background-image: url('images/magical-sunset.jpg'); }
+        /* Progressive Enhancement - Unique hero backgrounds per page with dark overlay */
+        #homePage .hero { background-image: linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.35)), url('images/domes-vineyard-sunset.jpg'); }
+        #stayPage .hero { background-image: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('images/domesmountainview.jpeg'); }
+        #galleryPage .hero { background-image: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('images/dome-pinot-hero.jpeg'); }
+        #blogPage .hero { background-image: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('images/lakeviewautumn.jpeg'); }
+        #reviewsPage .hero { background-image: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('images/dome-rose-spa1.jpeg'); }
+        #storyPage .hero { background-image: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('images/lake-mountains-perfect.jpg'); }
+        #explorePage .hero { background-image: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('images/galleryrainbow.jpeg'); }
+        #contactPage .hero { background-image: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('images/magical-sunset.jpg'); }
 
         /* Skip Link for Accessibility */
         .skip-link {
@@ -2085,20 +2087,133 @@
                 font-size: 1rem;
                 padding: 0.8rem 1.5rem;
             }
-            
+
             .faq-item {
                 margin-bottom: 0.5rem !important;
             }
-            
+
             .faq-question {
                 padding: 1rem !important;
                 font-size: 0.9rem;
             }
-            
+
             .faq-answer div {
                 padding: 1rem !important;
                 font-size: 0.85rem;
             }
+        }
+
+        /* ===== Comprehensive Mobile Responsiveness Overrides ===== */
+
+        /* Tablet nav: reduce gap to prevent overflow */
+        @media (min-width: 769px) and (max-width: 1100px) {
+            .nav-items-row {
+                gap: 0.8rem !important;
+            }
+            .nav-link {
+                font-size: 0.85rem !important;
+            }
+        }
+
+        /* Mobile: override inline styles that break responsiveness */
+        @media (max-width: 768px) {
+            /* Footer grid — single column */
+            .footer-grid {
+                grid-template-columns: 1fr !important;
+                gap: 1.5rem !important;
+            }
+
+            /* Hero stats grid — 2 columns on mobile */
+            .hero-stats-grid {
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 0.75rem !important;
+                padding: 1rem !important;
+            }
+
+            /* Stat numbers — smaller on mobile */
+            .stat-number {
+                font-size: 1.5rem !important;
+            }
+
+            /* Quick stats bar — tighter on mobile */
+            .quick-stats-bar {
+                gap: 0.75rem !important;
+                padding: 0.75rem !important;
+            }
+
+            /* All hero h2 titles — smaller on mobile */
+            .hero h2 {
+                font-size: 1.8rem !important;
+            }
+
+            /* Hero paragraphs — smaller padding */
+            .hero-content p {
+                font-size: 1rem !important;
+                padding: 0 0.5rem;
+            }
+
+            /* Hero taglines */
+            .hero .tagline {
+                font-size: 0.9rem !important;
+                letter-spacing: 1px !important;
+            }
+
+            /* Parallax section transitions — shorter on mobile */
+            .section-transition {
+                min-height: 40vh !important;
+            }
+
+            /* Welcome section text — responsive */
+            .section p[style*="font-size: 1.5rem"] {
+                font-size: 1.1rem !important;
+            }
+
+            /* Inline grids with large minmax — force smaller */
+            [style*="minmax(200px"] {
+                grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) !important;
+            }
+
+            /* Contact/Story boxes inside heroes */
+            .hero-content [style*="max-width: 600px"],
+            .hero-content [style*="max-width: 700px"] {
+                max-width: 100% !important;
+                padding: 1rem !important;
+            }
+        }
+
+        @media (max-width: 480px) {
+            /* Hero stats — stack single column on small phones */
+            .hero-stats-grid {
+                grid-template-columns: repeat(2, 1fr) !important;
+            }
+
+            .stat-number {
+                font-size: 1.3rem !important;
+            }
+
+            /* All inline 2.5rem fonts — scale down */
+            .hero-content [style*="font-size: 2.5rem"],
+            .hero-content [style*="font-size: 2rem"] {
+                font-size: 1.5rem !important;
+            }
+
+            /* Nav items row — already hidden, but just in case */
+            .nav-items-row {
+                display: none !important;
+            }
+
+            /* Welcome text and large inline headings */
+            [style*="font-size: 1.5rem"] {
+                font-size: 1.1rem !important;
+            }
+            h2[style*="font-size: 2.5rem"] {
+                font-size: 1.6rem !important;
+            }
+            h3[style*="font-size: 1.8rem"] {
+                font-size: 1.3rem !important;
+            }
+
+            /* Comparison table stays scrollable (already has overflow-x: auto) */
         }
 
         /* Small Mobile Devices (max-width: 480px) */
@@ -2875,7 +2990,7 @@
         <!-- Home Page -->
         <div class="page active" id="homePage">
             <!-- Streamlined Hero Section -->
-            <section class="hero parallax-container hero-main" style="background-image: linear-gradient(rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.1)), url('images/golden-vineyard-autumn.jpg'); background-size: cover; background-position: top; background-repeat: no-repeat; background-attachment: fixed; min-height: 75vh;">
+            <section class="hero parallax-container hero-main" style="background-image: linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.35)), url('images/domes-vineyard-sunset.jpg'); background-size: cover; background-position: center; background-repeat: no-repeat; background-attachment: fixed; min-height: 75vh;">
                 <!-- Parallax Layers - Photos will be added here -->
                 <div class="parallax-layer parallax-layer-bg" style="background-image: none;"></div>
                 <div class="parallax-layer parallax-layer-mid" style="background-image: none;"></div>
@@ -2884,7 +2999,7 @@
                 <nav class="navbar" id="navbar" aria-label="Main navigation">
                     <div class="nav-container" style="display: flex; justify-content: center; align-items: center; width: 100%;">
                         <!-- Complete centered navigation group -->
-                        <div style="display: flex; align-items: center; gap: 2rem;">
+                        <div class="nav-items-row" style="display: flex; align-items: center; gap: 2rem;">
                             <!-- Left 4 menu items -->
                             <a href="#" class="nav-link" data-page="home">Home</a>
                             <a href="#" class="nav-link" data-page="stay">Stay</a>
@@ -2910,10 +3025,10 @@
                 </nav>
                 <div class="container">
                     <div class="hero-content">
-                        <h1>Your Private Vineyard Escape on Lake Dunstan</h1>
-                        <p style="font-size: 1.4rem; color: #302E41; max-width: 600px; text-align: center; margin: 1.5rem auto;">Luxury glamping domes and lakefront cottage in the heart of Central Otago's wine country</p>
+                        <h1 style="color: white; -webkit-text-fill-color: white; text-shadow: 0 2px 8px rgba(0,0,0,0.3);">Your Private Vineyard Escape on Lake Dunstan</h1>
+                        <p style="font-size: 1.4rem; color: rgba(255,255,255,0.95); max-width: 600px; text-align: center; margin: 1.5rem auto; text-shadow: 0 1px 4px rgba(0,0,0,0.3);">Luxury glamping domes and lakefront cottage in the heart of Central Otago's wine country</p>
                         <div style="text-align: center; margin-top: 2rem;">
-                            <a href="#" data-page="stay" style="display: inline-block; background: transparent; border: 2px solid #753742; color: #302E41; padding: 1rem 2rem; font-size: 1.1rem; font-weight: 600; border-radius: 50px; cursor: pointer; transition: all 0.3s ease; text-decoration: none;">Book Your Escape</a>
+                            <a href="#" data-page="stay" class="btn btn-primary" style="display: inline-block; padding: 1rem 2.5rem; font-size: 1.1rem; font-weight: 600; border-radius: 50px; cursor: pointer; transition: all 0.3s ease; text-decoration: none; box-shadow: 0 4px 15px rgba(139,38,53,0.4);">Book Your Escape</a>
                         </div>
                     </div>
                 </div>
@@ -3276,22 +3391,22 @@
                         <p class="section-subtitle">392 five-star reviews • 45% return guests • 98% would recommend</p>
                         
                         <!-- Quick Stats Bar -->
-                        <div style="display: flex; justify-content: center; gap: 2rem; margin: 1.5rem 0; padding: 1rem; background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); flex-wrap: wrap;">
-                            <div style="text-align: center; min-width: 120px;">
-                                <div style="font-size: 1.5rem; font-weight: 700; color: var(--brand-teal);">4.9/5</div>
-                                <div style="font-size: 0.8rem; opacity: 0.7;">Average Rating</div>
+                        <div class="quick-stats-bar" style="display: flex; justify-content: center; gap: 1.5rem; margin: 1.5rem 0; padding: 1rem; background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); flex-wrap: wrap;">
+                            <div style="text-align: center; min-width: 70px;">
+                                <div style="font-size: 1.3rem; font-weight: 700; color: var(--brand-teal);">4.9/5</div>
+                                <div style="font-size: 0.75rem; opacity: 0.7;">Average Rating</div>
                             </div>
-                            <div style="text-align: center; min-width: 120px;">
-                                <div style="font-size: 1.5rem; font-weight: 700; color: var(--brand-teal);">45%</div>
-                                <div style="font-size: 0.8rem; opacity: 0.7;">Return Guests</div>
+                            <div style="text-align: center; min-width: 70px;">
+                                <div style="font-size: 1.3rem; font-weight: 700; color: var(--brand-teal);">45%</div>
+                                <div style="font-size: 0.75rem; opacity: 0.7;">Return Guests</div>
                             </div>
-                            <div style="text-align: center; min-width: 120px;">
-                                <div style="font-size: 1.5rem; font-weight: 700; color: var(--brand-teal);">5</div>
-                                <div style="font-size: 0.8rem; opacity: 0.7;">Years Hosting</div>
+                            <div style="text-align: center; min-width: 70px;">
+                                <div style="font-size: 1.3rem; font-weight: 700; color: var(--brand-teal);">5</div>
+                                <div style="font-size: 0.75rem; opacity: 0.7;">Years Hosting</div>
                             </div>
-                            <div style="text-align: center; min-width: 120px;">
-                                <div style="font-size: 1.5rem; font-weight: 700; color: var(--brand-teal);">20+</div>
-                                <div style="font-size: 0.8rem; opacity: 0.7;">Countries</div>
+                            <div style="text-align: center; min-width: 70px;">
+                                <div style="font-size: 1.3rem; font-weight: 700; color: var(--brand-teal);">20+</div>
+                                <div style="font-size: 0.75rem; opacity: 0.7;">Countries</div>
                             </div>
                         </div>
 
@@ -3364,7 +3479,7 @@
                 <nav class="navbar" id="navbar" aria-label="Main navigation">
                     <div class="nav-container" style="display: flex; justify-content: center; align-items: center; width: 100%;">
                         <!-- Complete centered navigation group -->
-                        <div style="display: flex; align-items: center; gap: 2rem;">
+                        <div class="nav-items-row" style="display: flex; align-items: center; gap: 2rem;">
                             <!-- Left 4 menu items -->
                             <a href="#" class="nav-link" data-page="home">Home</a>
                             <a href="#" class="nav-link" data-page="stay">Stay</a>
@@ -3737,7 +3852,7 @@
                 <nav class="navbar" id="navbar" aria-label="Main navigation">
                     <div class="nav-container" style="display: flex; justify-content: center; align-items: center; width: 100%;">
                         <!-- Complete centered navigation group -->
-                        <div style="display: flex; align-items: center; gap: 2rem;">
+                        <div class="nav-items-row" style="display: flex; align-items: center; gap: 2rem;">
                             <!-- Left 4 menu items -->
                             <a href="#" class="nav-link" data-page="home">Home</a>
                             <a href="#" class="nav-link" data-page="stay">Stay</a>
@@ -3969,7 +4084,7 @@
                 <nav class="navbar" id="navbar" aria-label="Main navigation">
                     <div class="nav-container" style="display: flex; justify-content: center; align-items: center; width: 100%;">
                         <!-- Complete centered navigation group -->
-                        <div style="display: flex; align-items: center; gap: 2rem;">
+                        <div class="nav-items-row" style="display: flex; align-items: center; gap: 2rem;">
                             <!-- Left 4 menu items -->
                             <a href="#" class="nav-link" data-page="home">Home</a>
                             <a href="#" class="nav-link" data-page="stay">Stay</a>
@@ -4003,7 +4118,7 @@
                         <div style="background: white; border-radius: 20px; padding: 2rem; margin: 2rem 0; box-shadow: 0 8px 25px rgba(0,0,0,0.1); max-width: 900px; margin-left: auto; margin-right: auto;">
                             <h3 style="color: var(--brand-teal); margin-bottom: 2rem; text-align: center; font-family: 'Roboto', sans-serif; font-size: 1.8rem;">📚 Your Complete Central Otago Guide Collection</h3>
                             
-                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem;">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
                                 <a href="#" class="hover-lift" data-action="scrollToSection" data-target="winery-guide" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white; padding: 1.5rem; border-radius: 15px; text-decoration: none; transition: all 0.3s ease; display: block;" >
                                     <div style="font-size: 2rem; margin-bottom: 0.5rem;">🍷</div>
                                     <h4 style="margin-bottom: 0.5rem; font-size: 1.1rem;">10 Best Wineries Within 15 Minutes</h4>
@@ -4738,7 +4853,7 @@
                 <nav class="navbar" id="navbar" aria-label="Main navigation">
                     <div class="nav-container" style="display: flex; justify-content: center; align-items: center; width: 100%;">
                         <!-- Complete centered navigation group -->
-                        <div style="display: flex; align-items: center; gap: 2rem;">
+                        <div class="nav-items-row" style="display: flex; align-items: center; gap: 2rem;">
                             <!-- Left 4 menu items -->
                             <a href="#" class="nav-link" data-page="home">Home</a>
                             <a href="#" class="nav-link" data-page="stay">Stay</a>
@@ -4768,22 +4883,22 @@
                         <div class="tagline">Airbnb • Booking.com • Direct Bookings • All Platforms</div>
                         <p>Read why guests choose Lakeside Retreat again and again. From first-time visitors captivated by the views to returning families who've made this their annual tradition. Every review tells the story of an unforgettable Central Otago escape.</p>
                         
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 2rem; margin: 2rem 0; background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                        <div class="hero-stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 1rem; margin: 2rem 0; background: white; padding: 1.5rem; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                             <div style="text-align: center;">
-                                <div style="font-size: 2.5rem; font-weight: 700; color: var(--brand-teal);">98%</div>
-                                <div style="font-size: 0.9rem; opacity: 0.8;">Would Recommend</div>
+                                <div class="stat-number" style="font-size: 2rem; font-weight: 700; color: var(--brand-teal);">98%</div>
+                                <div style="font-size: 0.8rem; opacity: 0.8;">Would Recommend</div>
                             </div>
                             <div style="text-align: center;">
-                                <div style="font-size: 2.5rem; font-weight: 700; color: var(--brand-teal);">45%</div>
-                                <div style="font-size: 0.9rem; opacity: 0.8;">Return Guests</div>
+                                <div class="stat-number" style="font-size: 2rem; font-weight: 700; color: var(--brand-teal);">45%</div>
+                                <div style="font-size: 0.8rem; opacity: 0.8;">Return Guests</div>
                             </div>
                             <div style="text-align: center;">
-                                <div style="font-size: 2.5rem; font-weight: 700; color: var(--brand-teal);">392</div>
-                                <div style="font-size: 0.9rem; opacity: 0.8;">Verified Reviews</div>
+                                <div class="stat-number" style="font-size: 2rem; font-weight: 700; color: var(--brand-teal);">392</div>
+                                <div style="font-size: 0.8rem; opacity: 0.8;">Verified Reviews</div>
                             </div>
                             <div style="text-align: center;">
-                                <div style="font-size: 2.5rem; font-weight: 700; color: var(--brand-teal);">5 Yrs</div>
-                                <div style="font-size: 0.9rem; opacity: 0.8;">Hosting Guests</div>
+                                <div class="stat-number" style="font-size: 2rem; font-weight: 700; color: var(--brand-teal);">5 Yrs</div>
+                                <div style="font-size: 0.8rem; opacity: 0.8;">Hosting Guests</div>
                             </div>
                         </div>
                     </div>
@@ -4975,7 +5090,7 @@
                 <nav class="navbar" id="navbar" aria-label="Main navigation">
                     <div class="nav-container" style="display: flex; justify-content: center; align-items: center; width: 100%;">
                         <!-- Complete centered navigation group -->
-                        <div style="display: flex; align-items: center; gap: 2rem;">
+                        <div class="nav-items-row" style="display: flex; align-items: center; gap: 2rem;">
                             <!-- Left 4 menu items -->
                             <a href="#" class="nav-link" data-page="home">Home</a>
                             <a href="#" class="nav-link" data-page="stay">Stay</a>
@@ -5097,7 +5212,7 @@
                 <nav class="navbar" id="navbar" aria-label="Main navigation">
                     <div class="nav-container" style="display: flex; justify-content: center; align-items: center; width: 100%;">
                         <!-- Complete centered navigation group -->
-                        <div style="display: flex; align-items: center; gap: 2rem;">
+                        <div class="nav-items-row" style="display: flex; align-items: center; gap: 2rem;">
                             <!-- Left 4 menu items -->
                             <a href="#" class="nav-link" data-page="home">Home</a>
                             <a href="#" class="nav-link" data-page="stay">Stay</a>
@@ -5243,7 +5358,7 @@
                 <nav class="navbar" id="navbar" aria-label="Main navigation">
                     <div class="nav-container" style="display: flex; justify-content: center; align-items: center; width: 100%;">
                         <!-- Complete centered navigation group -->
-                        <div style="display: flex; align-items: center; gap: 2rem;">
+                        <div class="nav-items-row" style="display: flex; align-items: center; gap: 2rem;">
                             <!-- Left 4 menu items -->
                             <a href="#" class="nav-link" data-page="home">Home</a>
                             <a href="#" class="nav-link" data-page="stay">Stay</a>
@@ -5274,7 +5389,7 @@
                         <p>Planning your Central Otago escape? Need recommendations for wine tastings, cycle routes, or local restaurants? As your onsite hosts, we're here to ensure your stay exceeds every expectation. Real people, real responses, real local expertise.</p>
                         
                         <div style="background: #FAF4F5; padding: 2rem; border-radius: 15px; margin: 2rem 0; max-width: 600px; margin-left: auto; margin-right: auto;">
-                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; text-align: left;">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; text-align: left;">
                                 <div>
                                     <div style="font-weight: 600; color: var(--brand-teal); margin-bottom: 0.5rem;">Quick Response Guarantee</div>
                                     <div style="font-size: 0.95rem; color: var(--text); opacity: 1;">📧 Email replies within 4 hours<br>📱 Phone availability 8am-8pm<br>💬 WhatsApp for instant queries</div>
@@ -5432,7 +5547,7 @@
                 
         <div class="container">
             <!-- Three Column Layout for Navigation Links -->
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 3rem; margin-bottom: 3rem;">
+            <div class="footer-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 2rem; margin-bottom: 2rem;">
 
                 <!-- Accommodation Links -->
                 <div class="footer-section">
