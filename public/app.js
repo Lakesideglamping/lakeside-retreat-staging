@@ -436,7 +436,7 @@ document.addEventListener('DOMContentLoaded', () => {
             { title: 'Lakeside Cottage', page: 'stay', description: 'Family-friendly accommodation with direct lake access' },
             { title: 'Central Otago Wine Country', page: 'explore', description: 'World-class Pinot Noir wineries within 15km' },
             { title: 'Cycle Trail Accommodation', page: 'explore', description: 'Lake Dunstan Trail access 300m from accommodation' },
-            { title: 'Sustainable Accommodation', page: 'home', description: 'Grid-tied solar powered luxury with battery backup' },
+            { title: 'Sustainable Accommodation', page: 'home', description: 'Luxury eco-accommodation in Central Otago\'s wine country' },
             { title: 'Cromwell to Clyde Cycle Trail', page: 'explore', description: 'Direct access to scenic cycling routes' }
         ];
 
@@ -1234,12 +1234,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const checkoutDate = new Date(bookingData.checkout);
             
             document.getElementById('selectedDetailsDisplay').innerHTML = `
-                <h4 style="color: var(--brand-teal); margin-bottom: 0.5rem;">Selected Energy-Positive Experience</h4>
+                <h4 style="color: var(--brand-teal); margin-bottom: 0.5rem;">Your Selected Experience</h4>
                 <p><strong>Accommodation:</strong> ${accommodationNames[selectedAccommodation]}</p>
                 <p><strong>Check-in:</strong> ${checkinDate.toLocaleDateString()} | <strong>Check-out:</strong> ${checkoutDate.toLocaleDateString()}</p>
                 <p><strong>Guests:</strong> ${bookingData.adults} Adults${bookingData.children > 0 ? `, ${bookingData.children} Children` : ''}${bookingData.pets > 0 ? `, ${bookingData.pets} Pet${bookingData.pets > 1 ? 's' : ''}` : ''}</p>
                 <p><strong>Duration:</strong> ${bookingData.nights} night${bookingData.nights > 1 ? 's' : ''}</p>
-                <p style="color: #10b981; font-weight: 600;">✓ Powered by 16.72kW commercial-grade solar system</p>
+                <p style="color: #10b981; font-weight: 600;">✓ Sustainably powered with renewable energy</p>
             `;
         }
 
@@ -1774,8 +1774,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         <h3>5. Pet Policy</h3>
                         <p>Pets are welcome in Lakeside Cottage only, subject to prior approval. A pet fee of $50 per stay applies. Pets must be well-behaved and not left unattended.</p>
                         
-                        <h3>6. Solar System</h3>
-                        <p>Our accommodation is powered by a commercial-grade solar system. While we maintain 99.9% uptime, we cannot guarantee uninterrupted power supply. No refunds will be given for power-related issues.</p>
+                        <h3>6. Power Supply</h3>
+                        <p>Our accommodation is powered by a sustainable energy system. While we maintain 99.9% uptime, we cannot guarantee uninterrupted power supply. No refunds will be given for power-related issues.</p>
                     `
                 },
                 privacy: {
@@ -1863,7 +1863,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <p>All accommodations are equipped with smoke detectors, fire extinguishers, and emergency evacuation plans posted in each unit. Guests must familiarize themselves with emergency exit routes upon arrival.</p>
                         
                         <h3>2. Electrical Safety</h3>
-                        <p>Our solar power system is professionally installed and regularly maintained. Report any electrical concerns immediately. Do not use unauthorized electrical equipment.</p>
+                        <p>Our power system is professionally installed and regularly maintained. Report any electrical concerns immediately. Do not use unauthorized electrical equipment.</p>
                         
                         <h3>3. Water Safety</h3>
                         <p>Lake access is provided but guests swim at their own risk. No lifeguard on duty. Children must be supervised at all times near water. Hot tubs and spas must be used responsibly.</p>

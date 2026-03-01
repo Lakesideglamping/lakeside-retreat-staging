@@ -913,7 +913,7 @@
 
             /* About Sustainability Image - Mobile Small */
             .about-sustainability-image {
-                content: url('images/MobileSmall/SolarPanel-480x300.jpeg');
+                content: url('images/ViewfromVineyard.jpeg');
             }
 
             /* About-Story Transition Section - Mobile Small */
@@ -965,7 +965,7 @@
 
             /* About Sustainability Image - Tablet */
             .about-sustainability-image {
-                content: url('images/Tablet/SolarPanel.JPG');
+                content: url('images/ViewfromVineyard.jpeg');
             }
 
             /* About-Story Transition Section - Tablet */
@@ -1005,7 +1005,7 @@
 
             /* About Sustainability Image - Mobile Large */
             .about-sustainability-image {
-                content: url('images/MobileLarge/SolarPanel.JPG');
+                content: url('images/ViewfromVineyard.jpeg');
             }
 
             /* About-Story Transition Section - Mobile Large */
