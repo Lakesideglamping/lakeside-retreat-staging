@@ -99,7 +99,18 @@
             }
             .nav-links.active { display: flex; }
             .hero h1 { font-size: 2rem; }
-            .section-title { font-size: 2rem; }
+            .hero p { font-size: 1rem; padding: 0 1rem; }
+            .section-title { font-size: 1.8rem; }
+            .accommodations { grid-template-columns: 1fr; }
+            .amenities-grid { grid-template-columns: repeat(2, 1fr); }
+            .section { padding: 2rem 1rem; }
+        }
+        @media (max-width: 480px) {
+            .hero h1 { font-size: 1.6rem; }
+            .hero { min-height: 50vh; }
+            .amenities-grid { grid-template-columns: 1fr; }
+            .section-title { font-size: 1.5rem; }
+            .btn { width: 100%; text-align: center; }
         }
     </style>
 </head>
