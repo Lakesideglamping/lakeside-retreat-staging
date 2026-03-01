@@ -3,7 +3,7 @@
 /* --- Style block 1 --- */
 /* Critical above-the-fold styles */
       html { margin: 0; padding: 0; }
-      body { font-family: 'Montreal', sans-serif; margin: 0; padding: 0; line-height: 1.6; background: #FAF4F5; }
+      body { font-family: 'Roboto', sans-serif; margin: 0; padding: 0; line-height: 1.6; background: #FAF4F5; }
       .hero { min-height: 100vh; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); }
       .nav { position: fixed; top: 0; width: 100%; z-index: 50; background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); }
       .text-4xl { font-size: 2.25rem; line-height: 2.5rem; }
@@ -180,7 +180,7 @@
         }
 
         body {
-            font-family: 'Montreal', sans-serif;
+            font-family: 'Roboto', sans-serif;
             line-height: 1.6;
             color: var(--text);
             background: var(--light);
@@ -217,7 +217,7 @@
         /* Navigation Styles */
         .logo {
             margin-right: 0.25rem;
-            font-family: 'Montreal', sans-serif;
+            font-family: 'Roboto', sans-serif;
             font-size: 1.5rem;
             font-weight: 600;
             color: var(--brand-teal);
@@ -245,17 +245,16 @@
 
         .nav-link {
             text-decoration: none;
-            color: #753742;
+            color: white;
             font-weight: 500;
             transition: color 0.3s ease;
             cursor: pointer;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.3);
         }
 
         .nav-link:hover, .nav-link.active {
-            background: var(--primary);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: #2dd4bf;
+            -webkit-text-fill-color: #2dd4bf;
         }
 
         .mobile-menu-btn {
@@ -264,7 +263,8 @@
             border: none;
             font-size: 1.5rem;
             cursor: pointer;
-            color: var(--text);
+            color: white;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.3);
         }
 
         /* Mobile Navigation */
@@ -291,6 +291,13 @@
         .mobile-nav .nav-link {
             font-size: 1.5rem;
             padding: 1rem;
+            color: #302E41;
+            text-shadow: none;
+            -webkit-text-fill-color: #302E41;
+        }
+        .mobile-nav .nav-link:hover, .mobile-nav .nav-link.active {
+            color: var(--brand-teal);
+            -webkit-text-fill-color: var(--brand-teal);
         }
 
         .close-mobile-menu {
@@ -418,7 +425,7 @@
 
         /* Hero Section with Fixed Background Attachment */
         .hero {
-            background: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), url('PLACEHOLDER_HERO_IMAGE') center/cover;
+            background: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)) center/cover;
             background-attachment: fixed;
             background-repeat: no-repeat;
             color: white;
@@ -470,7 +477,7 @@
         /* Section Transitions with Parallax */
         .section-transition {
             position: relative;
-            min-height: 70vh;
+            min-height: 45vh;
             background-attachment: fixed;
             background-size: cover;
             background-position: center;
@@ -483,17 +490,17 @@
             position: relative;
             z-index: 2;
             width: 100%;
+            padding-top: 80px;
         }
 
-        .hero h1 {
+        .hero h1, .hero h2 {
             font-family: 'Roboto', sans-serif;
             font-size: 3.5rem;
             font-weight: 600;
             margin-bottom: 1rem;
-            background: var(--primary);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: white;
+            -webkit-text-fill-color: white;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.3);
             line-height: 1.2;
         }
 
@@ -502,8 +509,10 @@
             font-weight: 600;
             letter-spacing: 2px;
             margin-bottom: 1rem;
-            color: var(--brand-teal);
+            color: rgba(255,255,255,0.85);
+            -webkit-text-fill-color: rgba(255,255,255,0.85);
             text-transform: uppercase;
+            text-shadow: 0 1px 4px rgba(0,0,0,0.3);
         }
 
         .hero p {
@@ -512,8 +521,9 @@
             max-width: 700px;
             margin-left: auto;
             margin-right: auto;
-            opacity: 0.9;
+            opacity: 0.95;
             line-height: 1.7;
+            text-shadow: 0 1px 4px rgba(0,0,0,0.2);
         }
 
         /* Buttons */
@@ -603,7 +613,7 @@
         }
 
         .grid-2 {
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(2, 1fr);
         }
 
         .grid-3 {
@@ -634,6 +644,15 @@
             transform: translateY(-10px);
             box-shadow: var(--shadow-lg);
         }
+
+        /* Trust & Award Badges */
+        .trust-badges { display: flex; justify-content: center; gap: 1.5rem; margin: 1.5rem 0; flex-wrap: wrap; }
+        .trust-badge { display: flex; align-items: center; gap: 1rem; background: white; padding: 1rem 1.5rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); min-width: 260px; }
+        .trust-badge-icon { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; color: white; flex-shrink: 0; }
+        .trust-badge-icon.airbnb { background: #FF5A5F; }
+        .trust-badge-icon.booking { background: #003580; }
+        .trust-badge-title { font-weight: 700; font-size: 0.95rem; color: var(--dark); }
+        .trust-badge-subtitle { font-size: 0.8rem; opacity: 0.7; margin-top: 2px; }
 
         .card-image {
             width: 100%;
@@ -869,13 +888,15 @@
             opacity: 1;
         }
         
+        .faq-open > div:last-child { max-height: 300px !important; }
+
         /* WebP Progressive Enhancement */
         .webp .hero-background {
-            background-image: url('images/hero-background.webp');
+            background-image: url('images/domes-vineyard-sunset.webp');
         }
-        
+
         .no-webp .hero-background {
-            background-image: url('images/hero-background.jpg');
+            background-image: url('images/domes-vineyard-sunset.jpg');
         }
         
         /* Mobile Parallax Optimizations */
@@ -887,7 +908,6 @@
 
             /* Responsive Hero Images - Mobile Large (481px - 768px) */
             .hero-main {
-                background-image: linear-gradient(rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.1)), url('images/MobileLarge/Vineyard768x1024.jpeg') !important;
             }
 
             .hero-main .parallax-layer-bg {
@@ -899,7 +919,6 @@
         @media (max-width: 480px) {
             /* Responsive Hero Images - Mobile Small (up to 480px) */
             .hero-main {
-                background-image: linear-gradient(rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.1)), url('images/MobileSmall/Vineyard480x800.jpeg') !important;
             }
 
             .hero-main .parallax-layer-bg {
@@ -908,37 +927,30 @@
 
             /* Lake Dunstan Section - Mobile Small */
             .lake-dunstan-section {
-                background-image: url('images/MobileSmall/20211122_185234-480x800.jpeg') !important;
             }
 
             /* About Sustainability Image - Mobile Small */
             .about-sustainability-image {
-                content: url('images/ViewfromVineyard.jpeg');
             }
 
             /* About-Story Transition Section - Mobile Small */
             .about-story-transition {
-                background-image: url('images/MobileSmall/20211122_185234-480x800.jpeg') !important;
             }
 
             /* Story-Location Transition Section - Mobile Small */
             .story-location-transition {
-                background-image: url('images/MobileSmall/IMG_2093-480x800.jpeg') !important;
             }
 
             /* Location-Contact Transition Section - Mobile Small */
             .location-contact-transition {
-                background-image: url('images/MobileSmall/IMG_E2945Small.JPG') !important;
             }
 
             /* Stay Page Hero - Mobile Small */
             .stay-hero .parallax-layer-bg {
-                background-image: url('images/MobileSmall/IMG_E02231-480x800.jpeg') !important;
             }
 
             /* MountainView Section - Mobile Small */
             .MountainViewsection {
-                background-image: url('images/MobileSmall/LakeView-480x800.jpeg') !important;
                 background-attachment: scroll !important;
             }
         }
@@ -947,7 +959,6 @@
         @media (min-width: 769px) and (max-width: 1024px) {
             /* Responsive Hero Images - Tablet */
             .hero-main {
-                background-image: linear-gradient(rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.1)), url('images/Tablet/Vineyard1536x1024.jpeg') !important;
             }
 
             .hero-main .parallax-layer-bg {
@@ -960,37 +971,31 @@
 
             /* Lake Dunstan Section - Tablet */
             .lake-dunstan-section {
-                background-image: url('images/Tablet/20211122_185234-1536x1024.jpeg') !important;
             }
 
             /* About Sustainability Image - Tablet */
             .about-sustainability-image {
-                content: url('images/ViewfromVineyard.jpeg');
             }
 
             /* About-Story Transition Section - Tablet */
             .about-story-transition {
-                background-image: url('images/Tablet/20211122_185234-1536x1024.jpeg') !important;
             }
 
             /* Story-Location Transition Section - Tablet */
             .story-location-transition {
-                background-image: url('images/Tablet/IMG_2093-1536x1024.jpeg') !important;
             }
 
             /* Location-Contact Transition Section - Tablet */
             .location-contact-transition {
-                background-image: url('images/Tablet/IMG_E2945Tablet.JPG') !important;
             }
 
             /* Stay Page Hero - Tablet */
             .stay-hero .parallax-layer-bg {
-                background-image: url('images/Tablet/vineyardhero.jpeg') !important;
             }
 
             /* MountainView Section - Tablet */
             .MountainViewsection {
-                background-image: url('images/Frontmountainview.jpeg') !important;
+                background-image: url('images/domesmountainview.jpeg') !important;
                 background-attachment: scroll !important;
             }
 
@@ -1000,37 +1005,30 @@
 
             /* Lake Dunstan Section - Mobile Large */
             .lake-dunstan-section {
-                background-image: url('images/MobileLarge/20211122_185234-768x1024.jpeg') !important;
             }
 
             /* About Sustainability Image - Mobile Large */
             .about-sustainability-image {
-                content: url('images/ViewfromVineyard.jpeg');
             }
 
             /* About-Story Transition Section - Mobile Large */
             .about-story-transition {
-                background-image: url('images/MobileLarge/20211122_185234-768x1024.jpeg') !important;
             }
 
             /* Story-Location Transition Section - Mobile Large */
             .story-location-transition {
-                background-image: url('images/MobileLarge/IMG_2093-768x1024.jpeg') !important;
             }
 
             /* Location-Contact Transition Section - Mobile Large */
             .location-contact-transition {
-                background-image: url('images/MobileLarge/IMG_E2945Large.JPG') !important;
             }
 
             /* Stay Page Hero - Mobile Large */
             .stay-hero .parallax-layer-bg {
-                background-image: url('images/MobileLarge/IMG_E02231-768x1024.jpeg') !important;
             }
 
             /* MountainView Section - Mobile Large */
             .MountainViewsection {
-                background-image: url('images/MobileLarge/LakeView-768x1024.jpeg') !important;
                 background-attachment: scroll !important;
             }
 
@@ -1067,7 +1065,7 @@
         @media (min-width: 1025px) {
             /* MountainView Section - Desktop */
             .MountainViewsection {
-                background-image: url('images/Frontmountainview.jpeg') !important;
+                background-image: url('images/domesmountainview.jpeg') !important;
                 background-attachment: fixed !important;
             }
         }
@@ -1688,6 +1686,7 @@
                 border-bottom: none;
             }
 
+
             /* Mobile Lightbox */
             .lightbox-nav {
                 display: none;
@@ -1921,9 +1920,15 @@
             opacity: 0;
         }
 
-        /* Progressive Enhancement */
-        .webp .hero { background-image: url('hero-background.webp'); }
-        .no-webp .hero { background-image: url('hero-background.jpg'); }
+        /* Progressive Enhancement - Unique hero backgrounds per page with dark overlay */
+        #homePage .hero { background-image: linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.35)), url('images/domes-vineyard-sunset.jpg'); }
+        #stayPage .hero { background-image: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('images/domesmountainview.jpeg'); }
+        #galleryPage .hero { background-image: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('images/dome-pinot-hero.jpeg'); }
+        #blogPage .hero { background-image: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('images/lakeviewautumn.jpeg'); }
+        #reviewsPage .hero { background-image: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('images/dome-rose-spa1.jpeg'); }
+        #storyPage .hero { background-image: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('images/lake-mountains-perfect.jpg'); }
+        #explorePage .hero { background-image: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('images/galleryrainbow.jpeg'); }
+        #contactPage .hero { background-image: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('images/magical-sunset.jpg'); }
 
         /* Skip Link for Accessibility */
         .skip-link {
@@ -1945,6 +1950,12 @@
             top: 6px;
             left: 6px;
             opacity: 1;
+        }
+
+        /* Accessibility: Focus indicators */
+        *:focus-visible {
+            outline: 3px solid var(--brand-teal, #753742);
+            outline-offset: 2px;
         }
 
         /* Reduce motion for accessibility */
@@ -1996,20 +2007,133 @@
                 font-size: 1rem;
                 padding: 0.8rem 1.5rem;
             }
-            
+
             .faq-item {
                 margin-bottom: 0.5rem !important;
             }
-            
+
             .faq-question {
                 padding: 1rem !important;
                 font-size: 0.9rem;
             }
-            
+
             .faq-answer div {
                 padding: 1rem !important;
                 font-size: 0.85rem;
             }
+        }
+
+        /* ===== Comprehensive Mobile Responsiveness Overrides ===== */
+
+        /* Tablet nav: reduce gap to prevent overflow */
+        @media (min-width: 769px) and (max-width: 1100px) {
+            .nav-items-row {
+                gap: 0.8rem !important;
+            }
+            .nav-link {
+                font-size: 0.85rem !important;
+            }
+        }
+
+        /* Mobile: override inline styles that break responsiveness */
+        @media (max-width: 768px) {
+            /* Footer grid — single column */
+            .footer-grid {
+                grid-template-columns: 1fr !important;
+                gap: 1.5rem !important;
+            }
+
+            /* Hero stats grid — 2 columns on mobile */
+            .hero-stats-grid {
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 0.75rem !important;
+                padding: 1rem !important;
+            }
+
+            /* Stat numbers — smaller on mobile */
+            .stat-number {
+                font-size: 1.5rem !important;
+            }
+
+            /* Quick stats bar — tighter on mobile */
+            .quick-stats-bar {
+                gap: 0.75rem !important;
+                padding: 0.75rem !important;
+            }
+
+            /* All hero h2 titles — smaller on mobile */
+            .hero h2 {
+                font-size: 1.8rem !important;
+            }
+
+            /* Hero paragraphs — smaller padding */
+            .hero-content p {
+                font-size: 1rem !important;
+                padding: 0 0.5rem;
+            }
+
+            /* Hero taglines */
+            .hero .tagline {
+                font-size: 0.9rem !important;
+                letter-spacing: 1px !important;
+            }
+
+            /* Parallax section transitions — shorter on mobile */
+            .section-transition {
+                min-height: 30vh !important;
+            }
+
+            /* Welcome section text — responsive */
+            .section p[style*="font-size: 1.5rem"] {
+                font-size: 1.1rem !important;
+            }
+
+            /* Inline grids with large minmax — force smaller */
+            [style*="minmax(200px"] {
+                grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) !important;
+            }
+
+            /* Contact/Story boxes inside heroes */
+            .hero-content [style*="max-width: 600px"],
+            .hero-content [style*="max-width: 700px"] {
+                max-width: 100% !important;
+                padding: 1rem !important;
+            }
+        }
+
+        @media (max-width: 480px) {
+            /* Hero stats — stack single column on small phones */
+            .hero-stats-grid {
+                grid-template-columns: repeat(2, 1fr) !important;
+            }
+
+            .stat-number {
+                font-size: 1.3rem !important;
+            }
+
+            /* All inline 2.5rem fonts — scale down */
+            .hero-content [style*="font-size: 2.5rem"],
+            .hero-content [style*="font-size: 2rem"] {
+                font-size: 1.5rem !important;
+            }
+
+            /* Nav items row — already hidden, but just in case */
+            .nav-items-row {
+                display: none !important;
+            }
+
+            /* Welcome text and large inline headings */
+            [style*="font-size: 1.5rem"] {
+                font-size: 1.1rem !important;
+            }
+            h2[style*="font-size: 2.5rem"] {
+                font-size: 1.6rem !important;
+            }
+            h3[style*="font-size: 1.8rem"] {
+                font-size: 1.3rem !important;
+            }
+
+            /* Comparison table stays scrollable (already has overflow-x: auto) */
         }
 
         /* Small Mobile Devices (max-width: 480px) */
@@ -2104,4 +2228,89 @@
                 width: 100%;
             }
         }
+
+
+
+/* ============================================
+   CSS Hover Effects (replaces inline handlers)
+   ============================================ */
+
+/* WhatsApp chat link in contact section */
+.hover-lift-sm {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.hover-lift-sm:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(37, 211, 102, 0.3);
+}
+
+/* Carousel navigation arrows */
+.carousel-arrow:hover {
+    background: rgba(0,0,0,0.8) !important;
+}
+
+/* Guide navigation cards */
+.hover-lift {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.hover-lift:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+}
+
+/* Back-to-overview link */
+.hover-fill-teal {
+    transition: all 0.3s ease;
+}
+.hover-fill-teal:hover {
+    background: var(--brand-teal) !important;
+    color: white !important;
+}
+
+/* Guide section headers */
+.guide-header {
+    transition: all 0.3s ease;
+}
+.guide-header:hover {
+    filter: brightness(0.95);
+}
+
+/* Quick-nav cards on activities page */
+.hover-lift-md {
+    transition: transform 0.2s ease;
+}
+.hover-lift-md:hover {
+    transform: translateY(-5px);
+}
+
+/* Social media links and scroll-to-top */
+.hover-scale {
+    transition: transform 0.3s ease;
+}
+.hover-scale:hover {
+    transform: scale(1.1);
+}
+
+/* Floating book-now button */
+.hover-lift-book {
+    transition: all 0.3s ease;
+}
+.hover-lift-book:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 35px rgba(45, 90, 90, 0.4) !important;
+}
+
+/* Floating WhatsApp button */
+.hover-scale-whatsapp {
+    transition: all 0.3s ease;
+}
+.hover-scale-whatsapp:hover {
+    transform: scale(1.1);
+    box-shadow: 0 8px 25px rgba(37, 211, 102, 0.4) !important;
+}
+
+/* Back-to-top button hover */
+#backToTopBtn:hover {
+    transform: scale(1.1);
+}
 
