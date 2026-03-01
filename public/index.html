@@ -765,7 +765,7 @@
             </section>
 
             <!-- Parallax Section Transition - Lake Dunstan Views -->
-            <section class="section-transition lake-dunstan-section" data-bg="linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url('images/IMG_1266-1920x1080.jpeg')" style="background-attachment: fixed;">
+            <section class="section-transition lake-dunstan-section" style="background-image: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url('images/IMG_1266-1920x1080.jpeg'); background-attachment: fixed;">
             </section>
 
             <!-- Section 1: About Lakeside Retreat -->
@@ -797,7 +797,7 @@
             </section>
 
             <!-- Parallax Section Transition - Between About and Story -->
-            <section class="section-transition about-story-transition" data-bg="linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url('images/golden-vineyard-autumn.jpg')" style="background-attachment: fixed;">
+            <section class="section-transition about-story-transition" style="background-image: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url('images/golden-vineyard-autumn.jpg'); background-attachment: fixed;">
             </section>
 
             <!-- Section 2: Our Story -->
@@ -823,7 +823,7 @@
             </section>
 
             <!-- Parallax Section Transition - Between Story and Location -->
-            <section class="section-transition story-location-transition" data-bg="linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url('images/HeadingWarm.jpeg')" style="background-attachment: fixed;">
+            <section class="section-transition story-location-transition" style="background-image: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url('images/HeadingWarm.jpeg'); background-attachment: fixed;">
             </section>
 
             <!-- Section 3: Where We Are -->
@@ -871,7 +871,7 @@
             </section>
 
             <!-- Parallax Section Transition - Between Location and Contact -->
-            <section class="section-transition location-contact-transition" data-bg="linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url('images/vineyarddomes.jpeg')" style="background-attachment: fixed;">
+            <section class="section-transition location-contact-transition" style="background-image: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url('images/vineyarddomes.jpeg'); background-attachment: fixed;">
             </section>
 
 <!-- Section 4: Accommodations Section -->
@@ -971,7 +971,7 @@
             </section>
 
 	 <!-- Parallax Section Transition - Between Accommodation and Contact -->
-            <section class="section-transition accommodation-contact-transition" data-bg="linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url('images/vineyard-path.jpg')" style="background-attachment: fixed;">
+            <section class="section-transition accommodation-contact-transition" style="background-image: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url('images/vineyard-path.jpg'); background-attachment: fixed;">
             </section>
 
             <!-- Section 5: Contact Us -->
@@ -1494,7 +1494,7 @@
 
 
             <!-- Parallax Section Transition - MountainView -->
-            <section class="section-transition MountainViewsection" data-bg="linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url('images/domesmountainview.jpeg')" style="background-attachment: fixed;">
+            <section class="section-transition MountainViewsection" style="background-image: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url('images/domesmountainview.jpeg'); background-attachment: fixed;">
                 <!-- Parallax Content -->
                 <div style="position: relative; z-index: 3; height: 100%; display: flex; align-items: center; justify-content: center; text-align: center; padding: 2rem;">
                     <div style="max-width: 800px;">
@@ -1542,7 +1542,7 @@
             
 
             <!-- Parallax Section Transition - Vineyard Autumn Views -->
-            <section class="section-transition lake-dunstan-section" data-bg="linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url('images/IMG_1266-1920x1080.jpeg')" style="background-attachment: fixed;">
+            <section class="section-transition lake-dunstan-section" style="background-image: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url('images/IMG_1266-1920x1080.jpeg'); background-attachment: fixed;">
             </section>
 
             <!-- Every Season is Beautiful -->
@@ -5627,7 +5627,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // === ORIGINAL WEBSITE FUNCTIONS ===
 
+        // Track which SPA pages have had their images loaded
+        const _loadedPages = new Set(['home']);
+
         window.showPage = function(pageName) {
+            // Lazy-load images for this SPA page on first visit
+            if (!_loadedPages.has(pageName)) {
+                const page = document.getElementById(pageName + 'Page');
+                if (page) {
+                    page.querySelectorAll('source[data-srcset]').forEach(s => {
+                        s.srcset = s.dataset.srcset;
+                        s.removeAttribute('data-srcset');
+                    });
+                    page.querySelectorAll('img[data-src]').forEach(img => {
+                        img.src = img.dataset.src;
+                        img.removeAttribute('data-src');
+                    });
+                }
+                _loadedPages.add(pageName);
+            }
+
             document.querySelectorAll('.page').forEach(page => {
                 page.classList.remove('active');
             });
@@ -7046,6 +7065,113 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (action === 'sendContactMessage') sendContactMessage(e);
             }
         });
+})();
+
+// --- Flatpickr Date Pickers for Booking Modal ---
+(function() {
+    'use strict';
+
+    let checkinPicker = null;
+    let checkoutPicker = null;
+    let currentBlockedDates = [];
+
+    function initBookingDatePickers() {
+        if (typeof flatpickr === 'undefined') return;
+
+        const checkinEl = document.getElementById('bookingCheckin');
+        const checkoutEl = document.getElementById('bookingCheckout');
+        if (!checkinEl || !checkoutEl) return;
+
+        checkinPicker = flatpickr(checkinEl, {
+            dateFormat: 'Y-m-d',
+            minDate: 'today',
+            disable: currentBlockedDates,
+            disableMobile: true,
+            onChange(selectedDates) {
+                if (selectedDates.length > 0) {
+                    const nextDay = new Date(selectedDates[0]);
+                    nextDay.setDate(nextDay.getDate() + 1);
+                    checkoutPicker.set('minDate', nextDay);
+
+                    const currentCheckout = checkoutPicker.selectedDates[0];
+                    if (currentCheckout && currentCheckout <= selectedDates[0]) {
+                        checkoutPicker.clear();
+                    }
+
+                    setTimeout(() => checkoutPicker.open(), 150);
+                }
+                clearFormError('date');
+                updateNightsCount();
+            }
+        });
+
+        checkoutPicker = flatpickr(checkoutEl, {
+            dateFormat: 'Y-m-d',
+            minDate: 'today',
+            disable: currentBlockedDates,
+            disableMobile: true,
+            onChange() {
+                clearFormError('date');
+                updateNightsCount();
+            }
+        });
+    }
+
+    async function fetchBlockedDates(accommodation) {
+        try {
+            const response = await fetch('/api/blocked-dates?accommodation=' + encodeURIComponent(accommodation));
+            const data = await response.json();
+            if (data.success && data.blockedDates) {
+                currentBlockedDates = data.blockedDates;
+            } else {
+                currentBlockedDates = [];
+            }
+        } catch (e) {
+            currentBlockedDates = [];
+        }
+
+        if (checkinPicker) checkinPicker.set('disable', currentBlockedDates);
+        if (checkoutPicker) checkoutPicker.set('disable', currentBlockedDates);
+
+        const hint = document.getElementById('blockedDatesHint');
+        if (hint) hint.style.display = currentBlockedDates.length > 0 ? 'block' : 'none';
+    }
+
+    function updateNightsCount() {
+        const group = document.getElementById('nightsCountGroup');
+        const label = document.getElementById('nightsCount');
+        if (!group || !label) return;
+
+        const checkin = checkinPicker?.selectedDates[0];
+        const checkout = checkoutPicker?.selectedDates[0];
+
+        if (checkin && checkout && checkout > checkin) {
+            const nights = Math.round((checkout - checkin) / 86400000);
+            label.textContent = nights + ' night' + (nights !== 1 ? 's' : '');
+            group.style.display = 'flex';
+        } else {
+            group.style.display = 'none';
+        }
+    }
+
+    function clearFormError(fieldId) {
+        const errorEl = document.getElementById(fieldId + 'Error');
+        if (errorEl) errorEl.classList.remove('show');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        initBookingDatePickers();
+
+        document.querySelectorAll('.accommodation-option').forEach(option => {
+            option.addEventListener('click', () => {
+                const accom = option.dataset.accommodation;
+                if (accom) {
+                    fetchBlockedDates(accom);
+                    clearFormError('accommodation');
+                }
+            });
+        });
+    });
 })();
 
 
