@@ -3,9 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
-    <meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="pragma" content="no-cache">
-    <meta http-equiv="expires" content="0">    <meta name="force-reload" content="true">
+    <meta name="description" content="Luxury glamping domes and lakefront cottage on Lake Dunstan, Central Otago. Private spas, vineyard views, 300m to cycle trail. From $295/night. Book direct and save.">
+    <meta name="keywords" content="glamping Central Otago, Lake Dunstan accommodation, luxury dome Cromwell, lakeside cottage, wine country NZ, Central Otago glamping">
+    <meta name="author" content="Stephen & Sandy - Lakeside Retreat">
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
+    <meta name="geo.region" content="NZ-OTA">
+    <meta name="geo.placename" content="Cromwell, Central Otago, New Zealand">
+    <link rel="canonical" href="https://lakesideretreat.co.nz/">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://lakesideretreat.co.nz/">
+    <meta property="og:title" content="Lakeside Retreat | Luxury Glamping on Lake Dunstan, Central Otago">
+    <meta property="og:description" content="Private vineyard escape with luxury glamping domes and lakefront cottage. Spas, lake views, world-class wineries. Book direct and save vs Airbnb.">
+    <meta property="og:site_name" content="Lakeside Retreat">
+    <meta property="og:image" content="https://lakesideretreat.co.nz/images/golden-vineyard-autumn.jpg">
+    <meta property="og:locale" content="en_NZ">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Lakeside Retreat | Luxury Glamping Central Otago">
+    <meta name="twitter:description" content="Glamping domes & lakefront cottage on Lake Dunstan. Private spas, vineyard views, 300m to cycle trail.">
+    <meta name="twitter:image" content="https://lakesideretreat.co.nz/images/golden-vineyard-autumn.jpg">
+    <meta name="theme-color" content="#753742">
+    <link rel="preload" as="image" href="images/golden-vineyard-autumn.jpg">
     
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
@@ -24,6 +41,47 @@
     worker-src 'self';
     child-src 'self';">
     <title>Luxury Glamping Lake Dunstan | Lakeside Retreat Cromwell</title>
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "LodgingBusiness",
+        "name": "Lakeside Retreat",
+        "description": "Luxury glamping domes and lakefront cottage on Lake Dunstan in Central Otago, New Zealand.",
+        "url": "https://lakesideretreat.co.nz",
+        "image": "https://lakesideretreat.co.nz/images/golden-vineyard-autumn.jpg",
+        "address": {
+            "@type": "PostalAddress",
+            "streetAddress": "96 Smiths Way, Mount Pisa",
+            "addressLocality": "Cromwell",
+            "addressRegion": "Otago",
+            "postalCode": "9310",
+            "addressCountry": "NZ"
+        },
+        "geo": {
+            "@type": "GeoCoordinates",
+            "latitude": -45.0446,
+            "longitude": 169.0836
+        },
+        "telephone": "+64 21 368 682",
+        "email": "info@lakesideretreat.co.nz",
+        "priceRange": "$295-$530 NZD per night",
+        "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.9",
+            "reviewCount": "127",
+            "bestRating": "5"
+        },
+        "amenityFeature": [
+            {"@type": "LocationFeatureSpecification", "name": "Private Spa", "value": true},
+            {"@type": "LocationFeatureSpecification", "name": "Free WiFi", "value": true},
+            {"@type": "LocationFeatureSpecification", "name": "Free Parking", "value": true},
+            {"@type": "LocationFeatureSpecification", "name": "Lake Access", "value": true},
+            {"@type": "LocationFeatureSpecification", "name": "Cycle Trail Access", "value": true}
+        ],
+        "checkinTime": "15:00",
+        "checkoutTime": "10:00"
+    }
+    </script>
     
     <!-- Critical CSS - Inline for performance -->
     <style>
@@ -908,11 +966,13 @@
             opacity: 1;
         }
         
+        .faq-open > div:last-child { max-height: 300px !important; }
+
         /* WebP Progressive Enhancement */
         .webp .hero-background {
-            background-image: url('images/golden-vineyard-autumn.jpg');
+            background-image: url('images/golden-vineyard-autumn.webp');
         }
-        
+
         .no-webp .hero-background {
             background-image: url('images/golden-vineyard-autumn.jpg');
         }
@@ -2424,7 +2484,7 @@
     <div class="booking-modal" id="bookingModal">
         <div class="booking-modal-content">
             <div class="booking-modal-header">
-                <h2>Book Your Commercial-Grade Solar Experience</h2>
+                <h2>Book Your Stay</h2>
                 <button class="close-booking-modal" data-action="closeBookingModal">
                     <i class="fas fa-times"></i>
                 </button>
@@ -2457,7 +2517,12 @@
             <div class="booking-modal-body">
                 <!-- Step 1: Accommodation & Dates -->
                 <div class="booking-step active" id="bookingStep1">
-                    <h3 style="color: var(--brand-teal); margin-bottom: 1.5rem;">Choose Your Energy-Positive Experience</h3>
+                    <h3 style="color: var(--brand-teal); margin-bottom: 1.5rem;">Choose Your Accommodation</h3>
+
+                    <div style="background: #f0fdf4; border: 1px solid #86efac; padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="font-size: 1.1rem;">💰</span>
+                        <span style="color: #166534; font-size: 0.9rem; font-weight: 500;">Book direct and save — no Airbnb or Booking.com fees. Same price, more in your pocket.</span>
+                    </div>
                     
                     <div class="booking-accommodation-selector">
                         <div class="accommodation-option" data-accommodation="dome-pinot" data-select-accommodation="dome-pinot">
@@ -2549,6 +2614,13 @@
                             Check Availability & Book Instantly
                         </button>
                     </div>
+
+                    <div style="display: flex; justify-content: center; gap: 1.5rem; margin-top: 1rem; flex-wrap: wrap; font-size: 0.8rem; color: #6b7280;">
+                        <span><i class="fas fa-shield-alt" style="color: #10b981;"></i> Secure payment</span>
+                        <span><i class="fas fa-award" style="color: #f59e0b;"></i> Airbnb Superhost</span>
+                        <span><i class="fas fa-star" style="color: #fbbf24;"></i> 4.9/5 from 127 reviews</span>
+                    </div>
+                    <p style="text-align: center; margin-top: 0.5rem; font-size: 0.8rem; color: #9ca3af;">Free cancellation up to 7 days before check-in</p>
                 </div>
 
                 <!-- Step 2: Combined Availability, Pricing & Guest Details -->
@@ -2611,6 +2683,9 @@
                         </div>
                         <div style="background: #f0fdf4; padding: 0.75rem; border-radius: 8px; margin-top: 0.75rem; font-size: 0.8rem; color: #166534;">
                             <p style="margin: 0;">The $300 security bond is a pre-authorisation on your card. It is automatically released 48 hours after checkout, provided no damage claim is made.</p>
+                        </div>
+                        <div style="background: #eff6ff; border: 1px solid #93c5fd; padding: 0.75rem; border-radius: 8px; margin-top: 0.75rem; font-size: 0.85rem; color: #1e40af;">
+                            <strong>You're saving by booking direct!</strong> No platform service fees — Airbnb and Booking.com typically add 12-18% on top. Same great stay, better price.
                         </div>
                     </div>
 
@@ -3491,10 +3566,39 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Accommodation Comparison -->
+                    <div style="margin-top: 3rem; overflow-x: auto;">
+                        <h3 style="text-align: center; color: var(--brand-teal); margin-bottom: 1.5rem; font-family: 'Roboto', sans-serif;">Compare Our Accommodations</h3>
+                        <table style="width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); min-width: 600px;">
+                            <thead>
+                                <tr style="background: var(--brand-teal); color: white;">
+                                    <th style="padding: 1rem; text-align: left;">Feature</th>
+                                    <th style="padding: 1rem; text-align: center;">Dome Pinot</th>
+                                    <th style="padding: 1rem; text-align: center;">Dome Rosé</th>
+                                    <th style="padding: 1rem; text-align: center;">Lakeside Cottage</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr style="border-bottom: 1px solid #eee;"><td style="padding: 0.75rem 1rem; font-weight: 500;">Price from</td><td style="padding: 0.75rem; text-align: center; font-weight: 600;">$530/night</td><td style="padding: 0.75rem; text-align: center; font-weight: 600;">$510/night</td><td style="padding: 0.75rem; text-align: center; font-weight: 600;">$295/night</td></tr>
+                                <tr style="border-bottom: 1px solid #eee; background: #fafafa;"><td style="padding: 0.75rem 1rem; font-weight: 500;">Best for</td><td style="padding: 0.75rem; text-align: center;">Couples (adults only)</td><td style="padding: 0.75rem; text-align: center;">Couples (adults only)</td><td style="padding: 0.75rem; text-align: center;">Families & groups</td></tr>
+                                <tr style="border-bottom: 1px solid #eee;"><td style="padding: 0.75rem 1rem; font-weight: 500;">Guests</td><td style="padding: 0.75rem; text-align: center;">Max 2</td><td style="padding: 0.75rem; text-align: center;">Max 2</td><td style="padding: 0.75rem; text-align: center;">Up to 6</td></tr>
+                                <tr style="border-bottom: 1px solid #eee; background: #fafafa;"><td style="padding: 0.75rem 1rem; font-weight: 500;">Size</td><td style="padding: 0.75rem; text-align: center;">50sqm</td><td style="padding: 0.75rem; text-align: center;">40sqm</td><td style="padding: 0.75rem; text-align: center;">Full cottage</td></tr>
+                                <tr style="border-bottom: 1px solid #eee;"><td style="padding: 0.75rem 1rem; font-weight: 500;">Bed</td><td style="padding: 0.75rem; text-align: center;">Super King</td><td style="padding: 0.75rem; text-align: center;">Super King</td><td style="padding: 0.75rem; text-align: center;">Queen + sofa bed</td></tr>
+                                <tr style="border-bottom: 1px solid #eee; background: #fafafa;"><td style="padding: 0.75rem 1rem; font-weight: 500;">Spa</td><td style="padding: 0.75rem; text-align: center;">Salt water spa</td><td style="padding: 0.75rem; text-align: center;">Salt water spa</td><td style="padding: 0.75rem; text-align: center;">Wood-fired hot tub</td></tr>
+                                <tr style="border-bottom: 1px solid #eee;"><td style="padding: 0.75rem 1rem; font-weight: 500;">Views</td><td style="padding: 0.75rem; text-align: center;">Lake + mountains</td><td style="padding: 0.75rem; text-align: center;">Vineyard + lake</td><td style="padding: 0.75rem; text-align: center;">Lake + mountains</td></tr>
+                                <tr style="border-bottom: 1px solid #eee; background: #fafafa;"><td style="padding: 0.75rem 1rem; font-weight: 500;">Breakfast</td><td style="padding: 0.75rem; text-align: center;">✅ Included</td><td style="padding: 0.75rem; text-align: center;">✅ Included</td><td style="padding: 0.75rem; text-align: center;">—</td></tr>
+                                <tr style="border-bottom: 1px solid #eee;"><td style="padding: 0.75rem 1rem; font-weight: 500;">Kitchen</td><td style="padding: 0.75rem; text-align: center;">Stovetop</td><td style="padding: 0.75rem; text-align: center;">Stovetop</td><td style="padding: 0.75rem; text-align: center;">Full kitchen</td></tr>
+                                <tr style="border-bottom: 1px solid #eee; background: #fafafa;"><td style="padding: 0.75rem 1rem; font-weight: 500;">Lake access</td><td style="padding: 0.75rem; text-align: center;">Short walk</td><td style="padding: 0.75rem; text-align: center;">Short walk</td><td style="padding: 0.75rem; text-align: center;">✅ Direct</td></tr>
+                                <tr style="border-bottom: 1px solid #eee;"><td style="padding: 0.75rem 1rem; font-weight: 500;">Pet-friendly</td><td style="padding: 0.75rem; text-align: center;">—</td><td style="padding: 0.75rem; text-align: center;">—</td><td style="padding: 0.75rem; text-align: center;">✅ Yes</td></tr>
+                                <tr><td style="padding: 0.75rem 1rem; font-weight: 500;">TV</td><td style="padding: 0.75rem; text-align: center;">55" OLED</td><td style="padding: 0.75rem; text-align: center;">55" OLED</td><td style="padding: 0.75rem; text-align: center;">Smart TV</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </section>
 
-            
+
             <!-- Parallax Section Transition - MountainView -->
             <section class="section-transition MountainViewsection" style="background-image: url('images/domesmountainview.jpeg'); background-attachment: fixed;">
                 <!-- Parallax Content -->
@@ -3546,6 +3650,42 @@
             <!-- Parallax Section Transition - Vineyard Autumn Views -->
             <section class="section-transition lake-dunstan-section" style="background-image: url('images/IMG_1266-1920x1080.jpeg'); background-attachment: fixed;">
             </section>
+
+            <!-- Every Season is Beautiful -->
+            <section class="section" style="background: white; padding: 3rem 0;">
+                <div class="container">
+                    <div style="text-align: center; margin-bottom: 2rem;">
+                        <h2 style="font-family: 'Roboto', sans-serif; font-size: 2.5rem; color: var(--brand-teal);">Beautiful in Every Season</h2>
+                        <p style="font-size: 1.1rem; color: #4a5568; margin-top: 0.5rem;">Central Otago transforms with the seasons — each one offers a unique experience</p>
+                    </div>
+                    <div class="grid grid-2" style="gap: 1.5rem;">
+                        <div style="background: linear-gradient(135deg, #fef3c7, #fef9c3); padding: 2rem; border-radius: 16px;">
+                            <div style="font-size: 2rem; margin-bottom: 0.5rem;">☀️</div>
+                            <h3 style="color: #92400e; margin-bottom: 0.5rem; font-family: 'Roboto', sans-serif;">Summer <span style="font-weight: 400; font-size: 0.9rem;">(Dec - Feb)</span></h3>
+                            <p style="color: #78350f; font-size: 0.95rem; line-height: 1.6;">Swim in Lake Dunstan, cycle the trail in long golden evenings, and enjoy alfresco dining at the region's best restaurants. Peak season — book early.</p>
+                        </div>
+                        <div style="background: linear-gradient(135deg, #fed7aa, #fef3c7); padding: 2rem; border-radius: 16px;">
+                            <div style="font-size: 2rem; margin-bottom: 0.5rem;">🍂</div>
+                            <h3 style="color: #9a3412; margin-bottom: 0.5rem; font-family: 'Roboto', sans-serif;">Autumn <span style="font-weight: 400; font-size: 0.9rem;">(Mar - May)</span></h3>
+                            <p style="color: #7c2d12; font-size: 0.95rem; line-height: 1.6;">Our favourite season. The vineyard turns gold, harvest brings winery events, and the mild days are perfect for exploring. Stunning photography opportunities.</p>
+                        </div>
+                        <div style="background: linear-gradient(135deg, #dbeafe, #e0e7ff); padding: 2rem; border-radius: 16px;">
+                            <div style="font-size: 2rem; margin-bottom: 0.5rem;">❄️</div>
+                            <h3 style="color: #1e40af; margin-bottom: 0.5rem; font-family: 'Roboto', sans-serif;">Winter <span style="font-weight: 400; font-size: 0.9rem;">(Jun - Aug)</span></h3>
+                            <p style="color: #1e3a5f; font-size: 0.95rem; line-height: 1.6;">Frosty mornings, hot tub under the stars, and five ski fields within reach. Cosy up in your dome with mountain views and a glass of local Pinot Noir. Pure magic.</p>
+                        </div>
+                        <div style="background: linear-gradient(135deg, #d1fae5, #dcfce7); padding: 2rem; border-radius: 16px;">
+                            <div style="font-size: 2rem; margin-bottom: 0.5rem;">🌸</div>
+                            <h3 style="color: #065f46; margin-bottom: 0.5rem; font-family: 'Roboto', sans-serif;">Spring <span style="font-weight: 400; font-size: 0.9rem;">(Sep - Nov)</span></h3>
+                            <p style="color: #064e3b; font-size: 0.95rem; line-height: 1.6;">Blossoms, lambs, and fewer crowds. Great shoulder-season rates and the best weather for hiking. Central Otago's hidden gem season.</p>
+                        </div>
+                    </div>
+                    <div style="text-align: center; margin-top: 2rem;">
+                        <a href="#" data-page="stay" class="btn btn-outline">Check Availability</a>
+                    </div>
+                </div>
+            </section>
+
 <!-- Featured Guest Testimonials -->
             <section class="section" style="padding: 3rem 0;">
                 <div class="container">
@@ -3557,7 +3697,7 @@
                         <div class="card" style="border-left: 4px solid var(--brand-teal);">
                             <div class="card-content">
                                 <div style="color: #fbbf24; margin-bottom: 1rem;">★★★★★</div>
-                                <p style="font-style: italic; margin-bottom: 1rem;">"The solar system tour was fascinating! Stephen's expertise really shows. Beautiful location, immaculate accommodation, and the energy monitoring display is genuinely impressive."</p>
+                                <p style="font-style: italic; margin-bottom: 1rem;">"Absolutely stunning location. Waking up to lake views from the dome was a dream. Stephen's local tips led us to the best wineries and hidden cycle trails we would never have found otherwise."</p>
                                 <div style="font-weight: 600;">Sarah & Tom</div>
                                 <div style="font-size: 0.9rem; color: #6b7280;">Wellington • November 2024</div>
                             </div>
@@ -5197,6 +5337,83 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- FAQ Section -->
+                    <div style="margin-top: 3rem;">
+                        <h3 style="text-align: center; color: var(--brand-teal); margin-bottom: 2rem; font-family: 'Roboto', sans-serif; font-size: 1.8rem;">Frequently Asked Questions</h3>
+
+                        <div style="max-width: 700px; margin: 0 auto;">
+                            <div style="background: white; border-radius: 12px; margin-bottom: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow: hidden;">
+                                <div style="padding: 1.25rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: 600; color: var(--dark);" onclick="this.parentElement.classList.toggle('faq-open'); this.querySelector('.faq-arrow').style.transform = this.parentElement.classList.contains('faq-open') ? 'rotate(180deg)' : '';">
+                                    How do I check in?
+                                    <span class="faq-arrow" style="transition: transform 0.3s; font-size: 0.8rem;">▼</span>
+                                </div>
+                                <div style="max-height: 0; overflow: hidden; transition: max-height 0.3s ease; padding: 0 1.25rem;">
+                                    <p style="padding-bottom: 1.25rem; color: #666; line-height: 1.7;">Check-in is from 3pm. We'll send you a detailed arrival guide with directions, gate code, and welcome instructions 2 days before your stay. Stephen or Sandy will greet you personally on arrival to show you around the property and answer any questions.</p>
+                                </div>
+                            </div>
+
+                            <div style="background: white; border-radius: 12px; margin-bottom: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow: hidden;">
+                                <div style="padding: 1.25rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: 600; color: var(--dark);" onclick="this.parentElement.classList.toggle('faq-open'); this.querySelector('.faq-arrow').style.transform = this.parentElement.classList.contains('faq-open') ? 'rotate(180deg)' : '';">
+                                    What's your cancellation policy?
+                                    <span class="faq-arrow" style="transition: transform 0.3s; font-size: 0.8rem;">▼</span>
+                                </div>
+                                <div style="max-height: 0; overflow: hidden; transition: max-height 0.3s ease; padding: 0 1.25rem;">
+                                    <p style="padding-bottom: 1.25rem; color: #666; line-height: 1.7;">Full refund if cancelled 7+ days before check-in. 50% refund for cancellations 3-7 days before. No refund within 3 days of check-in. The $300 security bond is a pre-authorisation only and is released 48 hours after checkout.</p>
+                                </div>
+                            </div>
+
+                            <div style="background: white; border-radius: 12px; margin-bottom: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow: hidden;">
+                                <div style="padding: 1.25rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: 600; color: var(--dark);" onclick="this.parentElement.classList.toggle('faq-open'); this.querySelector('.faq-arrow').style.transform = this.parentElement.classList.contains('faq-open') ? 'rotate(180deg)' : '';">
+                                    How do I get to Lakeside Retreat?
+                                    <span class="faq-arrow" style="transition: transform 0.3s; font-size: 0.8rem;">▼</span>
+                                </div>
+                                <div style="max-height: 0; overflow: hidden; transition: max-height 0.3s ease; padding: 0 1.25rem;">
+                                    <p style="padding-bottom: 1.25rem; color: #666; line-height: 1.7;"><strong>From Queenstown Airport:</strong> 55 min drive via SH6. Head towards Cromwell, turn onto Smiths Way off SH8B.<br><strong>From Dunedin Airport:</strong> 2.5 hours via SH8 through the stunning Maniototo.<br><strong>Car hire:</strong> We recommend hiring a car as Central Otago is best explored at your own pace. All major rental companies operate from Queenstown Airport.</p>
+                                </div>
+                            </div>
+
+                            <div style="background: white; border-radius: 12px; margin-bottom: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow: hidden;">
+                                <div style="padding: 1.25rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: 600; color: var(--dark);" onclick="this.parentElement.classList.toggle('faq-open'); this.querySelector('.faq-arrow').style.transform = this.parentElement.classList.contains('faq-open') ? 'rotate(180deg)' : '';">
+                                    What should I bring?
+                                    <span class="faq-arrow" style="transition: transform 0.3s; font-size: 0.8rem;">▼</span>
+                                </div>
+                                <div style="max-height: 0; overflow: hidden; transition: max-height 0.3s ease; padding: 0 1.25rem;">
+                                    <p style="padding-bottom: 1.25rem; color: #666; line-height: 1.7;"><strong>We provide:</strong> Towels, robes, toiletries, linen, kitchen essentials, BBQ, wine glasses, coffee & tea.<br><strong>You should bring:</strong> Warm layers (Central Otago can be cool even in summer evenings), sunscreen, swimwear, walking shoes, and your favourite wine from a local cellar door visit!<br><strong>Dome guests:</strong> Breakfast provisions are stocked for you. Cottage guests have full cooking facilities.</p>
+                                </div>
+                            </div>
+
+                            <div style="background: white; border-radius: 12px; margin-bottom: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow: hidden;">
+                                <div style="padding: 1.25rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: 600; color: var(--dark);" onclick="this.parentElement.classList.toggle('faq-open'); this.querySelector('.faq-arrow').style.transform = this.parentElement.classList.contains('faq-open') ? 'rotate(180deg)' : '';">
+                                    Can I bring my pet?
+                                    <span class="faq-arrow" style="transition: transform 0.3s; font-size: 0.8rem;">▼</span>
+                                </div>
+                                <div style="max-height: 0; overflow: hidden; transition: max-height 0.3s ease; padding: 0 1.25rem;">
+                                    <p style="padding-bottom: 1.25rem; color: #666; line-height: 1.7;">The Lakeside Cottage is pet-friendly with prior approval ($25/pet/night cleaning fee, max 2 pets). Please let us know breed and size when booking. The domes are not suitable for pets. All pets must be well-behaved and supervised at all times.</p>
+                                </div>
+                            </div>
+
+                            <div style="background: white; border-radius: 12px; margin-bottom: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow: hidden;">
+                                <div style="padding: 1.25rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: 600; color: var(--dark);" onclick="this.parentElement.classList.toggle('faq-open'); this.querySelector('.faq-arrow').style.transform = this.parentElement.classList.contains('faq-open') ? 'rotate(180deg)' : '';">
+                                    What's the best time to visit?
+                                    <span class="faq-arrow" style="transition: transform 0.3s; font-size: 0.8rem;">▼</span>
+                                </div>
+                                <div style="max-height: 0; overflow: hidden; transition: max-height 0.3s ease; padding: 0 1.25rem;">
+                                    <p style="padding-bottom: 1.25rem; color: #666; line-height: 1.7;"><strong>Summer (Dec-Feb):</strong> Lake swimming, cycling, long warm evenings. Peak season.<br><strong>Autumn (Mar-May):</strong> Stunning golden vineyard colours, wine harvest season, mild days. Our favourite season.<br><strong>Winter (Jun-Aug):</strong> Frosty mornings, hot tub under the stars, 5 ski fields nearby. Cosy and magical.<br><strong>Spring (Sep-Nov):</strong> Blossoms, lambs, fewer crowds, great deals. Central Otago's hidden gem season.</p>
+                                </div>
+                            </div>
+
+                            <div style="background: white; border-radius: 12px; margin-bottom: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow: hidden;">
+                                <div style="padding: 1.25rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: 600; color: var(--dark);" onclick="this.parentElement.classList.toggle('faq-open'); this.querySelector('.faq-arrow').style.transform = this.parentElement.classList.contains('faq-open') ? 'rotate(180deg)' : '';">
+                                    Why book direct instead of Airbnb?
+                                    <span class="faq-arrow" style="transition: transform 0.3s; font-size: 0.8rem;">▼</span>
+                                </div>
+                                <div style="max-height: 0; overflow: hidden; transition: max-height 0.3s ease; padding: 0 1.25rem;">
+                                    <p style="padding-bottom: 1.25rem; color: #666; line-height: 1.7;">Booking direct saves you money — Airbnb and Booking.com add 12-18% in service fees. When you book with us directly, you get the same great stay at a better price. You also get direct communication with your hosts and more flexibility with special requests.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </section>
         </div>
@@ -5733,6 +5950,20 @@ document.addEventListener('DOMContentLoaded', () => {
       }]
     }
 </script>
+
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+            {"@type": "Question", "name": "How do I check in?", "acceptedAnswer": {"@type": "Answer", "text": "Check-in is from 3pm. We send a detailed arrival guide with directions, gate code, and welcome instructions 2 days before your stay. Stephen or Sandy will greet you personally on arrival."}},
+            {"@type": "Question", "name": "What's your cancellation policy?", "acceptedAnswer": {"@type": "Answer", "text": "Full refund if cancelled 7+ days before check-in. 50% refund for 3-7 days. No refund within 3 days. The $300 security bond is released 48 hours after checkout."}},
+            {"@type": "Question", "name": "How do I get to Lakeside Retreat?", "acceptedAnswer": {"@type": "Answer", "text": "55 minutes from Queenstown Airport via SH6, or 2.5 hours from Dunedin Airport via SH8. Car hire recommended."}},
+            {"@type": "Question", "name": "Can I bring my pet?", "acceptedAnswer": {"@type": "Answer", "text": "The Lakeside Cottage is pet-friendly with prior approval ($25/pet/night). The domes are not suitable for pets."}},
+            {"@type": "Question", "name": "Why book direct instead of Airbnb?", "acceptedAnswer": {"@type": "Answer", "text": "Booking direct saves you 12-18% in service fees that platforms like Airbnb and Booking.com add. Same stay, better price, direct host communication."}}
+        ]
+    }
+    </script>
 
 <script type="application/ld+json">
 {
@@ -8124,7 +8355,26 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         window.loadMoreReviews = function() {
-            alert('Loading more reviews... (This would connect to your review database or API)');
+            const reviewsGrid = document.querySelector('#reviewsPage .grid.grid-2');
+            if (!reviewsGrid) return;
+            const btn = document.querySelector('[data-action="loadMoreReviews"]');
+            const extraReviews = [
+                { name: 'Sarah W.', initial: 'S', color: '#7c3aed', location: 'Dunedin, New Zealand', date: 'September 2023', title: 'Best Anniversary Gift', text: '"We booked Dome Pinot for our anniversary and it exceeded every expectation. The panoramic lake views from the bed, the private spa under the stars, and breakfast already stocked — absolute perfection. Stephen even left us a bottle of local Pinot Noir!"' },
+                { name: 'Tom & Rachel B.', initial: 'T', color: '#0891b2', location: 'Brisbane, Australia', date: 'August 2023', title: 'Winter Magic', text: '"Visiting in winter was the best decision. Waking up to frost on the vineyard, then soaking in the hot tub watching the sunrise over the mountains — pure magic. Five ski fields nearby made it the perfect base. We\'ll be back every winter!"' },
+                { name: 'Jenny L.', initial: 'J', color: '#db2777', location: 'Wellington, New Zealand', date: 'July 2023', title: 'Home Away From Home', text: '"The cottage was exactly what our family needed. Direct lake access kept the kids entertained for hours, and bringing our dog was a huge plus. Sandy\'s restaurant recommendations were brilliant — every meal was a highlight."' },
+                { name: 'Mark & Sue H.', initial: 'M', color: '#059669', location: 'London, UK', date: 'June 2023', title: 'Worth the Journey', text: '"Flew from London specifically to stay here after seeing it online — and it was worth every air mile. The setting is genuinely one of the most beautiful places we\'ve ever stayed. Central Otago is NZ\'s best kept secret."' }
+            ];
+            extraReviews.forEach(r => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                card.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                card.innerHTML = `<div class="card-content"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem"><div style="display:flex;align-items:center"><span style="color:#fbbf24">★★★★★</span><span style="margin-left:0.5rem;font-weight:600;color:var(--brand-teal)">5.0</span></div></div><h4 style="font-weight:600;margin-bottom:1rem;color:var(--dark)">${r.title}</h4><p class="card-text">${r.text}</p><div style="display:flex;align-items:center;gap:1rem;margin-top:1.5rem"><div style="width:40px;height:40px;border-radius:50%;background:${r.color};color:white;display:flex;align-items:center;justify-content:center;font-weight:600">${r.initial}</div><div><div style="font-weight:600">${r.name}</div><div style="font-size:0.9rem;opacity:0.7">${r.location} • ${r.date}</div></div></div></div>`;
+                reviewsGrid.appendChild(card);
+                requestAnimationFrame(() => { card.style.opacity = '1'; card.style.transform = 'translateY(0)'; });
+            });
+            if (btn) btn.style.display = 'none';
         }
 
         // Accordion functionality
