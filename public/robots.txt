@@ -10,9 +10,7 @@ Sitemap: https://lakesideretreat.co.nz/sitemap.xml
 # Crawl-delay for polite crawling
 Crawl-delay: 1
 
-# Block common bot paths that don't exist
+# Block non-public paths
 Disallow: /admin/
-Disallow: /wp-admin/
-Disallow: /wp-login.php
 Disallow: /.git/
 Disallow: /api/

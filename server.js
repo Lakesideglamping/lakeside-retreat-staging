@@ -11,6 +11,7 @@ const nodemailer = require('nodemailer');
 const database = require('./database');
 
 // Validate environment variables at startup (see config/env.js)
+const config = require('./config/env');
 const { validateEnv } = require('./config/env');
 validateEnv();
 
@@ -138,6 +139,9 @@ database.initializeDatabase()
 
         // Check for orphaned payments (Stripe session created but DB never updated to completed)
         checkOrphanedPayments();
+
+        // Retry any unresolved failed webhook events immediately, then every 30 minutes
+        retryFailedWebhookEvents();
     })
     .catch(err => {
         console.error('❌ Failed to initialize database:', err.message);
@@ -902,6 +906,12 @@ async function handleStripeWebhook(event, res) {
                     error: dbErr.message || String(dbErr)
                 });
 
+                sendExternalAlert(
+                    'Payment DB Update Failed',
+                    `Booking ${session.metadata.bookingId}: payment captured (${capturedPayment?.id}) but DB update failed. Error: ${dbErr.message || String(dbErr)}`,
+                    'CRITICAL'
+                );
+
                 // Store failed event for manual recovery
                 await logFailedWebhookEvent(event, session, dbErr);
 
@@ -973,6 +983,12 @@ async function handleStripeWebhook(event, res) {
                     bookingId: session.metadata.bookingId,
                     error: dbErr.message || String(dbErr)
                 });
+
+                sendExternalAlert(
+                    'Payment DB Update Failed',
+                    `Booking ${session.metadata.bookingId}: payment completed (${session.payment_intent}) but DB update failed. Error: ${dbErr.message || String(dbErr)}`,
+                    'CRITICAL'
+                );
 
                 // Store failed event for manual recovery
                 await logFailedWebhookEvent(event, session, dbErr);
@@ -1086,6 +1102,11 @@ async function logFailedWebhookEvent(event, session, error) {
             });
         });
         console.error('[CRITICAL] Failed webhook event saved to failed_webhook_events table for recovery');
+        sendExternalAlert(
+            'Failed Webhook Event Logged',
+            `Event ${event.id} (${event.type}) for session ${session.id} failed and was saved for recovery. Error: ${(error.message || String(error)).substring(0, 200)}`,
+            'CRITICAL'
+        );
     } catch (logErr) {
         // Last resort: if even the recovery table write fails, log everything to stdout
         console.error('[CRITICAL] UNABLE TO WRITE TO RECOVERY TABLE. Manual intervention required.');
@@ -1097,6 +1118,67 @@ async function logFailedWebhookEvent(event, session, error) {
             booking_id: session.metadata?.bookingId,
             error: error.message || String(error)
         }));
+    }
+}
+
+/**
+ * Send a critical alert to an external webhook (Slack, Discord, etc.).
+ * Configured via the ALERT_WEBHOOK_URL environment variable. When not set,
+ * this is a silent no-op. Never throws — errors are logged to console.
+ * Rate-limited to max 1 alert per 5 minutes per unique title.
+ */
+const _alertRateMap = new Map();
+async function sendExternalAlert(title, message, severity = 'CRITICAL') {
+    const webhookUrl = config.alertWebhookUrl;
+    if (!webhookUrl) return;
+
+    // Rate limit: skip if the same title was sent within the last 5 minutes
+    const now = Date.now();
+    const lastSent = _alertRateMap.get(title);
+    if (lastSent && (now - lastSent) < 5 * 60 * 1000) {
+        return;
+    }
+    _alertRateMap.set(title, now);
+
+    const severityIcon = severity === 'CRITICAL' ? '\ud83d\udea8' : '\u26a0\ufe0f';
+    const text = `${severityIcon} [${severity}] ${title}: ${message}`;
+
+    const payload = JSON.stringify({
+        text,
+        blocks: [{
+            type: 'section',
+            text: {
+                type: 'mrkdwn',
+                text: `${severityIcon} *[${severity}] ${title}*\n${message}`
+            }
+        }]
+    });
+
+    try {
+        const { URL } = require('url');
+        const parsedUrl = new URL(webhookUrl);
+        const httpModule = require(parsedUrl.protocol === 'https:' ? 'https' : 'http');
+
+        await new Promise((resolve, reject) => {
+            const req = httpModule.request(parsedUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Content-Length': Buffer.byteLength(payload)
+                },
+                timeout: 10000
+            }, (res) => {
+                res.resume(); // consume response
+                resolve();
+            });
+
+            req.on('error', reject);
+            req.on('timeout', () => { req.destroy(); reject(new Error('Alert webhook timed out')); });
+            req.write(payload);
+            req.end();
+        });
+    } catch (err) {
+        console.error('[ALERT] Failed to send external alert:', err.message);
     }
 }
 
@@ -1126,6 +1208,11 @@ async function checkOrphanedPayments() {
             orphaned.forEach(b => {
                 console.warn(`  - Booking ${b.id}: ${b.accommodation}, email: ${b.guest_email}, created: ${b.created_at}`);
             });
+            sendExternalAlert(
+                'Orphaned Payments Detected',
+                `Found ${orphaned.length} booking(s) with Stripe sessions but pending payment status. These may need manual review.`,
+                'WARNING'
+            );
         }
 
         // Also check for unresolved failed webhook events
@@ -1148,6 +1235,108 @@ async function checkOrphanedPayments() {
     } catch (err) {
         console.error('[STARTUP] Failed to check for orphaned payments:', err.message);
     }
+}
+
+/**
+ * Retry unresolved failed webhook events by re-fetching the Stripe session
+ * and completing the booking if the payment was successful. Runs on a schedule
+ * (every 30 minutes) to automatically recover from transient DB failures.
+ * Limited to 5 retries per run to avoid overwhelming the Stripe API.
+ */
+async function retryFailedWebhookEvents() {
+    if (!stripe || !db) return;
+
+    try {
+        const unresolvedEvents = await new Promise((resolve, reject) => {
+            db.all(
+                `SELECT id, event_id, stripe_session_id, booking_id, error_message, created_at
+                 FROM failed_webhook_events
+                 WHERE resolved = ?
+                 ORDER BY created_at ASC
+                 LIMIT 5`,
+                [database.isUsingPostgres() ? false : 0],
+                (err, rows) => { if (err) reject(err); else resolve(rows || []); }
+            );
+        });
+
+        if (unresolvedEvents.length === 0) return;
+
+        console.log(`[RETRY] Processing ${unresolvedEvents.length} unresolved failed webhook event(s)...`);
+
+        for (const failedEvent of unresolvedEvents) {
+            try {
+                // Re-fetch the session from Stripe to check its current status
+                const session = await stripe.checkout.sessions.retrieve(failedEvent.stripe_session_id);
+
+                if (session.payment_status !== 'paid' && session.status !== 'complete') {
+                    console.log(`[RETRY] Session ${failedEvent.stripe_session_id} is not complete (status: ${session.status}), skipping`);
+                    continue;
+                }
+
+                // Check if the booking's payment_status is still pending
+                const booking = await new Promise((resolve, reject) => {
+                    db.get(
+                        `SELECT id, payment_status FROM bookings WHERE id = ? OR stripe_session_id = ?`,
+                        [failedEvent.booking_id, failedEvent.stripe_session_id],
+                        (err, row) => { if (err) reject(err); else resolve(row); }
+                    );
+                });
+
+                if (!booking) {
+                    console.warn(`[RETRY] Booking not found for event ${failedEvent.event_id}, marking resolved`);
+                    await markFailedEventResolved(failedEvent.id);
+                    continue;
+                }
+
+                if (booking.payment_status === 'completed') {
+                    // Already completed (perhaps by a Stripe retry), just mark resolved
+                    console.log(`[RETRY] Booking ${booking.id} already completed, marking event resolved`);
+                    await markFailedEventResolved(failedEvent.id);
+                    continue;
+                }
+
+                // Update the booking to completed
+                await new Promise((resolve, reject) => {
+                    db.run(
+                        `UPDATE bookings
+                         SET payment_status = 'completed', status = 'confirmed',
+                             stripe_payment_id = COALESCE(stripe_payment_id, ?),
+                             stripe_session_id = COALESCE(stripe_session_id, ?)
+                         WHERE id = ?`,
+                        [session.payment_intent, session.id, booking.id],
+                        function(err) { if (err) reject(err); else resolve(); }
+                    );
+                });
+
+                // Mark the failed event as resolved
+                await markFailedEventResolved(failedEvent.id);
+
+                console.log(`[RETRY] Successfully recovered booking ${booking.id} from failed event ${failedEvent.event_id}`);
+
+            } catch (retryErr) {
+                // Log but don't mark as resolved — it will be retried next cycle
+                console.error(`[RETRY] Failed to recover event ${failedEvent.event_id}:`, retryErr.message);
+            }
+        }
+    } catch (err) {
+        console.error('[RETRY] Failed to query unresolved webhook events:', err.message);
+    }
+}
+
+/**
+ * Mark a failed webhook event as resolved with the current timestamp.
+ */
+async function markFailedEventResolved(failedEventId) {
+    await new Promise((resolve, reject) => {
+        db.run(
+            `UPDATE failed_webhook_events
+             SET resolved = ${database.isUsingPostgres() ? 'true' : '1'},
+                 resolved_at = CURRENT_TIMESTAMP
+             WHERE id = ?`,
+            [failedEventId],
+            function(err) { if (err) reject(err); else resolve(); }
+        );
+    });
 }
 
 // Security Deposit Management Functions
@@ -1264,6 +1453,15 @@ setInterval(async () => {
         console.error('Deposit release poll error:', err.message);
     }
 }, 60 * 60 * 1000).unref();
+
+// Retry failed webhook events every 30 minutes (recovers from transient DB failures)
+setInterval(async () => {
+    try {
+        await retryFailedWebhookEvents();
+    } catch (err) {
+        console.error('Failed webhook retry poll error:', err.message);
+    }
+}, 30 * 60 * 1000).unref();
 
 async function autoReleaseSecurityDeposit(bookingId, depositIntentId) {
     if (!stripe) {

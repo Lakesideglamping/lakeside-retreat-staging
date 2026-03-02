@@ -115,6 +115,8 @@ function loadConfig() {
             generalRequests: parseInt(process.env.GENERAL_RATE_LIMIT_REQUESTS, 10) || 100,
             generalWindowMinutes: parseInt(process.env.GENERAL_RATE_LIMIT_WINDOW_MINUTES, 10) || 15,
         },
+
+        alertWebhookUrl: process.env.ALERT_WEBHOOK_URL,
     };
 }
 

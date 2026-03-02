@@ -126,7 +126,12 @@ class MarketingAutomation {
             }
         }, 60 * 60 * 1000); // 1 hour
 
-        console.log('   Scheduled jobs started (abandoned: 15min, reviews: daily 10am)');
+        // Check for pre-arrival emails every hour
+        this.preArrivalInterval = setInterval(() => {
+            this.processPreArrivalEmails();
+        }, 60 * 60 * 1000); // 1 hour
+
+        console.log('   Scheduled jobs started (abandoned: 15min, reviews: daily 10am, pre-arrival: hourly)');
     }
 
     // Stop scheduled jobs
@@ -136,6 +141,9 @@ class MarketingAutomation {
         }
         if (this.reviewRequestInterval) {
             clearInterval(this.reviewRequestInterval);
+        }
+        if (this.preArrivalInterval) {
+            clearInterval(this.preArrivalInterval);
         }
     }
 
@@ -494,6 +502,220 @@ class MarketingAutomation {
             this.db.get(sql, [accommodation, checkOut, checkIn], (err, row) => {
                 if (err) reject(err);
                 else resolve(row.count === 0);
+            });
+        });
+    }
+
+    // ==========================================
+    // FEATURE 3: Pre-Arrival Email Instructions
+    // ==========================================
+
+    async processPreArrivalEmails() {
+        try {
+            console.log('[Marketing] Checking for pre-arrival emails to send...');
+
+            // Tomorrow's date in YYYY-MM-DD format
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+            // Find confirmed bookings checking in tomorrow
+            const eligibleBookings = await new Promise((resolve, reject) => {
+                const sql = `
+                    SELECT b.*
+                    FROM bookings b
+                    WHERE b.payment_status = 'completed'
+                    AND DATE(b.check_in) = ?
+                `;
+                this.db.all(sql, [tomorrowStr], (err, rows) => {
+                    if (err) reject(err);
+                    else resolve(rows || []);
+                });
+            });
+
+            console.log(`[Marketing] Found ${eligibleBookings.length} bookings checking in tomorrow (${tomorrowStr})`);
+
+            for (const booking of eligibleBookings) {
+                // Check if pre-arrival email was already sent for this booking
+                const alreadySent = await this.isPreArrivalEmailSent(booking.id);
+                if (alreadySent) {
+                    console.log(`[Marketing] Pre-arrival email already sent for booking ${booking.id}, skipping`);
+                    continue;
+                }
+
+                await this.sendPreArrivalEmail(booking);
+            }
+        } catch (error) {
+            console.error('[Marketing] Error processing pre-arrival emails:', error);
+        }
+    }
+
+    async isPreArrivalEmailSent(bookingId) {
+        return new Promise((resolve, reject) => {
+            const key = `pre_arrival_sent_${bookingId}`;
+            this.db.get(
+                'SELECT setting_value FROM system_settings WHERE setting_key = ?',
+                [key],
+                (err, row) => {
+                    if (err) reject(err);
+                    else resolve(!!row);
+                }
+            );
+        });
+    }
+
+    async markPreArrivalEmailSent(bookingId) {
+        return new Promise((resolve, reject) => {
+            const key = `pre_arrival_sent_${bookingId}`;
+            const sql = `
+                INSERT OR REPLACE INTO system_settings (setting_key, setting_value, updated_at)
+                VALUES (?, ?, CURRENT_TIMESTAMP)
+            `;
+            this.db.run(sql, [key, new Date().toISOString()], (err) => {
+                if (err) reject(err);
+                else resolve();
+            });
+        });
+    }
+
+    async sendPreArrivalEmail(booking) {
+        try {
+            if (!this.emailTransporter || !process.env.EMAIL_USER) {
+                console.log(`[Marketing] Email not configured - pre-arrival email for booking ${booking.id} skipped`);
+                await this.markPreArrivalEmailSent(booking.id);
+                return;
+            }
+
+            const accommodationName = this.formatAccommodationName(booking.accommodation);
+            const checkInDate = new Date(booking.check_in).toLocaleDateString('en-NZ', {
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+            });
+            const checkOutDate = new Date(booking.check_out).toLocaleDateString('en-NZ', {
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+            });
+
+            const isDome = booking.accommodation === 'dome-pinot' || booking.accommodation === 'dome-rose';
+            const isCottage = booking.accommodation === 'lakeside-cottage';
+
+            let propertyTips = '';
+            if (isDome) {
+                propertyTips = `
+                    <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #ffc107;">
+                        <h4 style="margin-top: 0;">Dome Reminder</h4>
+                        <p style="margin-bottom: 0;">Our eco-domes are <strong>adults-only</strong> accommodations. Please ensure your party meets this requirement. Guests arriving with children will not be accommodated and no refund will be given.</p>
+                    </div>
+                `;
+            } else if (isCottage) {
+                propertyTips = `
+                    <div style="background: #e8f4fd; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #2196F3;">
+                        <h4 style="margin-top: 0;">Pet Policy</h4>
+                        <p style="margin-bottom: 0;">Pets are welcome at Lakeside Cottage! Please keep them off the furniture and clean up after them on the property. An additional cleaning fee may apply if needed.</p>
+                    </div>
+                `;
+            }
+
+            const mailOptions = {
+                from: process.env.EMAIL_USER,
+                to: booking.guest_email,
+                subject: `Your Arrival Instructions - Lakeside Retreat (${accommodationName})`,
+                html: `
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <style>
+                            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                            .header { background: #2c5530; color: white; padding: 20px; text-align: center; }
+                            .content { padding: 20px; background: #f9f9f9; }
+                            .details-box { background: white; padding: 15px; border-radius: 8px; margin: 15px 0; }
+                            .bond-notice { background: #f0f8ff; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #17a2b8; }
+                            .cta-button { display: inline-block; background: #25D366; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 10px 0; }
+                            .footer { text-align: center; padding: 20px; font-size: 12px; color: #666; }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="container">
+                            <div class="header">
+                                <h1>Your Stay Starts Tomorrow!</h1>
+                                <p style="margin: 0;">Lakeside Retreat</p>
+                            </div>
+                            <div class="content">
+                                <p>Hi ${booking.guest_name || 'there'},</p>
+
+                                <p>We're excited to welcome you tomorrow! Here's everything you need for a smooth arrival.</p>
+
+                                <div class="details-box">
+                                    <h3 style="margin-top: 0;">Arrival Details</h3>
+                                    <p><strong>Address:</strong> 96 Smiths Way, Mount Pisa, Cromwell</p>
+                                    <p><strong>Check-in:</strong> ${checkInDate} from 3:00 PM</p>
+                                    <p><strong>Check-out:</strong> ${checkOutDate} by 10:00 AM</p>
+                                    <p><strong>Accommodation:</strong> ${accommodationName}</p>
+                                    <p><strong>Guests:</strong> ${booking.guests}</p>
+                                </div>
+
+                                <div class="details-box">
+                                    <h3 style="margin-top: 0;">Property Essentials</h3>
+                                    <p><strong>WiFi:</strong> Connect to <code>Lakeside_Guest</code></p>
+                                    <p><strong>Parking:</strong> Free parking available on-site</p>
+                                    <p><strong>Emergency Contact:</strong> <a href="tel:+6421368682">+64 21 368 682</a></p>
+                                </div>
+
+                                <div class="bond-notice">
+                                    <h4 style="margin-top: 0;">Security Bond</h4>
+                                    <p style="margin-bottom: 0;">A <strong>$300 authorization hold</strong> will be placed on your card as a security bond. This is <em>not</em> a charge — it is automatically released after your stay, provided no damage has occurred. You won't need to do anything; the hold drops off your statement automatically.</p>
+                                </div>
+
+                                ${propertyTips}
+
+                                <div class="details-box">
+                                    <h3 style="margin-top: 0;">Explore the Area</h3>
+                                    <p>Central Otago has some incredible dining options! We recommend checking out the local restaurants and wineries in Cromwell and the surrounding area. Ask us for our favourites when you arrive — we love sharing our local picks.</p>
+                                </div>
+
+                                <div style="text-align: center; margin: 25px 0;">
+                                    <p><strong>Have questions before you arrive?</strong></p>
+                                    <a href="https://wa.me/6421368682" class="cta-button">Message Us on WhatsApp</a>
+                                </div>
+
+                                <p>We can't wait to host you!</p>
+                                <p>Warm regards,<br>Stephen & Sandy<br>Lakeside Retreat</p>
+                            </div>
+                            <div class="footer">
+                                <p>Lakeside Retreat, 96 Smiths Way, Mount Pisa, Cromwell, Central Otago 9310, New Zealand</p>
+                            </div>
+                        </div>
+                    </body>
+                    </html>
+                `
+            };
+
+            await this.emailTransporter.sendMail(mailOptions);
+            await this.markPreArrivalEmailSent(booking.id);
+
+            console.log(`[Marketing] Sent pre-arrival instructions to ${booking.guest_email} for booking ${booking.id}`);
+        } catch (error) {
+            console.error(`[Marketing] Failed to send pre-arrival email to ${booking.guest_email}:`, error.message);
+        }
+    }
+
+    // Get pre-arrival email status for admin dashboard
+    async getPreArrivalEmailStatus() {
+        return new Promise((resolve, reject) => {
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+            const sql = `
+                SELECT b.id, b.guest_name, b.guest_email, b.accommodation, b.check_in,
+                       s.setting_value as sent_at
+                FROM bookings b
+                LEFT JOIN system_settings s ON s.setting_key = 'pre_arrival_sent_' || b.id
+                WHERE b.payment_status = 'completed'
+                AND DATE(b.check_in) = ?
+            `;
+            this.db.all(sql, [tomorrowStr], (err, rows) => {
+                if (err) reject(err);
+                else resolve(rows || []);
             });
         });
     }

@@ -120,6 +120,137 @@ class EmailNotifications {
         }
     }
     
+    async sendPreArrivalInstructions(booking) {
+        if (!this.transporter || !this.fromEmail) {
+            console.log('📧 Email not configured - pre-arrival instructions skipped');
+            return { success: false, reason: 'Email not configured' };
+        }
+
+        try {
+            const accommodationName = this.formatAccommodationName(booking.accommodation);
+            const checkInDate = new Date(booking.check_in).toLocaleDateString('en-NZ', {
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+            });
+            const checkOutDate = new Date(booking.check_out).toLocaleDateString('en-NZ', {
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+            });
+
+            const isDome = booking.accommodation === 'dome-pinot' || booking.accommodation === 'dome-rose';
+            const isCottage = booking.accommodation === 'lakeside-cottage';
+
+            let propertyTips = '';
+            if (isDome) {
+                propertyTips = `
+                    <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #ffc107;">
+                        <h4 style="margin-top: 0;">Dome Reminder</h4>
+                        <p style="margin-bottom: 0;">Our eco-domes are <strong>adults-only</strong> accommodations. Please ensure your party meets this requirement. Guests arriving with children will not be accommodated and no refund will be given.</p>
+                    </div>
+                `;
+            } else if (isCottage) {
+                propertyTips = `
+                    <div style="background: #e8f4fd; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #2196F3;">
+                        <h4 style="margin-top: 0;">Pet Policy</h4>
+                        <p style="margin-bottom: 0;">Pets are welcome at Lakeside Cottage! Please keep them off the furniture and clean up after them on the property. An additional cleaning fee may apply if needed.</p>
+                    </div>
+                `;
+            }
+
+            const email = {
+                from: this.fromEmail,
+                to: booking.guest_email,
+                subject: `Your Arrival Instructions - Lakeside Retreat (${accommodationName})`,
+                html: `
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <style>
+                            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                            .header { background: #2c5530; color: white; padding: 20px; text-align: center; }
+                            .content { padding: 20px; background: #f9f9f9; }
+                            .details-box { background: white; padding: 15px; border-radius: 8px; margin: 15px 0; }
+                            .detail-row { display: flex; padding: 8px 0; border-bottom: 1px solid #eee; }
+                            .detail-label { font-weight: bold; min-width: 140px; }
+                            .bond-notice { background: #f0f8ff; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #17a2b8; }
+                            .cta-button { display: inline-block; background: #25D366; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 10px 0; }
+                            .footer { text-align: center; padding: 20px; font-size: 12px; color: #666; }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="container">
+                            <div class="header">
+                                <h1>Your Stay Starts Tomorrow!</h1>
+                                <p style="margin: 0;">Lakeside Retreat</p>
+                            </div>
+                            <div class="content">
+                                <p>Hi ${booking.guest_name || 'there'},</p>
+
+                                <p>We're excited to welcome you tomorrow! Here's everything you need for a smooth arrival.</p>
+
+                                <div class="details-box">
+                                    <h3 style="margin-top: 0;">Arrival Details</h3>
+                                    <p><strong>Address:</strong> 96 Smiths Way, Mount Pisa, Cromwell</p>
+                                    <p><strong>Check-in:</strong> ${checkInDate} from 3:00 PM</p>
+                                    <p><strong>Check-out:</strong> ${checkOutDate} by 10:00 AM</p>
+                                    <p><strong>Accommodation:</strong> ${accommodationName}</p>
+                                    <p><strong>Guests:</strong> ${booking.guests}</p>
+                                </div>
+
+                                <div class="details-box">
+                                    <h3 style="margin-top: 0;">Property Essentials</h3>
+                                    <p><strong>WiFi:</strong> Connect to <code>Lakeside_Guest</code></p>
+                                    <p><strong>Parking:</strong> Free parking available on-site</p>
+                                    <p><strong>Emergency Contact:</strong> <a href="tel:+6421368682">+64 21 368 682</a></p>
+                                </div>
+
+                                <div class="bond-notice">
+                                    <h4 style="margin-top: 0;">Security Bond</h4>
+                                    <p style="margin-bottom: 0;">A <strong>$300 authorization hold</strong> will be placed on your card as a security bond. This is <em>not</em> a charge — it is automatically released after your stay, provided no damage has occurred. You won't need to do anything; the hold drops off your statement automatically.</p>
+                                </div>
+
+                                ${propertyTips}
+
+                                <div class="details-box">
+                                    <h3 style="margin-top: 0;">Explore the Area</h3>
+                                    <p>Central Otago has some incredible dining options! We recommend checking out the local restaurants and wineries in Cromwell and the surrounding area. Ask us for our favourites when you arrive — we love sharing our local picks.</p>
+                                </div>
+
+                                <div style="text-align: center; margin: 25px 0;">
+                                    <p><strong>Have questions before you arrive?</strong></p>
+                                    <a href="https://wa.me/6421368682" class="cta-button">Message Us on WhatsApp</a>
+                                </div>
+
+                                <p>We can't wait to host you!</p>
+                                <p>Warm regards,<br>Stephen & Sandy<br>Lakeside Retreat</p>
+                            </div>
+                            <div class="footer">
+                                <p>Lakeside Retreat, 96 Smiths Way, Mount Pisa, Cromwell, Central Otago 9310, New Zealand</p>
+                            </div>
+                        </div>
+                    </body>
+                    </html>
+                `
+            };
+
+            await this.transporter.sendMail(email);
+            console.log(`✅ Pre-arrival instructions sent to ${booking.guest_email}`);
+            return { success: true };
+
+        } catch (error) {
+            console.error(`❌ Failed to send pre-arrival instructions to ${booking.guest_email}:`, error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    formatAccommodationName(accommodation) {
+        const names = {
+            'dome-pinot': 'Dome Pinot',
+            'dome-rose': 'Dome Ros\u00e9',
+            'lakeside-cottage': 'Lakeside Cottage'
+        };
+        return names[accommodation] || accommodation;
+    }
+
     async sendPaymentNotification(booking, paymentDetails) {
         if (!this.transporter || !this.fromEmail) {
             return { success: false, reason: 'Email not configured' };

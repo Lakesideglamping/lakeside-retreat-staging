@@ -162,6 +162,107 @@ function createPublicRoutes(deps) {
         }
     });
 
+    // --- Pricing calculation with seasonal rates ---
+    router.get('/api/pricing/calculate', async (req, res) => {
+        try {
+            const { accommodation, checkin, checkout } = req.query;
+
+            if (!accommodation || !checkin || !checkout) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Missing required parameters: accommodation, checkin, checkout'
+                });
+            }
+
+            const config = accommodationsConfig.getById(accommodation);
+            if (!config) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Invalid accommodation'
+                });
+            }
+
+            const checkInDate = new Date(checkin);
+            const checkOutDate = new Date(checkout);
+            if (isNaN(checkInDate.getTime()) || isNaN(checkOutDate.getTime()) || checkOutDate <= checkInDate) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Invalid date range'
+                });
+            }
+
+            const basePrice = config.basePrice;
+
+            // Query active seasonal rates that overlap the booking date range
+            const seasonalSql = `
+                SELECT name, start_date, end_date, multiplier
+                FROM seasonal_rates
+                WHERE is_active = 1
+                AND start_date <= ? AND end_date >= ?
+                ORDER BY multiplier DESC
+            `;
+
+            const seasonalRates = await new Promise((resolve, reject) => {
+                db().all(seasonalSql, [checkout, checkin], (err, rows) => {
+                    if (err) reject(err);
+                    else resolve(rows || []);
+                });
+            });
+
+            // Build nightly breakdown
+            const nightlyBreakdown = [];
+            let subtotal = 0;
+            const current = new Date(checkInDate);
+
+            while (current < checkOutDate) {
+                const dateStr = current.toISOString().split('T')[0];
+
+                // Find applicable seasonal rate for this night (highest multiplier wins)
+                let multiplier = 1.0;
+                let seasonName = 'Standard';
+
+                for (const rate of seasonalRates) {
+                    if (dateStr >= rate.start_date && dateStr <= rate.end_date) {
+                        multiplier = parseFloat(rate.multiplier);
+                        seasonName = rate.name;
+                        break; // Already sorted by multiplier DESC, take the highest
+                    }
+                }
+
+                const nightRate = Math.round(basePrice * multiplier);
+                nightlyBreakdown.push({
+                    date: dateStr,
+                    rate: nightRate,
+                    multiplier,
+                    seasonName
+                });
+                subtotal += nightRate;
+
+                current.setDate(current.getDate() + 1);
+            }
+
+            const totalNights = nightlyBreakdown.length;
+            const averageRate = totalNights > 0 ? Math.round(subtotal / totalNights) : basePrice;
+
+            res.json({
+                success: true,
+                accommodation,
+                basePrice,
+                nightlyBreakdown,
+                averageRate,
+                totalNights,
+                subtotal
+            });
+
+        } catch (error) {
+            console.error('Pricing calculation error:', error);
+            res.status(500).json({
+                success: false,
+                error: 'Failed to calculate pricing'
+            });
+        }
+    });
+
     // --- Public pricing ---
     router.get('/api/pricing', (req, res) => {
         res.set('Cache-Control', 'no-store, max-age=0');
@@ -172,10 +273,11 @@ function createPublicRoutes(deps) {
                 return res.status(500).json({ success: false, error: 'Failed to fetch pricing' });
             }
 
+            // Defaults match config/accommodations.js base prices
             const defaultPricing = {
-                'dome_pinot': { base: 500, weekend: 530, peak: 600, cleaning: 50, minNights: 2 },
-                'dome_rose': { base: 500, weekend: 530, peak: 600, cleaning: 50, minNights: 2 },
-                'lakeside_cottage': { base: 305, weekend: 325, peak: 365, cleaning: 50, minNights: 2 }
+                'dome_pinot': { base: 530, weekend: 530, peak: 530, cleaning: 75, minNights: 1 },
+                'dome_rose': { base: 510, weekend: 510, peak: 510, cleaning: 75, minNights: 1 },
+                'lakeside_cottage': { base: 295, weekend: 295, peak: 295, cleaning: 75, minNights: 2 }
             };
 
             const pricing = { ...defaultPricing };

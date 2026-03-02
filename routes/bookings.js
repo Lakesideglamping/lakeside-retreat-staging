@@ -239,10 +239,48 @@ function createBookingRoutes(deps) {
                     }
                 }
 
-                // Server-side price validation
-                const expectedBase = accommodationConfig.basePrice * nights;
-                const minExpected = expectedBase * 0.9; // 10% tolerance
-                const maxExpected = expectedBase * 1.5; // 50% tolerance for fees
+                // Server-side price validation (accounts for seasonal multipliers)
+                let expectedAccommodationCost = accommodationConfig.basePrice * nights;
+                try {
+                    const seasonalSql = `
+                        SELECT name, start_date, end_date, multiplier
+                        FROM seasonal_rates
+                        WHERE is_active = 1
+                        AND start_date <= ? AND end_date >= ?
+                    `;
+                    const seasonalRates = await new Promise((resolve, reject) => {
+                        db().all(seasonalSql, [sanitizedData.check_out, sanitizedData.check_in], (err, rows) => {
+                            if (err) reject(err);
+                            else resolve(rows || []);
+                        });
+                    });
+
+                    if (seasonalRates.length > 0) {
+                        // Recalculate expected cost per night with seasonal multipliers
+                        expectedAccommodationCost = 0;
+                        const current = new Date(checkInDate);
+                        while (current < checkOutDate) {
+                            const dateStr = current.toISOString().split('T')[0];
+                            let multiplier = 1.0;
+                            for (const rate of seasonalRates) {
+                                if (dateStr >= rate.start_date && dateStr <= rate.end_date) {
+                                    const rateMultiplier = parseFloat(rate.multiplier);
+                                    if (rateMultiplier > multiplier) {
+                                        multiplier = rateMultiplier;
+                                    }
+                                }
+                            }
+                            expectedAccommodationCost += Math.round(accommodationConfig.basePrice * multiplier);
+                            current.setDate(current.getDate() + 1);
+                        }
+                    }
+                } catch (seasonalErr) {
+                    // If seasonal query fails, fall back to base price calculation
+                    console.error('Seasonal rate query failed during validation:', seasonalErr.message);
+                }
+
+                const minExpected = expectedAccommodationCost * 0.9; // 10% tolerance
+                const maxExpected = expectedAccommodationCost * 1.5; // 50% tolerance for fees
                 if (sanitizedData.total_price < minExpected || sanitizedData.total_price > maxExpected) {
                     return res.status(400).json({ success: false, error: 'Price validation failed. Please try again.' });
                 }
@@ -409,7 +447,10 @@ function createBookingRoutes(deps) {
                 }
 
                 const sessionConfig = {
-                    payment_method_types: ['card'],
+                    // Let Stripe show the best payment methods for each customer
+                    // (card, Apple Pay, Google Pay, Link, etc.)
+                    // Configure available methods in Stripe Dashboard > Settings > Payment methods
+                    // Note: Apple Pay requires domain verification in Stripe Dashboard
                     mode: 'payment',
                     customer_email: booking.guest_email,
                     metadata: {

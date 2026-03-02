@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en-NZ">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
@@ -88,18 +88,12 @@
     }
     </script>
     
-    
-    <!-- Enhanced SEO Meta Tags -->
-    <meta name="description" content="Luxury glamping on Lake Dunstan, Central Otago. Stargazing domes with private spas and lakeside cottage. 55 min from Queenstown. Book direct for best rates.">
-    <meta name="keywords" content="Central Otago accommodation, Queenstown alternative accommodation, Wanaka alternative accommodation, Lake Dunstan glamping, luxury glamping NZ">
-    <meta name="author" content="Stephen & Sandy - Lakeside Retreat">
-    
+
     <!-- Advanced SEO meta tags -->
     <meta name="language" content="en-NZ">
     <meta name="revisit-after" content="3 days">
     <meta name="distribution" content="web">
     <meta name="rating" content="general">
-    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
     <meta name="googlebot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
     <meta name="bingbot" content="index, follow">
     
@@ -145,7 +139,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" crossorigin="anonymous" referrerpolicy="no-referrer">
 
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
 
     <!-- Main Stylesheet -->
     <link rel="stylesheet" href="styles.css">
@@ -451,6 +445,7 @@
                             <span>Accommodation Rate:</span>
                             <span id="accommodationRate">$0</span>
                         </div>
+                        <div id="seasonalPricingNote" style="display: none; background: #fef3c7; color: #92400e; padding: 0.5rem 0.75rem; border-radius: 6px; margin-bottom: 0.5rem; font-size: 0.85rem;"></div>
                         <div class="price-row">
                             <span>Number of Nights:</span>
                             <span id="numberOfNights">0</span>
@@ -3635,7 +3630,7 @@ if ('serviceWorker' in navigator && 'caches' in window) {
             const urlsToCache = [
                 '/',
                 '/index.html',
-                'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap',
+                'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700&display=swap',
                 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css'
             ];
             
@@ -3799,8 +3794,8 @@ document.addEventListener('DOMContentLoaded', () => {
       "maximumAttendeeCapacity": "6",
       "hasMap": "https://maps.google.com/?q=-45.038710,169.197693",
       "sameAs": [
-        "https://www.facebook.com/lakesideretreat",
-        "https://www.instagram.com/lakesideretreat",
+        "https://www.facebook.com/lakesideretreatnz",
+        "https://www.instagram.com/lakesideretreatnz",
         "https://www.airbnb.com/h/lakesideretreat",
         "https://www.booking.com/hotel/nz/lakeside-retreat.html"
       ]
@@ -3838,8 +3833,8 @@ document.addEventListener('DOMContentLoaded', () => {
         "areaServed": "NZ"
       },
       "sameAs": [
-        "https://www.facebook.com/lakesideretreat",
-        "https://www.instagram.com/lakesideretreat",
+        "https://www.facebook.com/lakesideretreatnz",
+        "https://www.instagram.com/lakesideretreatnz",
         "https://www.tripadvisor.com/lakesideretreat",
         "https://www.booking.com/lakesideretreat"
       ]
@@ -3945,8 +3940,8 @@ document.addEventListener('DOMContentLoaded', () => {
         "query-input": "required name=search_term_string"
       },
       "sameAs": [
-        "https://www.facebook.com/lakesideretreat",
-        "https://www.instagram.com/lakesideretreat"
+        "https://www.facebook.com/lakesideretreatnz",
+        "https://www.instagram.com/lakesideretreatnz"
       ]
     }
 </script>
@@ -4459,29 +4454,71 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // === STREAMLINED 3-BUTTON BOOKING SYSTEM ===
 
+        // --- Focus trap for WCAG accessibility ---
+        let _modalTrigger = null; // element that opened the modal, for focus restoration
+        let _focusTrapHandler = null;
+
+        function _trapFocusInModal(modal) {
+            const focusable = modal.querySelectorAll(
+                'button, [href], input:not([type="hidden"]), select, textarea, [tabindex]:not([tabindex="-1"])'
+            );
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            _focusTrapHandler = function(e) {
+                if (e.key === 'Tab') {
+                    if (e.shiftKey) {
+                        if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+                    } else {
+                        if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+                    }
+                }
+                if (e.key === 'Escape') { closeBookingModal(); }
+            };
+            modal.addEventListener('keydown', _focusTrapHandler);
+            if (first) first.focus();
+        }
+
+        function _releaseFocusTrap(modal) {
+            if (_focusTrapHandler) {
+                modal.removeEventListener('keydown', _focusTrapHandler);
+                _focusTrapHandler = null;
+            }
+        }
+
         window.openBookingModal = function(preSelectedAccommodation = null) {
-            // Console statement removed for production
+            _modalTrigger = document.activeElement; // remember trigger for focus restoration
             document.getElementById('bookingModal').classList.add('active');
             document.body.style.overflow = 'hidden';
-            
+
             // Pre-select accommodation if specified BEFORE reset
             if (preSelectedAccommodation) {
                 selectedAccommodation = preSelectedAccommodation;
             }
-            
+
             resetBookingModal();
-            
+
             // Apply selection after reset
             if (preSelectedAccommodation) {
                 selectAccommodation(preSelectedAccommodation);
-                // Console statement removed for production
             }
+
+            // Activate focus trap after DOM updates
+            requestAnimationFrame(() => {
+                _trapFocusInModal(document.getElementById('bookingModal'));
+            });
         }
 
         window.closeBookingModal = function() {
-            document.getElementById('bookingModal').classList.remove('active');
+            const modal = document.getElementById('bookingModal');
+            _releaseFocusTrap(modal);
+            modal.classList.remove('active');
             document.body.style.overflow = '';
             resetBookingModal();
+            // Restore focus to the element that opened the modal
+            if (_modalTrigger && _modalTrigger.focus) {
+                _modalTrigger.focus();
+                _modalTrigger = null;
+            }
         }
 
         function resetBookingModal() {
@@ -4797,7 +4834,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (isAvailable) {
                 // Console statement removed for production
-                calculatePricingWithGST();
+                await calculatePricingWithGST();
                 updateSelectedDetails();
                 if (window.SecureFrontend) {
           window.SecureFrontend.updateAvailabilityResult('Available for Instant Booking! Your selected dates are available. Complete your booking below.', true);
@@ -4826,19 +4863,53 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // ENHANCED PRICING CALCULATION WITH NZ GST
-        function calculatePricingWithGST() {
-            const rates = accommodationRates[selectedAccommodation];
-            
-            // Determine rate type based on season (mock logic)
-            const checkinDate = new Date(bookingData.checkin);
-            const month = checkinDate.getMonth();
-            let rateType = 'base';
-            if (month >= 11 || month <= 2) rateType = 'peak'; // Summer
-            if (month >= 5 && month <= 8) rateType = 'offPeak'; // Winter
-            
-            const nightlyRate = rates[rateType];
-            let subtotal = nightlyRate * bookingData.nights;
-            
+        // Fetches live seasonal rates from the server, falls back to hardcoded rates on failure
+        async function calculatePricingWithGST() {
+            let nightlyRate;
+            let accommodationSubtotal;
+            let seasonalNote = '';
+
+            // Try to fetch live pricing from the server (applies seasonal multipliers)
+            try {
+                const pricingResponse = await fetch(
+                    `/api/pricing/calculate?accommodation=${encodeURIComponent(selectedAccommodation)}&checkin=${encodeURIComponent(bookingData.checkin)}&checkout=${encodeURIComponent(bookingData.checkout)}`
+                );
+                const pricingResult = await pricingResponse.json();
+
+                if (pricingResult.success && pricingResult.nightlyBreakdown?.length > 0) {
+                    nightlyRate = pricingResult.averageRate;
+                    accommodationSubtotal = pricingResult.subtotal;
+
+                    // Check if any seasonal multiplier > 1.0 is applied
+                    const seasonalNights = pricingResult.nightlyBreakdown.filter(n => n.multiplier > 1.0);
+                    if (seasonalNights.length > 0) {
+                        const seasonNames = [...new Set(seasonalNights.map(n => n.seasonName))];
+                        seasonalNote = `${seasonNames.join(', ')} rate applied`;
+                    }
+
+                    // Check for discounted nights (multiplier < 1.0)
+                    const discountedNights = pricingResult.nightlyBreakdown.filter(n => n.multiplier < 1.0);
+                    if (discountedNights.length > 0 && !seasonalNote) {
+                        const seasonNames = [...new Set(discountedNights.map(n => n.seasonName))];
+                        seasonalNote = `${seasonNames.join(', ')} rate applied`;
+                    }
+                } else {
+                    throw new Error('Invalid pricing response');
+                }
+            } catch (err) {
+                // Fallback to hardcoded rates if API fails
+                const rates = accommodationRates[selectedAccommodation];
+                const checkinDate = new Date(bookingData.checkin);
+                const month = checkinDate.getMonth();
+                let rateType = 'base';
+                if (month >= 11 || month <= 2) rateType = 'peak';
+                if (month >= 5 && month <= 8) rateType = 'offPeak';
+                nightlyRate = rates[rateType];
+                accommodationSubtotal = nightlyRate * bookingData.nights;
+            }
+
+            let subtotal = accommodationSubtotal;
+
             // Calculate extra guest charges for cottage (beyond 2 people)
             let extraGuestCharge = 0;
             if (selectedAccommodation === 'lakeside-cottage') {
@@ -4849,14 +4920,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     subtotal += extraGuestCharge;
                 }
             }
-            
+
             // Calculate pet fees for cottage
             let petFee = 0;
             if (selectedAccommodation === 'lakeside-cottage' && bookingData.pets > 0) {
                 petFee = bookingData.pets * 25 * bookingData.nights; // $25 per pet per night
                 subtotal += petFee;
             }
-            
+
             const cleaningFee = 75;
             const serviceFee = Math.round(subtotal * 0.03); // 3% service fee
             const securityBond = 300; // $300 refundable security bond
@@ -4883,6 +4954,17 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('accommodationRate').textContent = `${nightlyRate} NZD`;
             document.getElementById('numberOfNights').textContent = bookingData.nights;
             document.getElementById('subtotal').textContent = `${subtotal} NZD`;
+
+            // Show/hide seasonal pricing note
+            const seasonalNoteEl = document.getElementById('seasonalPricingNote');
+            if (seasonalNoteEl) {
+                if (seasonalNote) {
+                    seasonalNoteEl.textContent = seasonalNote;
+                    seasonalNoteEl.style.display = 'block';
+                } else {
+                    seasonalNoteEl.style.display = 'none';
+                }
+            }
 
             // Show/hide extra guest charge for cottage
             const extraGuestRow = document.getElementById('extraGuestRow');
