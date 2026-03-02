@@ -13,6 +13,7 @@
  * uplisting-pricing-integration.js, and config/properties.js
  */
 
+const crypto = require('crypto');
 const { getPropertyId, getAccommodationName, PROPERTY_IDS } = require('../config/properties');
 const { sanitizeInput } = require('../middleware/auth');
 
@@ -27,6 +28,7 @@ class UplistingService {
      */
     constructor(opts = {}) {
         this.apiKey = opts.apiKey || process.env.UPLISTING_API_KEY;
+        this.webhookSecret = opts.webhookSecret || process.env.UPLISTING_WEBHOOK_SECRET;
         this.getDb = opts.getDb || (() => null);
         this.emailNotifications = opts.emailNotifications || null;
     }
@@ -234,6 +236,38 @@ class UplistingService {
     // ==========================================
     // WEBHOOK HANDLING
     // ==========================================
+
+    /**
+     * Verify the HMAC-SHA256 signature of an incoming Uplisting webhook.
+     *
+     * @param {Buffer} rawBody - The raw request body
+     * @param {string} signature - The X-Uplisting-Signature header value
+     * @returns {{ valid: boolean, reason?: string }} Verification result
+     */
+    verifyWebhookSignature(rawBody, signature) {
+        if (!this.webhookSecret) {
+            console.warn('[SECURITY WARNING] UPLISTING_WEBHOOK_SECRET is not set — skipping signature verification');
+            return { valid: true, reason: 'no_secret_configured' };
+        }
+
+        if (!signature) {
+            return { valid: false, reason: 'missing_signature' };
+        }
+
+        const expectedSignature = crypto
+            .createHmac('sha256', this.webhookSecret)
+            .update(rawBody)
+            .digest('hex');
+
+        const sigBuffer = Buffer.from(signature);
+        const expectedBuffer = Buffer.from(expectedSignature);
+
+        if (sigBuffer.length !== expectedBuffer.length || !crypto.timingSafeEqual(sigBuffer, expectedBuffer)) {
+            return { valid: false, reason: 'signature_mismatch' };
+        }
+
+        return { valid: true };
+    }
 
     /**
      * Handle an incoming Uplisting webhook event.
@@ -512,7 +546,7 @@ class UplistingService {
 
             const today = new Date();
             const endDate = new Date(today);
-            endDate.setDate(endDate.getDate() + 90);
+            endDate.setDate(endDate.getDate() + 365);
             const startStr = today.toISOString().split('T')[0];
             const endStr = endDate.toISOString().split('T')[0];
 

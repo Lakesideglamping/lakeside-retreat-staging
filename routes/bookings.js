@@ -313,8 +313,17 @@ function createBookingRoutes(deps) {
                     logger.error('Seasonal rate query failed during validation:', { error: seasonalErr.message });
                 }
 
-                const minExpected = expectedAccommodationCost * 0.9; // 10% tolerance
-                const maxExpected = expectedAccommodationCost * 1.5; // 50% tolerance for fees
+                // Extra guest fees (cottage only: $100/extra guest/night for guests beyond 2)
+                let expectedExtraGuestFee = 0;
+                if (accommodationConfig.extraGuestFee && sanitizedData.guests > 2) {
+                    expectedExtraGuestFee = (sanitizedData.guests - 2) * accommodationConfig.extraGuestFee * nights;
+                }
+                const cleaningFee = 75;
+                // Pet fees are variable (not sent by frontend), so widen tolerance to account for up to 2 pets
+                const maxPossiblePetFee = (accommodationConfig.petFee || 0) * 2 * nights;
+                const expectedTotal = expectedAccommodationCost + expectedExtraGuestFee + cleaningFee;
+                const minExpected = expectedTotal * 0.9;
+                const maxExpected = (expectedTotal + maxPossiblePetFee) * 1.1;
                 if (sanitizedData.total_price < minExpected || sanitizedData.total_price > maxExpected) {
                     return res.status(400).json({ success: false, error: 'Price validation failed. Please try again.' });
                 }
@@ -453,7 +462,14 @@ function createBookingRoutes(deps) {
                 const hasSecurityDeposit = securityDepositAmount > 0;
 
                 const cleaningFee = 75;
-                const nightlyTotal = booking.total_price - cleaningFee;
+                const nights = Math.ceil(
+                    (new Date(booking.check_out) - new Date(booking.check_in)) / (1000 * 60 * 60 * 24)
+                );
+                let extraGuestFee = 0;
+                if (accommodationConfig?.extraGuestFee && booking.guests > 2) {
+                    extraGuestFee = (booking.guests - 2) * accommodationConfig.extraGuestFee * nights;
+                }
+                const nightlyTotal = booking.total_price - cleaningFee - extraGuestFee;
 
                 const lineItems = [
                     {
@@ -480,6 +496,20 @@ function createBookingRoutes(deps) {
                     }
                 ];
 
+                if (extraGuestFee > 0) {
+                    lineItems.push({
+                        price_data: {
+                            currency: 'nzd',
+                            product_data: {
+                                name: 'Extra Guest Fee',
+                                description: `${booking.guests - 2} extra guest(s) × ${nights} nights (GST inclusive)`
+                            },
+                            unit_amount: Math.round(extraGuestFee * 100)
+                        },
+                        quantity: 1
+                    });
+                }
+
                 if (hasSecurityDeposit) {
                     lineItems.push({
                         price_data: {
@@ -495,8 +525,8 @@ function createBookingRoutes(deps) {
                 }
 
                 const sessionConfig = {
-                    // Let Stripe show the best payment methods for each customer
-                    // (card, Apple Pay, Google Pay, Link, etc.)
+                    // payment_method_types intentionally omitted — Stripe Checkout uses
+                    // automatic payment methods by default (card, Apple Pay, Google Pay, Link, etc.)
                     // Configure available methods in Stripe Dashboard > Settings > Payment methods
                     // Note: Apple Pay requires domain verification in Stripe Dashboard
                     mode: 'payment',

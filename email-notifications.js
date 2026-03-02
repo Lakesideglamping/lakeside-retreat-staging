@@ -409,6 +409,188 @@ class EmailNotifications {
         }
     }
 
+    async sendPaymentFailureNotification(booking) {
+        if (!this.transporter || !this.fromEmail) {
+            logger.warn('📧 Email not configured - payment failure notification skipped');
+            return { success: false, reason: 'Email not configured' };
+        }
+
+        try {
+            const accommodationName = this.formatAccommodationName(booking.accommodation);
+
+            const email = {
+                from: this.fromEmail,
+                to: booking.guest_email,
+                subject: `Payment Issue — Lakeside Retreat Booking #${booking.id.slice(0, 8)}`,
+                html: `
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <style>
+                            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                            .header { background: #2c5530; color: white; padding: 20px; text-align: center; }
+                            .content { padding: 20px; background: #f9f9f9; }
+                            .details-box { background: white; padding: 15px; border-radius: 8px; margin: 15px 0; }
+                            .alert-box { background: #fff3cd; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #ffc107; }
+                            .cta-button { display: inline-block; background: #2c5530; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 10px 0; }
+                            .footer { text-align: center; padding: 20px; font-size: 12px; color: #666; }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="container">
+                            <div class="header">
+                                <h1>Payment Issue</h1>
+                                <p style="margin: 0;">Lakeside Retreat</p>
+                            </div>
+                            <div class="content">
+                                <p>Hi ${booking.guest_name || 'there'},</p>
+
+                                <p>We noticed that the payment for your booking didn't go through. Don't worry — these things happen, and your booking details are still saved.</p>
+
+                                <div class="alert-box">
+                                    <h4 style="margin-top: 0;">What happened?</h4>
+                                    <p style="margin-bottom: 0;">Your payment could not be processed. This can happen for a number of reasons, such as insufficient funds, an expired card, or a temporary issue with your bank.</p>
+                                </div>
+
+                                <div class="details-box">
+                                    <h3 style="margin-top: 0;">Your Booking</h3>
+                                    <p><strong>Accommodation:</strong> ${accommodationName}</p>
+                                    <p><strong>Check-in:</strong> ${new Date(booking.check_in).toLocaleDateString('en-NZ')}</p>
+                                    <p><strong>Check-out:</strong> ${new Date(booking.check_out).toLocaleDateString('en-NZ')}</p>
+                                    <p><strong>Guests:</strong> ${booking.guests}</p>
+                                    <p><strong>Total:</strong> $${booking.total_price}</p>
+                                    <p><strong>Booking ID:</strong> ${booking.id}</p>
+                                </div>
+
+                                <p>To complete your reservation, please try your payment again using the link below:</p>
+
+                                <div style="text-align: center; margin: 25px 0;">
+                                    <a href="https://lakesideretreat.co.nz/stay.html" class="cta-button">Try Payment Again</a>
+                                </div>
+
+                                <p>If you continue to experience issues, please don't hesitate to reach out. We're happy to help you complete your booking.</p>
+
+                                <p>Warm regards,<br>Stephen & Sandy<br>Lakeside Retreat</p>
+                            </div>
+                            <div class="footer">
+                                <p>Lakeside Retreat, 96 Smiths Way, Mount Pisa, Cromwell, Central Otago 9310, New Zealand</p>
+                            </div>
+                        </div>
+                    </body>
+                    </html>
+                `
+            };
+
+            await this.transporter.sendMail(email);
+            logger.info(`✅ Payment failure notification sent to ${booking.guest_email}`);
+            return { success: true };
+
+        } catch (error) {
+            logger.error(`❌ Failed to send payment failure notification to ${booking.guest_email}:`, { error: error.message });
+            return { success: false, error: error.message };
+        }
+    }
+
+    async sendCancellationConfirmation(booking) {
+        if (!this.transporter || !this.fromEmail) {
+            logger.warn('📧 Email not configured - cancellation confirmation skipped');
+            return { success: false, reason: 'Email not configured' };
+        }
+
+        try {
+            const accommodationName = this.formatAccommodationName(booking.accommodation);
+            const checkInDate = new Date(booking.check_in);
+            const now = new Date();
+            const daysUntilArrival = Math.ceil((checkInDate - now) / (1000 * 60 * 60 * 24));
+            const eligibleForRefund = daysUntilArrival >= 14;
+
+            const refundMessage = eligibleForRefund
+                ? `<div class="details-box" style="border-left: 4px solid #28a745;">
+                       <h4 style="margin-top: 0;">Refund Information</h4>
+                       <p style="margin-bottom: 0;">Since you cancelled more than 14 days before your arrival date, you are eligible for a <strong>full refund</strong>. Your refund is being processed and should appear on your statement within 5-10 business days.</p>
+                   </div>`
+                : `<div class="details-box" style="border-left: 4px solid #dc3545;">
+                       <h4 style="margin-top: 0;">Refund Information</h4>
+                       <p style="margin-bottom: 0;">As this cancellation was made within 14 days of your arrival date, it is unfortunately non-refundable per our cancellation policy.</p>
+                   </div>`;
+
+            const email = {
+                from: this.fromEmail,
+                to: booking.guest_email,
+                subject: 'Booking Cancelled — Lakeside Retreat',
+                html: `
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <style>
+                            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                            .header { background: #2c5530; color: white; padding: 20px; text-align: center; }
+                            .content { padding: 20px; background: #f9f9f9; }
+                            .details-box { background: white; padding: 15px; border-radius: 8px; margin: 15px 0; }
+                            .policy-box { background: #f0f8ff; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #17a2b8; }
+                            .cta-button { display: inline-block; background: #2c5530; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 10px 0; }
+                            .footer { text-align: center; padding: 20px; font-size: 12px; color: #666; }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="container">
+                            <div class="header">
+                                <h1>Booking Cancelled</h1>
+                                <p style="margin: 0;">Lakeside Retreat</p>
+                            </div>
+                            <div class="content">
+                                <p>Hi ${booking.guest_name || 'there'},</p>
+
+                                <p>This email confirms that your booking has been cancelled. We're sorry to see you go!</p>
+
+                                <div class="details-box">
+                                    <h3 style="margin-top: 0;">Cancelled Booking Details</h3>
+                                    <p><strong>Accommodation:</strong> ${accommodationName}</p>
+                                    <p><strong>Check-in:</strong> ${new Date(booking.check_in).toLocaleDateString('en-NZ')}</p>
+                                    <p><strong>Check-out:</strong> ${new Date(booking.check_out).toLocaleDateString('en-NZ')}</p>
+                                    <p><strong>Guests:</strong> ${booking.guests}</p>
+                                    <p><strong>Total:</strong> $${booking.total_price}</p>
+                                    <p><strong>Booking ID:</strong> ${booking.id}</p>
+                                </div>
+
+                                <div class="policy-box">
+                                    <h4 style="margin-top: 0;">Cancellation Policy</h4>
+                                    <p style="margin-bottom: 0;">Cancellations 14+ days before arrival receive a full refund. Cancellations within 14 days are non-refundable.</p>
+                                </div>
+
+                                ${refundMessage}
+
+                                <p>We'd love to welcome you another time. If your plans change, you're always welcome to rebook:</p>
+
+                                <div style="text-align: center; margin: 25px 0;">
+                                    <a href="https://lakesideretreat.co.nz/stay.html" class="cta-button">Book Again</a>
+                                </div>
+
+                                <p>If you have any questions about your cancellation or refund, please don't hesitate to get in touch.</p>
+
+                                <p>Warm regards,<br>Stephen & Sandy<br>Lakeside Retreat</p>
+                            </div>
+                            <div class="footer">
+                                <p>Lakeside Retreat, 96 Smiths Way, Mount Pisa, Cromwell, Central Otago 9310, New Zealand</p>
+                            </div>
+                        </div>
+                    </body>
+                    </html>
+                `
+            };
+
+            await this.transporter.sendMail(email);
+            logger.info(`✅ Cancellation confirmation sent to ${booking.guest_email}`);
+            return { success: true };
+
+        } catch (error) {
+            logger.error(`❌ Failed to send cancellation confirmation to ${booking.guest_email}:`, { error: error.message });
+            return { success: false, error: error.message };
+        }
+    }
+
     async sendPaymentNotification(booking, paymentDetails) {
         if (!this.transporter || !this.fromEmail) {
             return { success: false, reason: 'Email not configured' };

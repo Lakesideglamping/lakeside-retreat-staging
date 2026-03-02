@@ -372,28 +372,15 @@ app.post('/api/uplisting/webhook', express.raw({type: 'application/json'}), asyn
             return res.status(400).json({ error: 'Invalid JSON' });
         }
         
-        // Verify webhook signature — always required regardless of environment
-        if (process.env.UPLISTING_WEBHOOK_SECRET) {
+        // Delegate signature verification to the Uplisting service
+        if (uplisting) {
             const signature = req.headers['x-uplisting-signature'];
-            const expectedSignature = crypto
-                .createHmac('sha256', process.env.UPLISTING_WEBHOOK_SECRET)
-                .update(rawBody)
-                .digest('hex');
-
-            const sigBuffer = Buffer.from(signature || '');
-            const expectedBuffer = Buffer.from(expectedSignature);
-            if (sigBuffer.length !== expectedBuffer.length || !crypto.timingSafeEqual(sigBuffer, expectedBuffer)) {
-                logger.error('Invalid Uplisting webhook signature');
+            const verification = uplisting.verifyWebhookSignature(rawBody, signature);
+            if (!verification.valid) {
+                logger.error('Invalid Uplisting webhook signature', { reason: verification.reason });
                 return res.status(400).json({ error: 'Invalid signature' });
             }
-        } else {
-            // Webhook secret not configured — log warning and reject unsigned requests
-            logger.warn('[SECURITY WARNING] UPLISTING_WEBHOOK_SECRET is not set — rejecting unsigned webhook. Set UPLISTING_WEBHOOK_SECRET for webhook handling.');
-            return res.status(503).json({ error: 'Webhook secret not configured' });
-        }
-        
-        // Delegate to the Uplisting service webhook handler
-        if (uplisting) {
+
             const result = await uplisting.handleWebhook(parsedBody);
             res.json(result);
         } else {
@@ -903,8 +890,28 @@ async function handleStripeWebhook(event, res) {
 
                 // Post-payment processing (non-critical: sync + email)
                 if (verifiedBooking) {
+                    // Uplisting sync (tracked separately so retry mechanism can pick up failures)
                     try {
                         await syncBookingToUplisting(verifiedBooking);
+                        await database.run(
+                            `UPDATE bookings SET uplisting_sync_status = 'synced' WHERE id = ?`,
+                            [verifiedBooking.id]
+                        );
+                    } catch (syncErr) {
+                        logger.error('[SYNC] Uplisting sync failed after payment', { bookingId: verifiedBooking.id, error: syncErr.message });
+                        // Store failed sync for retry
+                        try {
+                            await database.run(
+                                `UPDATE bookings SET uplisting_sync_status = 'failed' WHERE id = ?`,
+                                [verifiedBooking.id]
+                            );
+                        } catch (dbErr) {
+                            logger.error('[SYNC] Failed to mark booking for retry', { bookingId: verifiedBooking.id, error: dbErr.message });
+                        }
+                    }
+
+                    // Email confirmation (separate try/catch so sync failure doesn't block email)
+                    try {
                         await sendPaymentConfirmation({
                             guest_name: session.metadata.guest_name,
                             guest_email: session.metadata.guest_email,
@@ -916,9 +923,8 @@ async function handleStripeWebhook(event, res) {
                             security_deposit: (depositAmount / 100).toFixed(2),
                             booking_id: verifiedBooking.id
                         });
-                    } catch (asyncErr) {
-                        logger.error('[PAYMENT] Non-critical post-payment error:', { error: asyncErr.message });
-                        // Don't fail the webhook — payment and booking are saved
+                    } catch (emailErr) {
+                        logger.error('[PAYMENT] Email confirmation failed:', { error: emailErr.message });
                     }
                 }
             } catch (dbErr) {
@@ -983,8 +989,28 @@ async function handleStripeWebhook(event, res) {
 
                 // Post-payment processing (non-critical: sync + email)
                 if (verifiedBooking) {
+                    // Uplisting sync (tracked separately so retry mechanism can pick up failures)
                     try {
                         await syncBookingToUplisting(verifiedBooking);
+                        await database.run(
+                            `UPDATE bookings SET uplisting_sync_status = 'synced' WHERE id = ?`,
+                            [verifiedBooking.id]
+                        );
+                    } catch (syncErr) {
+                        logger.error('[SYNC] Uplisting sync failed after payment', { bookingId: verifiedBooking.id, error: syncErr.message });
+                        // Store failed sync for retry
+                        try {
+                            await database.run(
+                                `UPDATE bookings SET uplisting_sync_status = 'failed' WHERE id = ?`,
+                                [verifiedBooking.id]
+                            );
+                        } catch (dbErr) {
+                            logger.error('[SYNC] Failed to mark booking for retry', { bookingId: verifiedBooking.id, error: dbErr.message });
+                        }
+                    }
+
+                    // Email confirmation (separate try/catch so sync failure doesn't block email)
+                    try {
                         await sendPaymentConfirmation({
                             guest_name: session.metadata.guest_name,
                             guest_email: session.metadata.guest_email,
@@ -995,9 +1021,8 @@ async function handleStripeWebhook(event, res) {
                             total_price: (session.amount_total / 100).toFixed(2),
                             booking_id: verifiedBooking.id
                         });
-                    } catch (asyncErr) {
-                        logger.error('[PAYMENT] Non-critical post-payment error:', { error: asyncErr.message });
-                        // Don't fail the webhook — payment and booking are saved
+                    } catch (emailErr) {
+                        logger.error('[PAYMENT] Email confirmation failed:', { error: emailErr.message });
                     }
                 }
             } catch (dbErr) {
@@ -1079,6 +1104,20 @@ async function handleStripeWebhook(event, res) {
                         function(err) { if (err) reject(err); else resolve(); }
                     );
                 });
+
+                // Send payment failure notification to guest
+                const booking = await new Promise((resolve, reject) => {
+                    db.get('SELECT * FROM bookings WHERE id = ?', [bookingId], (err, row) => {
+                        if (err) reject(err); else resolve(row);
+                    });
+                });
+                if (booking && booking.guest_email && emailNotifications) {
+                    try {
+                        await emailNotifications.sendPaymentFailureNotification(booking);
+                    } catch (emailErr) {
+                        logger.error('[WEBHOOK] Failed to send payment failure email:', { error: emailErr.message });
+                    }
+                }
             }
         } catch (err) {
             logger.error('[WEBHOOK] Failed to record payment failure:', { error: err.message });
@@ -1107,6 +1146,22 @@ async function handleStripeWebhook(event, res) {
                         );
                     });
                     logger.info(`[WEBHOOK] Checkout session expired for booking: ${booking.id}`);
+
+                    // Send cancellation confirmation email to guest
+                    if (emailNotifications) {
+                        try {
+                            const fullBooking = await new Promise((resolve, reject) => {
+                                db.get('SELECT * FROM bookings WHERE id = ?', [booking.id], (err, row) => {
+                                    if (err) reject(err); else resolve(row);
+                                });
+                            });
+                            if (fullBooking?.guest_email) {
+                                await emailNotifications.sendCancellationConfirmation(fullBooking);
+                            }
+                        } catch (emailErr) {
+                            logger.error('[WEBHOOK] Failed to send cancellation email:', { error: emailErr.message });
+                        }
+                    }
                 }
             }
         } catch (err) {
@@ -1302,7 +1357,7 @@ async function retryFailedWebhookEvents() {
     try {
         const unresolvedEvents = await new Promise((resolve, reject) => {
             db.all(
-                `SELECT id, event_id, stripe_session_id, booking_id, error_message, retry_count, created_at
+                `SELECT id, event_id, stripe_session_id, booking_id, error_message, retry_count, last_retry_at, created_at
                  FROM failed_webhook_events
                  WHERE resolved = ? AND retry_count < 10
                  ORDER BY created_at ASC
@@ -1316,12 +1371,24 @@ async function retryFailedWebhookEvents() {
 
         logger.info(`[RETRY] Processing ${unresolvedEvents.length} unresolved failed webhook event(s)...`);
 
+        // Exponential backoff schedule (in minutes): 1m, 2m, 5m, 15m, 30m, 1h, 3h, 6h, 12h, 24h
+        const BACKOFF_MINUTES = [1, 2, 5, 15, 30, 60, 180, 360, 720, 1440];
+
         for (const failedEvent of unresolvedEvents) {
             try {
-                // Increment retry_count for this attempt
+                // Exponential backoff: skip if not enough time has elapsed
+                const retryCount = failedEvent.retry_count || 0;
+                const backoffMinutes = BACKOFF_MINUTES[Math.min(retryCount, BACKOFF_MINUTES.length - 1)];
+                const lastRetryAt = failedEvent.last_retry_at ? new Date(failedEvent.last_retry_at).getTime() : new Date(failedEvent.created_at).getTime();
+                const minutesSinceLastRetry = (Date.now() - lastRetryAt) / 60000;
+                if (minutesSinceLastRetry < backoffMinutes) {
+                    continue; // Skip, not enough time elapsed
+                }
+
+                // Increment retry_count and record last_retry_at for this attempt
                 await new Promise((resolve, reject) => {
                     db.run(
-                        `UPDATE failed_webhook_events SET retry_count = retry_count + 1 WHERE id = ?`,
+                        `UPDATE failed_webhook_events SET retry_count = retry_count + 1, last_retry_at = CURRENT_TIMESTAMP WHERE id = ?`,
                         [failedEvent.id],
                         function(err) { if (err) reject(err); else resolve(); }
                     );

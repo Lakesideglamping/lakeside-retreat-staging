@@ -440,7 +440,7 @@ router.put('/api/admin/booking/:id/status', verifyAdmin, verifyCsrf, [
 
         auditLog(req.admin?.username || 'unknown', 'update_booking_status', { bookingId, newStatus });
 
-        // If cancelling, trigger Stripe refund and Uplisting cancellation
+        // If cancelling, trigger Stripe refund, Uplisting cancellation, and guest email
         if (newStatus === 'cancelled') {
             if (booking.stripe_payment_id && stripe) {
                 try {
@@ -455,6 +455,15 @@ router.put('/api/admin/booking/:id/status', verifyAdmin, verifyCsrf, [
                     await cancelUplistingBooking(booking.uplisting_id);
                 } catch (upErr) {
                     console.error('Uplisting cancel failed:', upErr.message);
+                }
+            }
+
+            // Send cancellation confirmation email to guest
+            if (booking.guest_email && emailNotifications) {
+                try {
+                    await emailNotifications.sendCancellationConfirmation(booking);
+                } catch (emailErr) {
+                    console.error('Cancellation email failed:', emailErr.message);
                 }
             }
         }

@@ -112,11 +112,21 @@ function createTablesPostgres() {
                     security_deposit_released_at TIMESTAMP,
                     security_deposit_claimed_amount DECIMAL(10,2) DEFAULT 0,
                     uplisting_id TEXT,
+                    uplisting_sync_status TEXT DEFAULT 'pending',
                     booking_source TEXT DEFAULT 'unknown',
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             `);
+
+            // Add uplisting_sync_status column if it doesn't exist (migration for existing DBs)
+            await db.query(`
+                DO $$ BEGIN
+                    ALTER TABLE bookings ADD COLUMN uplisting_sync_status TEXT DEFAULT 'pending';
+                EXCEPTION WHEN duplicate_column THEN NULL;
+                END $$;
+            `);
+
             console.log('✅ Bookings table ready (PostgreSQL)');
 
             // Backfill any rows still marked 'unknown' (idempotent — no-op once all rows are tagged)
@@ -232,9 +242,19 @@ function createTablesPostgres() {
                     resolved BOOLEAN DEFAULT false,
                     resolved_at TIMESTAMP,
                     retry_count INTEGER DEFAULT 0,
+                    last_retry_at TIMESTAMP,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             `);
+
+            // Migration: add last_retry_at column if missing (existing DBs)
+            await db.query(`
+                DO $$ BEGIN
+                    ALTER TABLE failed_webhook_events ADD COLUMN last_retry_at TIMESTAMP;
+                EXCEPTION WHEN duplicate_column THEN NULL;
+                END $$;
+            `);
+
             await db.query(`CREATE INDEX IF NOT EXISTS idx_failed_webhook_unresolved ON failed_webhook_events(resolved) WHERE resolved = false`);
             console.log('✅ Failed webhook events table ready (PostgreSQL)');
 
@@ -300,6 +320,7 @@ function createTablesSqlite() {
                 security_deposit_released_at DATETIME,
                 security_deposit_claimed_amount DECIMAL(10,2) DEFAULT 0,
                 uplisting_id TEXT,
+                uplisting_sync_status TEXT DEFAULT 'pending',
                 booking_source TEXT DEFAULT 'unknown',
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -393,6 +414,7 @@ function createTablesSqlite() {
                 resolved INTEGER DEFAULT 0,
                 resolved_at DATETIME,
                 retry_count INTEGER DEFAULT 0,
+                last_retry_at DATETIME,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         `;
@@ -515,6 +537,20 @@ function createTablesSqlite() {
             // Backfill any rows still marked 'unknown' (idempotent — no-op once all rows are tagged)
             db.run(`UPDATE bookings SET booking_source = 'website' WHERE stripe_session_id IS NOT NULL AND booking_source = 'unknown'`);
             db.run(`UPDATE bookings SET booking_source = 'uplisting' WHERE uplisting_id IS NOT NULL AND booking_source = 'unknown'`);
+
+            // Migration: add uplisting_sync_status column if missing (existing DBs)
+            db.run(`ALTER TABLE bookings ADD COLUMN uplisting_sync_status TEXT DEFAULT 'pending'`, (err) => {
+                if (err && !err.message.includes('duplicate column')) {
+                    // Ignore "duplicate column" error — column already exists
+                }
+            });
+
+            // Migration: add last_retry_at column to failed_webhook_events if missing
+            db.run(`ALTER TABLE failed_webhook_events ADD COLUMN last_retry_at DATETIME`, (err) => {
+                if (err && !err.message.includes('duplicate column')) {
+                    // Ignore "duplicate column" error — column already exists
+                }
+            });
 
             // Create indexes for bookings table
             db.run(`CREATE INDEX IF NOT EXISTS idx_bookings_accommodation ON bookings(accommodation)`);
