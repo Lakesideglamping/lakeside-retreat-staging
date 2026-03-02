@@ -19,6 +19,7 @@ const { v4: uuidv4 } = require('uuid');
 
 const { sendError, sanitizeInput, ERROR_CODES } = require('../middleware/auth');
 const accommodations = require('../config/accommodations');
+const database = require('../database');
 
 const bookingLimiter = rateLimit({
     windowMs: 5 * 60 * 1000,
@@ -245,11 +246,12 @@ function createBookingRoutes(deps) {
                     const seasonalSql = `
                         SELECT name, start_date, end_date, multiplier
                         FROM seasonal_rates
-                        WHERE is_active = 1
+                        WHERE is_active = ?
                         AND start_date <= ? AND end_date >= ?
                     `;
+                    const isActiveVal = database.isUsingPostgres() ? true : 1;
                     const seasonalRates = await new Promise((resolve, reject) => {
-                        db().all(seasonalSql, [sanitizedData.check_out, sanitizedData.check_in], (err, rows) => {
+                        db().all(seasonalSql, [isActiveVal, sanitizedData.check_out, sanitizedData.check_in], (err, rows) => {
                             if (err) reject(err);
                             else resolve(rows || []);
                         });

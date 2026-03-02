@@ -19,6 +19,7 @@ const { body, validationResult } = require('express-validator');
 const path = require('path');
 
 const accommodationsConfig = require('../config/accommodations');
+const database = require('../database');
 const { sanitizeInput, escapeHtml } = require('../middleware/auth');
 
 // ==========================================
@@ -194,16 +195,18 @@ function createPublicRoutes(deps) {
             const basePrice = config.basePrice;
 
             // Query active seasonal rates that overlap the booking date range
+            // Use parameterised is_active check for PostgreSQL BOOLEAN compatibility
             const seasonalSql = `
                 SELECT name, start_date, end_date, multiplier
                 FROM seasonal_rates
-                WHERE is_active = 1
+                WHERE is_active = ?
                 AND start_date <= ? AND end_date >= ?
                 ORDER BY multiplier DESC
             `;
+            const isActiveVal = database.isUsingPostgres() ? true : 1;
 
             const seasonalRates = await new Promise((resolve, reject) => {
-                db().all(seasonalSql, [checkout, checkin], (err, rows) => {
+                db().all(seasonalSql, [isActiveVal, checkout, checkin], (err, rows) => {
                     if (err) reject(err);
                     else resolve(rows || []);
                 });
