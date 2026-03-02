@@ -14,3 +14,4 @@ Crawl-delay: 1
 Disallow: /admin/
 Disallow: /.git/
 Disallow: /api/
+Disallow: /node_modules/
