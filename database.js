@@ -119,15 +119,7 @@ function createTablesPostgres() {
             `);
             console.log('✅ Bookings table ready (PostgreSQL)');
 
-            // Migration: add booking_source column to existing databases
-            try {
-                await db.query(`ALTER TABLE bookings ADD COLUMN booking_source TEXT DEFAULT 'unknown'`);
-                console.log('✅ Added booking_source column (PostgreSQL)');
-            } catch (e) {
-                // Column already exists — ignore
-            }
-
-            // Backfill existing rows
+            // Backfill any rows still marked 'unknown' (idempotent — no-op once all rows are tagged)
             await db.query(`UPDATE bookings SET booking_source = 'website' WHERE stripe_session_id IS NOT NULL AND booking_source = 'unknown'`);
             await db.query(`UPDATE bookings SET booking_source = 'uplisting' WHERE uplisting_id IS NOT NULL AND booking_source = 'unknown'`);
 
@@ -518,29 +510,19 @@ function createTablesSqlite() {
                 console.log('✅ Abandoned checkout reminders table ready (SQLite)');
             });
 
-            // Migration: add booking_source column to existing databases
-            db.run(`ALTER TABLE bookings ADD COLUMN booking_source TEXT DEFAULT 'unknown'`, (err) => {
-                if (err && !err.message.includes('duplicate column')) {
-                    // Column already exists — ignore
-                }
-                if (!err) {
-                    console.log('✅ Added booking_source column (SQLite)');
-                }
+            // Backfill any rows still marked 'unknown' (idempotent — no-op once all rows are tagged)
+            db.run(`UPDATE bookings SET booking_source = 'website' WHERE stripe_session_id IS NOT NULL AND booking_source = 'unknown'`);
+            db.run(`UPDATE bookings SET booking_source = 'uplisting' WHERE uplisting_id IS NOT NULL AND booking_source = 'unknown'`);
 
-                // Backfill existing rows
-                db.run(`UPDATE bookings SET booking_source = 'website' WHERE stripe_session_id IS NOT NULL AND booking_source = 'unknown'`);
-                db.run(`UPDATE bookings SET booking_source = 'uplisting' WHERE uplisting_id IS NOT NULL AND booking_source = 'unknown'`);
-
-                // Create indexes for bookings table
-                db.run(`CREATE INDEX IF NOT EXISTS idx_bookings_accommodation ON bookings(accommodation)`);
-                db.run(`CREATE INDEX IF NOT EXISTS idx_bookings_check_in ON bookings(check_in)`);
-                db.run(`CREATE INDEX IF NOT EXISTS idx_bookings_check_out ON bookings(check_out)`);
-                db.run(`CREATE INDEX IF NOT EXISTS idx_bookings_status ON bookings(status)`);
-                db.run(`CREATE INDEX IF NOT EXISTS idx_bookings_created_at ON bookings(created_at)`);
-                db.run(`CREATE INDEX IF NOT EXISTS idx_bookings_booking_source ON bookings(booking_source)`, () => {
-                    console.log('✅ Bookings indexes ready (SQLite)');
-                    resolve();
-                });
+            // Create indexes for bookings table
+            db.run(`CREATE INDEX IF NOT EXISTS idx_bookings_accommodation ON bookings(accommodation)`);
+            db.run(`CREATE INDEX IF NOT EXISTS idx_bookings_check_in ON bookings(check_in)`);
+            db.run(`CREATE INDEX IF NOT EXISTS idx_bookings_check_out ON bookings(check_out)`);
+            db.run(`CREATE INDEX IF NOT EXISTS idx_bookings_status ON bookings(status)`);
+            db.run(`CREATE INDEX IF NOT EXISTS idx_bookings_created_at ON bookings(created_at)`);
+            db.run(`CREATE INDEX IF NOT EXISTS idx_bookings_booking_source ON bookings(booking_source)`, () => {
+                console.log('✅ Bookings indexes ready (SQLite)');
+                resolve();
             });
         });
     });

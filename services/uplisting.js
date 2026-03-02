@@ -239,7 +239,7 @@ class UplistingService {
      * Handle an incoming Uplisting webhook event.
      * Upserts booking data into local database.
      */
-    async handleWebhook(parsedBody, res) {
+    async handleWebhook(parsedBody) {
         const { event, data } = parsedBody;
 
         if (event === 'booking.created' || event === 'booking.updated') {
@@ -286,48 +286,38 @@ class UplistingService {
                     updated_at = CURRENT_TIMESTAMP
             `;
 
-            try {
-                const database = require('../database');
-                await database.run(sql, [
-                    bookingData.id, bookingData.guest_name, bookingData.guest_email,
-                    bookingData.guest_phone, bookingData.accommodation,
-                    bookingData.check_in, bookingData.check_out, bookingData.guests,
-                    bookingData.total_price, bookingData.status,
-                    bookingData.payment_status, bookingData.notes, bookingData.uplisting_id,
-                    bookingData.booking_source
-                ]);
-                console.log('Uplisting booking synced:', data.id);
-                console.log(`New external booking from ${channel}: ${bookingData.guest_name} at ${bookingData.accommodation} (${bookingData.check_in} to ${bookingData.check_out})`);
-                if (this.emailNotifications) {
-                    try {
-                        this.emailNotifications.sendSystemAlert('New External Booking',
-                            `New booking from ${channel}: ${bookingData.guest_name} at ${bookingData.accommodation} (${bookingData.check_in} to ${bookingData.check_out})`
-                        );
-                    } catch (emailErr) {
-                        console.error('Failed to send admin notification for external booking:', emailErr.message);
-                    }
+            const database = require('../database');
+            await database.run(sql, [
+                bookingData.id, bookingData.guest_name, bookingData.guest_email,
+                bookingData.guest_phone, bookingData.accommodation,
+                bookingData.check_in, bookingData.check_out, bookingData.guests,
+                bookingData.total_price, bookingData.status,
+                bookingData.payment_status, bookingData.notes, bookingData.uplisting_id,
+                bookingData.booking_source
+            ]);
+            console.log('Uplisting booking synced:', data.id);
+            console.log(`New external booking from ${channel}: ${bookingData.guest_name} at ${bookingData.accommodation} (${bookingData.check_in} to ${bookingData.check_out})`);
+            if (this.emailNotifications) {
+                try {
+                    this.emailNotifications.sendSystemAlert('New External Booking',
+                        `New booking from ${channel}: ${bookingData.guest_name} at ${bookingData.accommodation} (${bookingData.check_in} to ${bookingData.check_out})`
+                    );
+                } catch (emailErr) {
+                    console.error('Failed to send admin notification for external booking:', emailErr.message);
                 }
-                res.json({ received: true });
-            } catch (dbErr) {
-                console.error('Failed to sync Uplisting booking:', dbErr.message);
-                res.status(500).json({ received: false, error: 'Database write failed' });
             }
+            return { received: true };
         } else if (event === 'booking.cancelled' || event === 'booking.deleted') {
             const bookingId = `uplisting-${data.id}`;
-            try {
-                const database = require('../database');
-                await database.run(
-                    `UPDATE bookings SET status = 'cancelled', updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
-                    [bookingId]
-                );
-                console.log('Uplisting booking cancelled:', data.id);
-                res.json({ received: true });
-            } catch (dbErr) {
-                console.error('Failed to cancel Uplisting booking:', dbErr.message);
-                res.status(500).json({ received: false, error: 'Database write failed' });
-            }
+            const database = require('../database');
+            await database.run(
+                `UPDATE bookings SET status = 'cancelled', updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+                [bookingId]
+            );
+            console.log('Uplisting booking cancelled:', data.id);
+            return { received: true };
         } else {
-            res.json({ received: true });
+            return { received: true };
         }
     }
 

@@ -366,15 +366,18 @@ app.post('/api/uplisting/webhook', express.raw({type: 'application/json'}), asyn
         
         // Delegate to the Uplisting service webhook handler
         if (uplisting) {
-            await uplisting.handleWebhook(parsedBody, res);
+            const result = await uplisting.handleWebhook(parsedBody);
+            res.json(result);
         } else {
             console.warn('⚠️ Uplisting service not initialized yet');
             res.json({ received: true, warning: 'Service initializing' });
         }
-        
+
     } catch (error) {
         console.error('Uplisting webhook error:', error.message);
-        return res.status(500).json({ error: 'Webhook processing failed' });
+        if (!res.headersSent) {
+            return res.status(500).json({ error: 'Webhook processing failed' });
+        }
     }
 });
 
@@ -794,24 +797,37 @@ async function handleStripeWebhook(event, res) {
                 amount_to_capture: bookingAmount
             });
 
-            // Create separate payment intent for security deposit authorization hold
-            const depositIntent = await stripe.paymentIntents.create({
-                amount: depositAmount,
-                currency: 'nzd',
-                payment_method: paymentIntent.payment_method,
-                customer: session.customer,
-                capture_method: 'manual',
-                confirm: true,
-                metadata: {
+            // Create separate payment intent for security deposit authorization hold.
+            // If this fails (e.g. card declined for hold), the booking payment is still
+            // captured — we mark the booking confirmed without a deposit hold.
+            let depositIntent = null;
+            try {
+                depositIntent = await stripe.paymentIntents.create({
+                    amount: depositAmount,
+                    currency: 'nzd',
+                    payment_method: paymentIntent.payment_method,
+                    customer: session.customer,
+                    capture_method: 'manual',
+                    confirm: true,
+                    metadata: {
+                        bookingId: session.metadata.bookingId,
+                        type: 'security_deposit'
+                    }
+                });
+            } catch (depositErr) {
+                console.error('[PAYMENT] Security deposit hold failed (booking payment already captured):', {
+                    sessionId: session.id,
                     bookingId: session.metadata.bookingId,
-                    type: 'security_deposit'
-                }
-            });
+                    error: depositErr.message
+                });
+                // Continue without deposit — booking is still valid
+            }
 
-            // Update booking with both payment IDs and security deposit status.
+            // Update booking with payment IDs and security deposit status (if deposit succeeded).
             // Match by stripe_session_id first, fall back to booking ID from metadata
             // in case the session ID was not stored during payment session creation.
             try {
+                const depositSucceeded = depositIntent !== null;
                 const updateSql = `
                     UPDATE bookings
                     SET payment_status = 'completed',
@@ -819,13 +835,15 @@ async function handleStripeWebhook(event, res) {
                         stripe_payment_id = ?,
                         stripe_session_id = COALESCE(stripe_session_id, ?),
                         security_deposit_intent_id = ?,
-                        security_deposit_status = 'authorized'
+                        security_deposit_status = ?
                     WHERE stripe_session_id = ? OR id = ?
                 `;
 
                 await new Promise((resolve, reject) => {
                     db.run(updateSql, [
-                        capturedPayment.id, session.id, depositIntent.id,
+                        capturedPayment.id, session.id,
+                        depositSucceeded ? depositIntent.id : null,
+                        depositSucceeded ? 'authorized' : 'failed',
                         session.id, session.metadata.bookingId
                     ], function(err) {
                         if (err) reject(err); else resolve();
@@ -844,13 +862,15 @@ async function handleStripeWebhook(event, res) {
                     throw new Error('DB update verification failed — booking not found or payment_status not updated');
                 }
 
-                console.log('Booking confirmed with security deposit for session:', session.id);
+                console.log(`Booking confirmed${depositSucceeded ? ' with security deposit' : ' (deposit hold failed)'} for session:`, session.id);
 
                 // Record successful processing for idempotency
                 db.run('INSERT OR IGNORE INTO processed_webhook_events (event_id) VALUES (?)', [event.id]);
 
-                // Schedule automatic release of security deposit
-                scheduleDepositRelease(session.metadata.bookingId, depositIntent.id);
+                // Schedule automatic release of security deposit (only if deposit succeeded)
+                if (depositSucceeded) {
+                    scheduleDepositRelease(session.metadata.bookingId, depositIntent.id);
+                }
 
                 // Post-payment processing (non-critical: sync + email)
                 if (verifiedBooking) {

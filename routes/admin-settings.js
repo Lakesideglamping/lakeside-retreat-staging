@@ -651,9 +651,31 @@ router.post('/api/admin/backups/restore', verifyAdmin, verifyCsrf, async (req, r
     try {
         // For database backups, copy the backup file over the current database
         if (filename.endsWith('.db')) {
+            // Validate SQLite file header before restoring
+            const header = Buffer.alloc(16);
+            const fd = fs.openSync(backupPath, 'r');
+            fs.readSync(fd, header, 0, 16, 0);
+            fs.closeSync(fd);
+            if (header.toString('utf8', 0, 15) !== 'SQLite format 3') {
+                return res.status(400).json({ success: false, error: 'Invalid backup file — not a valid SQLite database' });
+            }
+
             const dbPath = process.env.SQLITE_PATH || './lakeside.db';
+
+            // Create a safety backup of current database before overwriting
+            const safetyBackupPath = path.join('./backups', `pre-restore-${Date.now()}.db`);
+            try {
+                if (fs.existsSync(dbPath)) {
+                    fs.copyFileSync(dbPath, safetyBackupPath);
+                    console.log('Pre-restore safety backup created:', safetyBackupPath);
+                }
+            } catch (safetyErr) {
+                console.error('Failed to create pre-restore backup:', safetyErr.message);
+                return res.status(500).json({ success: false, error: 'Cannot create safety backup before restore — aborting to protect data' });
+            }
+
             fs.copyFileSync(backupPath, dbPath);
-            res.json({ success: true, message: 'Database backup restored. Please restart the server for changes to take effect.' });
+            res.json({ success: true, message: `Database backup restored. Safety backup saved as ${path.basename(safetyBackupPath)}. Please restart the server for changes to take effect.` });
         } else if (filename.endsWith('.json')) {
             // JSON backups contain settings/config data
             const backupData = JSON.parse(fs.readFileSync(backupPath, 'utf8'));
