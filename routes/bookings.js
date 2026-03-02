@@ -437,10 +437,22 @@ function createBookingRoutes(deps) {
                 }
 
                 if (DEV_MODE || !stripe) {
+                    const mockSessionId = 'dev_mock_session_' + bookingId;
                     logger.info('⚠️ DEV_MODE: Returning mock payment session for booking', { bookingId });
+
+                    // Store mock session ID so /booking-success can look it up
+                    try {
+                        await new Promise((resolve, reject) => {
+                            db().run('UPDATE bookings SET stripe_session_id = ? WHERE id = ?',
+                                [mockSessionId, bookingId], (err) => err ? reject(err) : resolve());
+                        });
+                    } catch (dbErr) {
+                        logger.error('Failed to store mock session ID', { bookingId, error: dbErr.message });
+                    }
+
                     return res.json({
-                        sessionId: 'dev_mock_session_' + bookingId,
-                        url: '/booking-success?session_id=dev_mock_session_' + bookingId,
+                        sessionId: mockSessionId,
+                        url: '/booking-success?session_id=' + mockSessionId,
                         devMode: true,
                         message: 'Development mode - payments disabled.'
                     });

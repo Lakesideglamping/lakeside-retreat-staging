@@ -346,8 +346,8 @@
                         <div style="display: flex; align-items: center; gap: 0.5rem;">
                             <span style="color: #f59e0b; font-size: 1.2rem;">⚠️</span>
                             <div>
-                                <strong style="color: #92400e;">Lakeside Cottage - Peak Season Notice</strong>
-                                <p style="margin: 0.5rem 0 0 0; color: #92400e; font-size: 0.9rem;">Minimum 2-night stay required during peak season (October to May)</p>
+                                <strong style="color: #92400e;">Lakeside Cottage - Minimum Stay</strong>
+                                <p style="margin: 0.5rem 0 0 0; color: #92400e; font-size: 0.9rem;">Minimum 2-night stay required for Lakeside Cottage</p>
                             </div>
                         </div>
                     </div>
@@ -3425,7 +3425,7 @@
         <div class="page" id="bookingCancelledPage">
             <section style="min-height: 80vh; display: flex; align-items: center; justify-content: center; padding: 2rem;">
                 <div style="max-width: 600px; width: 100%; text-align: center;">
-                    <div style="font-size: 4rem; margin-bottom: 1rem;">🔙</div>
+                    <div style="font-size: 4rem; margin-bottom: 1rem;">↩️</div>
                     <h2 style="color: var(--brand-teal); margin-bottom: 1rem;">Booking Not Completed</h2>
                     <p style="color: #555; margin-bottom: 1.5rem;">It looks like you left the checkout before completing your payment. No charges have been made to your card.</p>
                     <div style="background: #eff6ff; border: 1px solid #93c5fd; padding: 1rem; border-radius: 8px; margin-bottom: 2rem; font-size: 0.9rem; color: #1e40af;">
@@ -4894,9 +4894,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // Validate cottage minimum stay requirements
+            // Validate cottage minimum stay requirements (shows its own error inline)
             if (!validateCottageMinimumStay()) {
-                showFormError('date', 'Minimum 2-night stay required for Lakeside Cottage');
                 resetBookBtn();
                 return;
             }
@@ -5893,7 +5892,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <p>Dome Pinot & Dome Rosé: Maximum 2 adults, no children permitted. Lakeside Cottage: Maximum 3 guests, children and pets welcome.</p>
                         
                         <h3>5. Minimum Stay Requirements</h3>
-                        <p>Minimum 2-night stay applies to Lakeside Cottage during peak season (October to May). Single night bookings may be available during off-peak periods for all accommodations.</p>
+                        <p>Minimum 2-night stay applies to Lakeside Cottage year-round. Single night bookings may be available for glamping domes.</p>
                         
                         <h3>6. Special Requests</h3>
                         <p>Special requests (early check-in, late check-out, dietary requirements) should be made at time of booking. We will accommodate requests where possible but cannot guarantee availability.</p>
@@ -7033,8 +7032,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Handle /booking-success page: verify payment and show booking details
-        async function handleBookingSuccess() {
-            const params = new URLSearchParams(location.search);
+        async function handleBookingSuccess(searchStr) {
+            const params = new URLSearchParams(searchStr || location.search);
             const sessionId = params.get('session_id');
             const loadingEl = document.getElementById('bookingSuccessLoading');
             const contentEl = document.getElementById('bookingSuccessContent');
@@ -7086,18 +7085,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Initialize page navigation when DOM is loaded
         document.addEventListener('DOMContentLoaded', function() {
-            // Route based on current URL path
+            // Capture query params BEFORE showPage pushes a clean URL
+            const initialSearch = location.search;
+
+            // Route based on current URL path (direct matching since PAGE_META is in another scope)
             const path = location.pathname;
-            const pathMap = {};
-            Object.entries(PAGE_META).forEach(([page, meta]) => {
-                pathMap[meta.path] = page;
-            });
-            const initialPage = pathMap[path] || 'home';
+            const routeMap = {
+                '/booking-success': 'bookingSuccess',
+                '/booking-cancelled': 'bookingCancelled'
+            };
+            const initialPage = routeMap[path] || 'home';
             showPage(initialPage);
 
             // Handle booking-success: verify payment via API
-            if (initialPage === 'bookingSuccess') {
-                handleBookingSuccess();
+            if (initialPage === 'bookingSuccess' && typeof handleBookingSuccess === 'function') {
+                handleBookingSuccess(initialSearch);
             }
 
             // Initialize back to top button
