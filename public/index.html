@@ -7088,14 +7088,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const checkoutEl = document.getElementById('bookingCheckout');
         if (!checkinEl || !checkoutEl) return;
 
-        const modalContent = document.querySelector('.booking-modal-content');
+
 
         checkinPicker = flatpickr(checkinEl, {
             dateFormat: 'Y-m-d',
             minDate: 'today',
             disable: currentBlockedDates,
             disableMobile: true,
-            appendTo: modalContent,
             onChange(selectedDates) {
                 if (selectedDates.length > 0) {
                     const nextDay = new Date(selectedDates[0]);
@@ -7119,7 +7118,6 @@ document.addEventListener('DOMContentLoaded', () => {
             minDate: 'today',
             disable: currentBlockedDates,
             disableMobile: true,
-            appendTo: modalContent,
             onChange() {
                 clearFormError('date');
                 updateNightsCount();
