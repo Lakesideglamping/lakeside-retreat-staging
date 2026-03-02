@@ -332,7 +332,7 @@ app.post('/api/stripe/webhook', express.raw({type: 'application/json'}), async (
 
 // CRITICAL: Uplisting webhook MUST be defined BEFORE express.json() middleware
 // because signature verification requires the raw request body
-app.post('/api/uplisting/webhook', express.raw({type: 'application/json'}), (req, res) => {
+app.post('/api/uplisting/webhook', express.raw({type: 'application/json'}), async (req, res) => {
     try {
         const rawBody = req.body;
         let parsedBody;
@@ -366,7 +366,7 @@ app.post('/api/uplisting/webhook', express.raw({type: 'application/json'}), (req
         
         // Delegate to the Uplisting service webhook handler
         if (uplisting) {
-            uplisting.handleWebhook(parsedBody, res);
+            await uplisting.handleWebhook(parsedBody, res);
         } else {
             console.warn('⚠️ Uplisting service not initialized yet');
             res.json({ received: true, warning: 'Service initializing' });
