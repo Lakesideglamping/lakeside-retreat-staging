@@ -182,15 +182,11 @@ app.get('/health', async (req, res) => {
 
     try {
         // Run a lightweight query to verify the DB connection is alive
-        await new Promise((resolve, reject) => {
-            db.get('SELECT 1 AS ok', [], (err, row) => {
-                if (err) reject(err);
-                else resolve(row);
-            });
-        });
+        // Uses the database module's get() which works for both SQLite and PostgreSQL
+        await database.get('SELECT 1 AS ok');
         health.database = 'connected';
     } catch (err) {
-        logger.error('Health check DB query failed:', { error: err.message });
+        logger.error('Health check DB query failed', { error: err.message });
         health.status = 'degraded';
         health.database = 'disconnected';
         return res.status(503).json(health);
