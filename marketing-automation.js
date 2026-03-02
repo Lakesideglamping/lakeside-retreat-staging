@@ -739,6 +739,25 @@ class MarketingAutomation {
     }
 
     // ==========================================
+    // OTA BOOKING DETECTION
+    // ==========================================
+
+    /** OTA channels that send their own guest communications */
+    static OTA_CHANNELS = ['airbnb', 'booking.com', 'booking_com', 'vrbo', 'expedia', 'homeaway', 'tripadvisor'];
+
+    /**
+     * Check whether a booking originated from an OTA platform.
+     * OTA platforms send their own guest emails, so we suppress ours.
+     */
+    isOtaBooking(booking) {
+        const source = (booking.booking_source || '').toLowerCase().trim();
+        if (!source || source === 'direct' || source === 'website' || source === 'unknown') {
+            return false;
+        }
+        return MarketingAutomation.OTA_CHANNELS.some(ch => source.includes(ch));
+    }
+
+    // ==========================================
     // FEATURE 4a: During-Stay Check-in Email
     // ==========================================
 
@@ -772,6 +791,12 @@ class MarketingAutomation {
             console.log(`[Marketing] Found ${eligibleBookings.length} bookings checking in today (${today})`);
 
             for (const booking of eligibleBookings) {
+                // Skip OTA bookings -- those platforms send their own guest communications
+                if (this.isOtaBooking(booking)) {
+                    console.log(`[Marketing] Skipping during-stay email for OTA booking ${booking.id} (source: ${booking.booking_source})`);
+                    continue;
+                }
+
                 // Check if during-stay email was already sent for this booking
                 const alreadySent = await this.isDuringStayEmailSent(booking.id);
                 if (alreadySent) {
@@ -867,6 +892,12 @@ class MarketingAutomation {
             console.log(`[Marketing] Found ${eligibleBookings.length} bookings checking out today (${today})`);
 
             for (const booking of eligibleBookings) {
+                // Skip OTA bookings -- those platforms send their own guest communications
+                if (this.isOtaBooking(booking)) {
+                    console.log(`[Marketing] Skipping checkout thank-you email for OTA booking ${booking.id} (source: ${booking.booking_source})`);
+                    continue;
+                }
+
                 // Check if checkout thank-you email was already sent for this booking
                 const alreadySent = await this.isCheckoutThanksEmailSent(booking.id);
                 if (alreadySent) {

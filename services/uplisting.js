@@ -7,7 +7,7 @@
  * - Booking cancellation
  * - Webhook handling
  * - Dashboard data retrieval
- * - Pricing data retrieval
+ * - Calendar reconciliation
  * 
  * Previously scattered across: server.js, uplisting-dashboard-api.js,
  * uplisting-pricing-integration.js, and config/properties.js
@@ -412,73 +412,6 @@ class UplistingService {
         } catch (error) {
             console.error('❌ Uplisting dashboard error:', error);
             return { success: false, error: error.message, total_properties: 0, properties: [] };
-        }
-    }
-
-    // ==========================================
-    // PRICING DATA
-    // (Previously in uplisting-pricing-integration.js)
-    // ==========================================
-
-    /**
-     * Fetch pricing details (fees, taxes, discounts) from Uplisting.
-     * Note: Uplisting doesn't expose nightly rates via API.
-     */
-    async getPricingData() {
-        if (!this.isConfigured) return null;
-
-        try {
-            const response = await this.fetchWithRetry(`${UPLISTING_API_BASE}/properties?include=fees,taxes,discounts`, {
-                headers: { 'Authorization': this.authHeader, 'Content-Type': 'application/json' }
-            });
-
-            if (!response.ok) throw new Error(`API request failed: ${response.status}`);
-
-            const data = await response.json();
-            const properties = {};
-
-            (data.data || []).forEach(property => {
-                properties[property.id] = {
-                    id: property.id,
-                    name: property.attributes.name,
-                    currency: property.attributes.currency,
-                    maximum_capacity: property.attributes.maximum_capacity,
-                    fees: {},
-                    taxes: {},
-                    discounts: {}
-                };
-            });
-
-            if (data.included) {
-                data.included.forEach(item => {
-                    const propertyId = item.id.split('-')[0];
-                    if (!properties[propertyId]) return;
-
-                    const attrs = item.attributes;
-                    if (item.type === 'property_fees') {
-                        properties[propertyId].fees[attrs.label] = {
-                            name: attrs.name, amount: attrs.amount,
-                            enabled: attrs.enabled, guests_included: attrs.guests_included
-                        };
-                    } else if (item.type === 'property_taxes') {
-                        properties[propertyId].taxes[attrs.label] = {
-                            name: attrs.name, type: attrs.type,
-                            per: attrs.per, amount: attrs.amount
-                        };
-                    } else if (item.type === 'property_discounts') {
-                        properties[propertyId].discounts[attrs.label] = {
-                            name: attrs.name, type: attrs.type,
-                            days: attrs.days, amount: attrs.amount
-                        };
-                    }
-                });
-            }
-
-            return properties;
-
-        } catch (error) {
-            console.error('❌ Failed to get Uplisting pricing:', error.message);
-            return null;
         }
     }
 

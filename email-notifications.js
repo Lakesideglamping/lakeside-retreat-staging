@@ -1,10 +1,11 @@
 const nodemailer = require('nodemailer');
 require('dotenv').config();
+const { logger } = require('./logger');
 
 class EmailNotifications {
     constructor(transporter = null) {
         if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-            console.warn('⚠️ Email credentials not configured (EMAIL_USER/EMAIL_PASS). Email notifications will be disabled.');
+            logger.warn('⚠️ Email credentials not configured (EMAIL_USER/EMAIL_PASS). Email notifications will be disabled.');
         }
 
         this.transporter = transporter || nodemailer.createTransport({
@@ -23,7 +24,7 @@ class EmailNotifications {
     
     async sendBookingConfirmation(booking) {
         if (!this.transporter || !this.fromEmail) {
-            console.log('📧 Email not configured - booking confirmation skipped');
+            logger.warn('📧 Email not configured - booking confirmation skipped');
             return { success: false, reason: 'Email not configured' };
         }
         
@@ -111,18 +112,18 @@ class EmailNotifications {
                 this.transporter.sendMail(adminEmail)
             ]);
             
-            console.log('✅ Booking confirmation emails sent');
+            logger.info('✅ Booking confirmation emails sent');
             return { success: true };
             
         } catch (error) {
-            console.error('❌ Failed to send booking confirmation:', error);
+            logger.error('❌ Failed to send booking confirmation:', { error: error.message });
             return { success: false, error: error.message };
         }
     }
     
     async sendPreArrivalInstructions(booking) {
         if (!this.transporter || !this.fromEmail) {
-            console.log('📧 Email not configured - pre-arrival instructions skipped');
+            logger.warn('📧 Email not configured - pre-arrival instructions skipped');
             return { success: false, reason: 'Email not configured' };
         }
 
@@ -233,11 +234,11 @@ class EmailNotifications {
             };
 
             await this.transporter.sendMail(email);
-            console.log(`✅ Pre-arrival instructions sent to ${booking.guest_email}`);
+            logger.info(`✅ Pre-arrival instructions sent to ${booking.guest_email}`);
             return { success: true };
 
         } catch (error) {
-            console.error(`❌ Failed to send pre-arrival instructions to ${booking.guest_email}:`, error);
+            logger.error(`❌ Failed to send pre-arrival instructions to ${booking.guest_email}:`, { error: error.message });
             return { success: false, error: error.message };
         }
     }
@@ -253,7 +254,7 @@ class EmailNotifications {
 
     async sendDuringStayCheckin(booking) {
         if (!this.transporter || !this.fromEmail) {
-            console.log('📧 Email not configured - during-stay check-in skipped');
+            logger.warn('📧 Email not configured - during-stay check-in skipped');
             return { success: false, reason: 'Email not configured' };
         }
 
@@ -315,18 +316,18 @@ class EmailNotifications {
             };
 
             await this.transporter.sendMail(email);
-            console.log(`✅ During-stay check-in email sent to ${booking.guest_email}`);
+            logger.info(`✅ During-stay check-in email sent to ${booking.guest_email}`);
             return { success: true };
 
         } catch (error) {
-            console.error(`❌ Failed to send during-stay check-in to ${booking.guest_email}:`, error);
+            logger.error(`❌ Failed to send during-stay check-in to ${booking.guest_email}:`, { error: error.message });
             return { success: false, error: error.message };
         }
     }
 
     async sendCheckoutThankYou(booking) {
         if (!this.transporter || !this.fromEmail) {
-            console.log('📧 Email not configured - checkout thank-you skipped');
+            logger.warn('📧 Email not configured - checkout thank-you skipped');
             return { success: false, reason: 'Email not configured' };
         }
 
@@ -399,11 +400,11 @@ class EmailNotifications {
             };
 
             await this.transporter.sendMail(email);
-            console.log(`✅ Checkout thank-you email sent to ${booking.guest_email}`);
+            logger.info(`✅ Checkout thank-you email sent to ${booking.guest_email}`);
             return { success: true };
 
         } catch (error) {
-            console.error(`❌ Failed to send checkout thank-you to ${booking.guest_email}:`, error);
+            logger.error(`❌ Failed to send checkout thank-you to ${booking.guest_email}:`, { error: error.message });
             return { success: false, error: error.message };
         }
     }
@@ -442,11 +443,11 @@ class EmailNotifications {
             };
             
             await this.transporter.sendMail(email);
-            console.log('✅ Payment notification sent');
+            logger.info('✅ Payment notification sent');
             return { success: true };
             
         } catch (error) {
-            console.error('❌ Failed to send payment notification:', error);
+            logger.error('❌ Failed to send payment notification:', { error: error.message });
             return { success: false, error: error.message };
         }
     }
@@ -502,11 +503,11 @@ class EmailNotifications {
             };
             
             await this.transporter.sendMail(email);
-            console.log(`✅ System alert sent: ${alertType}`);
+            logger.info(`✅ System alert sent: ${alertType}`);
             return { success: true };
             
         } catch (error) {
-            console.error('❌ Failed to send system alert:', error);
+            logger.error('❌ Failed to send system alert:', { error: error.message });
             return { success: false, error: error.message };
         }
     }
@@ -540,11 +541,11 @@ class EmailNotifications {
             };
             
             await this.transporter.sendMail(testEmail);
-            console.log('✅ Test email sent successfully');
+            logger.info('✅ Test email sent successfully');
             return { success: true };
             
         } catch (error) {
-            console.error('❌ Email test failed:', error);
+            logger.error('❌ Email test failed:', { error: error.message });
             return { success: false, error: error.message };
         }
     }

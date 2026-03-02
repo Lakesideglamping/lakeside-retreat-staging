@@ -20,6 +20,7 @@ const { v4: uuidv4 } = require('uuid');
 const { sendError, sanitizeInput, ERROR_CODES } = require('../middleware/auth');
 const accommodations = require('../config/accommodations');
 const database = require('../database');
+const { logger } = require('../logger');
 
 const bookingLimiter = rateLimit({
     windowMs: 5 * 60 * 1000,
@@ -83,7 +84,7 @@ function createBookingRoutes(deps) {
 
             db().all(sql, [accommodation], async (err, rows) => {
                 if (err) {
-                    console.error('Error fetching blocked dates:', err);
+                    logger.error('Error fetching blocked dates:', { error: err?.message });
                     return res.json({ success: true, blockedDates: [] });
                 }
 
@@ -112,7 +113,7 @@ function createBookingRoutes(deps) {
                         }
                     }
                 } catch (uplistingErr) {
-                    console.error('Uplisting blocked dates fetch failed, using local only:', uplistingErr.message);
+                    logger.warn('Uplisting blocked dates fetch failed, using local only:', { error: uplistingErr.message });
                 }
 
                 // Merge and deduplicate
@@ -123,7 +124,7 @@ function createBookingRoutes(deps) {
                 res.json({ success: true, blockedDates: [...localDates].sort() });
             });
         } catch (error) {
-            console.error('Error in blocked-dates endpoint:', error);
+            logger.error('Error in blocked-dates endpoint:', { error: error?.message });
             res.json({ success: true, blockedDates: [] });
         }
     });
@@ -141,7 +142,7 @@ function createBookingRoutes(deps) {
                 ? await checkAvailability(accommodation, checkIn, checkOut)
                 : true;
 
-            console.log(`📅 Availability check for ${accommodation}: ${checkIn} to ${checkOut} - ${isAvailable ? 'AVAILABLE' : 'NOT AVAILABLE'}`);
+            logger.info(`📅 Availability check for ${accommodation}: ${checkIn} to ${checkOut} - ${isAvailable ? 'AVAILABLE' : 'NOT AVAILABLE'}`);
 
             res.json({
                 success: true,
@@ -149,14 +150,14 @@ function createBookingRoutes(deps) {
                 source: checkAvailability ? 'uplisting+local' : 'default'
             });
         } catch (error) {
-            console.error('Error in availability endpoint:', error);
+            logger.error('Error in availability endpoint:', { error: error?.message });
             return res.status(503).json({ success: false, available: false, error: 'Service temporarily unavailable' });
         }
     });
 
     // --- Legacy endpoints ---
     router.post('/api/process-booking', bookingLimiter, async (req, res) => {
-        console.log('⚠️ Legacy endpoint /api/process-booking called - redirecting to /api/bookings');
+        logger.warn('⚠️ Legacy endpoint /api/process-booking called - redirecting to /api/bookings');
         const legacyData = req.body;
         req.body = {
             firstName: legacyData.guest_name?.split(' ')[0] || '',
@@ -174,7 +175,7 @@ function createBookingRoutes(deps) {
     });
 
     router.post('/api/create-booking', bookingLimiter, async (req, res) => {
-        console.log('⚠️ Legacy endpoint /api/create-booking called - redirecting to /api/bookings');
+        logger.warn('⚠️ Legacy endpoint /api/create-booking called - redirecting to /api/bookings');
         res.redirect(307, '/api/bookings');
     });
 
@@ -214,7 +215,7 @@ function createBookingRoutes(deps) {
                     specialRequests, totalAmount
                 } = req.body;
 
-                console.log('📝 Processing booking request for:', accommodation);
+                logger.info('📝 Processing booking request for:', { accommodation });
                 trackBookingStart(req.body, req.requestId);
                 trackBookingStep('validation', req.requestId, { accommodation });
 
@@ -309,7 +310,7 @@ function createBookingRoutes(deps) {
                     }
                 } catch (seasonalErr) {
                     // If seasonal query fails, fall back to base price calculation
-                    console.error('Seasonal rate query failed during validation:', seasonalErr.message);
+                    logger.error('Seasonal rate query failed during validation:', { error: seasonalErr.message });
                 }
 
                 const minExpected = expectedAccommodationCost * 0.9; // 10% tolerance
@@ -392,7 +393,7 @@ function createBookingRoutes(deps) {
                     try {
                         await sendBookingConfirmation(booking);
                     } catch (emailErr) {
-                        console.error('Booking confirmation email failed:', emailErr.message);
+                        logger.error('Booking confirmation email failed:', { error: emailErr.message });
                     }
                 }
 
@@ -407,7 +408,7 @@ function createBookingRoutes(deps) {
                 if (error.isAvailabilityConflict) {
                     return sendError(res, 409, ERROR_CODES.DATES_NOT_AVAILABLE, 'Selected dates are not available');
                 }
-                console.error('❌ Booking creation error:', error);
+                logger.error('❌ Booking creation error:', { error: error?.message });
                 trackBookingFailure(error, req.requestId, 'unknown');
                 return sendError(res, 500, ERROR_CODES.INTERNAL_SERVER_ERROR, 'Failed to create booking', error.message);
             }
@@ -427,7 +428,7 @@ function createBookingRoutes(deps) {
                 }
 
                 if (DEV_MODE || !stripe) {
-                    console.log('⚠️ DEV_MODE: Returning mock payment session for booking', bookingId);
+                    logger.info('⚠️ DEV_MODE: Returning mock payment session for booking', { bookingId });
                     return res.json({
                         sessionId: 'dev_mock_session_' + bookingId,
                         url: '/booking-success?session_id=dev_mock_session_' + bookingId,
@@ -451,6 +452,9 @@ function createBookingRoutes(deps) {
                 const securityDepositAmount = accommodationConfig?.securityDeposit || 300;
                 const hasSecurityDeposit = securityDepositAmount > 0;
 
+                const cleaningFee = 75;
+                const nightlyTotal = booking.total_price - cleaningFee;
+
                 const lineItems = [
                     {
                         price_data: {
@@ -459,7 +463,18 @@ function createBookingRoutes(deps) {
                                 name: `Lakeside Retreat - ${booking.accommodation}`,
                                 description: `${booking.check_in} to ${booking.check_out} (${booking.guests} guests) (GST inclusive)`
                             },
-                            unit_amount: Math.round(booking.total_price * 100)
+                            unit_amount: Math.round(nightlyTotal * 100)
+                        },
+                        quantity: 1
+                    },
+                    {
+                        price_data: {
+                            currency: 'nzd',
+                            product_data: {
+                                name: 'Cleaning Fee',
+                                description: 'One-time cleaning fee (GST inclusive)'
+                            },
+                            unit_amount: Math.round(cleaningFee * 100)
                         },
                         quantity: 1
                     }
@@ -485,6 +500,7 @@ function createBookingRoutes(deps) {
                     // Configure available methods in Stripe Dashboard > Settings > Payment methods
                     // Note: Apple Pay requires domain verification in Stripe Dashboard
                     mode: 'payment',
+                    expires_at: Math.floor(Date.now() / 1000) + (30 * 60),
                     customer_email: booking.guest_email,
                     metadata: {
                         bookingId: booking.id,
@@ -528,17 +544,18 @@ function createBookingRoutes(deps) {
                             });
                     });
                 } catch (dbErr) {
-                    console.error('[CRITICAL] Stripe session created but failed to store session ID in DB');
-                    console.error('[CRITICAL] Stripe session ID:', session.id);
-                    console.error('[CRITICAL] Booking ID:', bookingId);
-                    console.error('[CRITICAL] Error:', dbErr.message || dbErr);
+                    logger.error('[CRITICAL] Stripe session created but failed to store session ID in DB', {
+                        stripeSessionId: session.id,
+                        bookingId,
+                        error: dbErr.message || String(dbErr)
+                    });
                     // Continue anyway -- the session is valid and webhook can recover via metadata
                 }
 
                 res.json({ sessionId: session.id, url: session.url });
 
             } catch (error) {
-                console.error('Payment session creation error:', error);
+                logger.error('Payment session creation error:', { error: error?.message, type: error?.type });
 
                 if (error.type === 'StripeCardError') {
                     return sendError(res, 400, ERROR_CODES.PAYMENT_ERROR, 'Your card was declined.');
@@ -551,7 +568,7 @@ function createBookingRoutes(deps) {
                 } else if (error.type === 'StripeConnectionError') {
                     return sendError(res, 503, ERROR_CODES.PAYMENT_ERROR, 'Unable to connect to payment service.');
                 } else if (error.type === 'StripeAuthenticationError') {
-                    console.error('❌ Stripe authentication error - check API keys');
+                    logger.error('❌ Stripe authentication error - check API keys');
                     return sendError(res, 500, ERROR_CODES.PAYMENT_ERROR, 'Payment system configuration error.');
                 } else {
                     return sendError(res, 500, ERROR_CODES.PAYMENT_ERROR, 'Unable to process payment.');
@@ -566,7 +583,7 @@ function createBookingRoutes(deps) {
 
         db().get('SELECT * FROM bookings WHERE id = ?', [id], (err, booking) => {
             if (err) {
-                console.error('Error fetching booking:', err);
+                logger.error('Error fetching booking:', { error: err?.message });
                 return sendError(res, 500, ERROR_CODES.DATABASE_ERROR, 'Failed to fetch booking');
             }
 
@@ -629,7 +646,7 @@ function createBookingRoutes(deps) {
                 }
             });
         } catch (error) {
-            console.error('Payment status check error:', error);
+            logger.error('Payment status check error:', { error: error?.message });
             res.status(500).json({ success: false, error: 'Failed to check payment status' });
         }
     });

@@ -64,8 +64,8 @@
         },
         "geo": {
             "@type": "GeoCoordinates",
-            "latitude": -45.0446,
-            "longitude": 169.0836
+            "latitude": -45.038710,
+            "longitude": 169.197693
         },
         "telephone": "+64 21 368 682",
         "email": "info@lakesideretreat.co.nz",
@@ -251,7 +251,7 @@
         <div class="booking-modal-content">
             <div class="booking-modal-header">
                 <h2>Book Your Stay</h2>
-                <button class="close-booking-modal" data-action="closeBookingModal">
+                <button class="close-booking-modal" data-action="closeBookingModal" aria-label="Close booking dialog">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
@@ -705,7 +705,7 @@
                         <h1 style="color: white; -webkit-text-fill-color: white; text-shadow: 0 2px 8px rgba(0,0,0,0.3);">Your Private Vineyard Escape on Lake Dunstan</h1>
                         <p style="font-size: 1.4rem; color: rgba(255,255,255,0.95); max-width: 600px; text-align: center; margin: 1.5rem auto; text-shadow: 0 1px 4px rgba(0,0,0,0.3);">Luxury glamping domes and lakefront cottage in the heart of Central Otago's wine country</p>
                         <div style="text-align: center; margin-top: 2rem;">
-                            <a href="#" data-page="stay" class="btn btn-primary" style="display: inline-block; padding: 1rem 2.5rem; font-size: 1.1rem; font-weight: 600; border-radius: 50px; cursor: pointer; transition: all 0.3s ease; text-decoration: none; box-shadow: 0 4px 15px rgba(139,38,53,0.4);">Book Your Escape</a>
+                            <button data-action="openBookingModal" class="btn btn-primary" style="display: inline-block; padding: 1rem 2.5rem; font-size: 1.1rem; font-weight: 600; border-radius: 50px; cursor: pointer; transition: all 0.3s ease; text-decoration: none; box-shadow: 0 4px 15px rgba(139,38,53,0.4);">Book Your Escape</button>
                         </div>
                     </div>
                 </div>
@@ -3412,7 +3412,7 @@
                 <div style="max-width: 800px; margin: 0 auto;">
                     <!-- FAQ Item 1 -->
                     <div class="faq-item" style="background: white; border-radius: 12px; margin-bottom: 1rem; box-shadow: 0 4px 6px rgba(0,0,0,0.05); overflow: hidden;">
-                        <div class="faq-question" data-action="toggleFAQ" style="padding: 1.5rem; cursor: pointer; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; font-weight: 600; color: var(--brand-teal); user-select: none;">
+                        <div class="faq-question" role="button" tabindex="0" aria-expanded="false" data-action="toggleFaq" style="padding: 1.5rem; cursor: pointer; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; font-weight: 600; color: var(--brand-teal); user-select: none;">
                             <span>What's included in my stay?</span>
                             <span class="faq-arrow" style="font-size: 1.2rem; transition: transform 0.3s ease;">▼</span>
                         </div>
@@ -3427,7 +3427,7 @@
 
                     <!-- FAQ Item 2 -->
                     <div class="faq-item" style="background: white; border-radius: 12px; margin-bottom: 1rem; box-shadow: 0 4px 6px rgba(0,0,0,0.05); overflow: hidden;">
-                        <div class="faq-question" data-action="toggleFAQ" style="padding: 1.5rem; cursor: pointer; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; font-weight: 600; color: var(--brand-teal); user-select: none;">
+                        <div class="faq-question" role="button" tabindex="0" aria-expanded="false" data-action="toggleFaq" style="padding: 1.5rem; cursor: pointer; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; font-weight: 600; color: var(--brand-teal); user-select: none;">
                             <span>How close are the nearest wineries?</span>
                             <span class="faq-arrow" style="font-size: 1.2rem; transition: transform 0.3s ease;">▼</span>
                         </div>
@@ -3443,14 +3443,14 @@
 
                     <!-- FAQ Item 3 -->
                     <div class="faq-item" style="background: white; border-radius: 12px; margin-bottom: 1rem; box-shadow: 0 4px 6px rgba(0,0,0,0.05); overflow: hidden;">
-                        <div class="faq-question" data-action="toggleFAQ" style="padding: 1.5rem; cursor: pointer; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; font-weight: 600; color: var(--brand-teal); user-select: none;">
+                        <div class="faq-question" role="button" tabindex="0" aria-expanded="false" data-action="toggleFaq" style="padding: 1.5rem; cursor: pointer; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; font-weight: 600; color: var(--brand-teal); user-select: none;">
                             <span>What are your check-in and check-out times?</span>
                             <span class="faq-arrow" style="font-size: 1.2rem; transition: transform 0.3s ease;">▼</span>
                         </div>
                         <div class="faq-answer" style="padding: 0; max-height: 0; overflow: hidden; transition: all 0.3s ease;">
                             <div style="padding: 1.5rem; border-top: 1px solid #f0f0f0; color: var(--text); line-height: 1.6;">
                                 <strong>Check-in:</strong> 3:00 PM (early check-in often available)<br>
-                                <strong>Check-out:</strong> 11:00 AM (late check-out by arrangement)<br>
+                                <strong>Check-out:</strong> 10:00 AM (late check-out by arrangement)<br>
                                 <strong>Self check-in:</strong> Digital codes provided for flexible arrival<br>
                                 <strong>Hosts available:</strong> Stephen & Sandy live on-property for immediate assistance<br><br>
                                 We provide detailed arrival instructions and local recommendations 48 hours before your stay.
@@ -3460,7 +3460,7 @@
                     
                     <!-- FAQ Item 4 -->
                     <div class="faq-item" style="background: white; border-radius: 12px; margin-bottom: 1rem; box-shadow: 0 4px 6px rgba(0,0,0,0.05); overflow: hidden;">
-                        <div class="faq-question" data-action="toggleFAQ" style="padding: 1.5rem; cursor: pointer; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; font-weight: 600; color: var(--brand-teal); user-select: none;">
+                        <div class="faq-question" role="button" tabindex="0" aria-expanded="false" data-action="toggleFaq" style="padding: 1.5rem; cursor: pointer; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; font-weight: 600; color: var(--brand-teal); user-select: none;">
                             <span>What's the weather like year-round?</span>
                             <span class="faq-arrow" style="font-size: 1.2rem; transition: transform 0.3s ease;">▼</span>
                         </div>
@@ -3477,7 +3477,7 @@
 
                     <!-- FAQ Item 5 -->
                     <div class="faq-item" style="background: white; border-radius: 12px; margin-bottom: 1rem; box-shadow: 0 4px 6px rgba(0,0,0,0.05); overflow: hidden;">
-                        <div class="faq-question" data-action="toggleFAQ" style="padding: 1.5rem; cursor: pointer; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; font-weight: 600; color: var(--brand-teal); user-select: none;">
+                        <div class="faq-question" role="button" tabindex="0" aria-expanded="false" data-action="toggleFaq" style="padding: 1.5rem; cursor: pointer; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; font-weight: 600; color: var(--brand-teal); user-select: none;">
                             <span>Can we bring our pet?</span>
                             <span class="faq-arrow" style="font-size: 1.2rem; transition: transform 0.3s ease;">▼</span>
                         </div>
@@ -3490,7 +3490,7 @@
 
                     <!-- FAQ Item 6 -->
                     <div class="faq-item" style="background: white; border-radius: 12px; margin-bottom: 1rem; box-shadow: 0 4px 6px rgba(0,0,0,0.05); overflow: hidden;">
-                        <div class="faq-question" data-action="toggleFAQ" style="padding: 1.5rem; cursor: pointer; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; font-weight: 600; color: var(--brand-teal); user-select: none;">
+                        <div class="faq-question" role="button" tabindex="0" aria-expanded="false" data-action="toggleFaq" style="padding: 1.5rem; cursor: pointer; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; font-weight: 600; color: var(--brand-teal); user-select: none;">
                             <span>How far are you from Queenstown/Wanaka?</span>
                             <span class="faq-arrow" style="font-size: 1.2rem; transition: transform 0.3s ease;">▼</span>
                         </div>
@@ -6340,21 +6340,7 @@ document.addEventListener('DOMContentLoaded', () => {
             trackEvent('cookies', 'declined');
         }
         
-        // Toggle FAQ dropdown functionality
-        window.toggleFAQ = function(element) {
-            const answer = element.nextElementSibling;
-            const arrow = element.querySelector('.faq-arrow');
-            
-            if (answer.style.maxHeight && answer.style.maxHeight !== '0px') {
-                // Close
-                answer.style.maxHeight = '0';
-                arrow.style.transform = 'rotate(0deg)';
-            } else {
-                // Open
-                answer.style.maxHeight = answer.scrollHeight + 'px';
-                arrow.style.transform = 'rotate(180deg)';
-            }
-        }
+        // Toggle FAQ — unified handler (used by action delegation)
 
         function toggleFooterFAQ() {
             const faqContent = document.getElementById('footerFaqContent');
@@ -7094,21 +7080,24 @@ document.addEventListener('DOMContentLoaded', () => {
                     case 'scrollToSection':
                         scrollToSection(actionBtn.getAttribute('data-target')); break;
                     case 'toggleGuide': toggleGuide(actionBtn); break;
-                    case 'toggleFAQ': toggleFAQ(actionBtn); break;
+                    // toggleFAQ removed — unified under toggleFaq
                     case 'closeSearch': closeSearch(); break;
                     case 'openBookingModal':
                         const acc = actionBtn.getAttribute('data-accommodation');
                         acc ? openBookingModal(acc) : openBookingModal(); break;
                     case 'closeBookingModal': closeBookingModal(); break;
                     case 'closeLegalModal': closeLegalModal(); break;
-                    case 'toggleFaq':
+                    case 'toggleFaq': {
                         const faqParent = actionBtn.parentElement;
                         faqParent.classList.toggle('faq-open');
                         const isOpen = faqParent.classList.contains('faq-open');
-                        actionBtn.setAttribute('aria-expanded', isOpen);
+                        actionBtn.setAttribute('aria-expanded', String(isOpen));
                         const arrow = actionBtn.querySelector('.faq-arrow');
                         if (arrow) arrow.style.transform = isOpen ? 'rotate(180deg)' : '';
+                        const answer = actionBtn.nextElementSibling;
+                        if (answer) answer.style.maxHeight = isOpen ? answer.scrollHeight + 'px' : '0';
                         break;
+                    }
                     case 'closeLightbox': closeLightbox(); break;
                     case 'prevImage': prevImage(); break;
                     case 'nextImage': nextImage(); break;

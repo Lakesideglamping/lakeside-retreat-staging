@@ -5,6 +5,7 @@ const compression = require('compression');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
+const { logger } = require('./logger');
 const nodemailer = require('nodemailer');
 
 // Import database abstraction layer (supports both SQLite and PostgreSQL)
@@ -83,18 +84,18 @@ let uplisting = null;
 database.initializeDatabase()
     .then(async dbConnection => {
         db = dbConnection;
-        console.log('✅ Database initialized successfully');
+        logger.info('✅ Database initialized successfully');
         if (database.isUsingPostgres()) {
-            console.log('🐘 Using PostgreSQL database');
+            logger.info('🐘 Using PostgreSQL database');
         } else {
-            console.log('📁 Using SQLite database');
+            logger.info('📁 Using SQLite database');
         }
         
         // Run pending database migrations
         try {
             await runMigrations(db, database);
         } catch (err) {
-            console.error('❌ Migration error:', err.message);
+            logger.error('❌ Migration error:', { error: err.message });
             if (process.env.NODE_ENV === 'production') {
                 process.exit(1);
             }
@@ -107,7 +108,7 @@ database.initializeDatabase()
             emailNotifications
         });
         if (uplisting.isConfigured) {
-            console.log('🏨 Uplisting service initialized');
+            logger.info('🏨 Uplisting service initialized');
         }
         
         // Initialize marketing automation after database is ready
@@ -115,7 +116,7 @@ database.initializeDatabase()
             marketingAutomation = new MarketingAutomation(db, emailTransporter);
             await marketingAutomation.initialize();
         } catch (err) {
-            console.error('⚠️ Marketing automation initialization failed:', err.message);
+            logger.warn('⚠️ Marketing automation initialization failed:', { error: err.message });
         }
 
         // Ensure deposit_release_due column exists (idempotent migration)
@@ -131,7 +132,7 @@ database.initializeDatabase()
                 });
             });
         } catch (err) {
-            console.error('⚠️ Could not add deposit_release_due column:', err.message);
+            logger.warn('⚠️ Could not add deposit_release_due column:', { error: err.message });
         }
 
         // Recover any pending deposit releases that were lost due to server restart
@@ -144,7 +145,7 @@ database.initializeDatabase()
         retryFailedWebhookEvents();
     })
     .catch(err => {
-        console.error('❌ Failed to initialize database:', err.message);
+        logger.error('❌ Failed to initialize database:', { error: err.message });
         process.exit(1);
     });
 
@@ -166,8 +167,36 @@ const emailNotifications = new EmailNotifications(emailTransporter);
 // Health check endpoints - MUST be before rate limiting to avoid 429 errors on health checks
 // These endpoints are used by Render to verify the service is running
 // Health check endpoints
-app.get('/health', (req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+app.get('/health', async (req, res) => {
+    const health = {
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        database: 'unknown',
+    };
+
+    if (!db) {
+        health.status = 'degraded';
+        health.database = 'not_initialized';
+        return res.status(503).json(health);
+    }
+
+    try {
+        // Run a lightweight query to verify the DB connection is alive
+        await new Promise((resolve, reject) => {
+            db.get('SELECT 1 AS ok', [], (err, row) => {
+                if (err) reject(err);
+                else resolve(row);
+            });
+        });
+        health.database = 'connected';
+    } catch (err) {
+        logger.error('Health check DB query failed:', { error: err.message });
+        health.status = 'degraded';
+        health.database = 'disconnected';
+        return res.status(503).json(health);
+    }
+
+    res.json(health);
 });
 
 // CSRF token endpoint (used by frontend security manager)
@@ -306,7 +335,7 @@ app.use((req, res, next) => {
 app.post('/api/stripe/webhook', express.raw({type: 'application/json'}), async (req, res) => {
     // Dev mode: skip webhook processing when Stripe is not configured
     if (DEV_MODE || !stripe) {
-        console.log('⚠️ DEV_MODE: Stripe webhook received but Stripe not configured');
+        logger.info('⚠️ DEV_MODE: Stripe webhook received but Stripe not configured');
         return res.status(200).json({ received: true, devMode: true });
     }
     
@@ -316,7 +345,7 @@ app.post('/api/stripe/webhook', express.raw({type: 'application/json'}), async (
     try {
         event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
     } catch (err) {
-        console.error('Webhook signature verification failed:', err.message);
+        logger.error('Webhook signature verification failed:', { error: err.message });
         return res.status(400).send('Webhook signature verification failed');
     }
 
@@ -324,8 +353,7 @@ app.post('/api/stripe/webhook', express.raw({type: 'application/json'}), async (
     try {
         await handleStripeWebhook(event, res);
     } catch (err) {
-        console.error('[CRITICAL] Unhandled webhook handler error:', err.message);
-        console.error('[CRITICAL] Event ID:', event.id, 'Type:', event.type);
+        logger.error('[CRITICAL] Unhandled webhook handler error:', { error: err.message, eventId: event.id, eventType: event.type });
         // Return 500 so Stripe retries -- this likely means a Stripe API call failed
         // before the DB update was attempted
         if (!res.headersSent) {
@@ -344,7 +372,7 @@ app.post('/api/uplisting/webhook', express.raw({type: 'application/json'}), asyn
         try {
             parsedBody = JSON.parse(rawBody.toString());
         } catch (parseErr) {
-            console.error('Invalid JSON in Uplisting webhook');
+            logger.error('Invalid JSON in Uplisting webhook');
             return res.status(400).json({ error: 'Invalid JSON' });
         }
         
@@ -359,12 +387,12 @@ app.post('/api/uplisting/webhook', express.raw({type: 'application/json'}), asyn
             const sigBuffer = Buffer.from(signature || '');
             const expectedBuffer = Buffer.from(expectedSignature);
             if (sigBuffer.length !== expectedBuffer.length || !crypto.timingSafeEqual(sigBuffer, expectedBuffer)) {
-                console.error('Invalid Uplisting webhook signature');
+                logger.error('Invalid Uplisting webhook signature');
                 return res.status(400).json({ error: 'Invalid signature' });
             }
         } else {
             // Webhook secret not configured — log warning and reject unsigned requests
-            console.warn('[SECURITY WARNING] UPLISTING_WEBHOOK_SECRET is not set — rejecting unsigned webhook. Set UPLISTING_WEBHOOK_SECRET for webhook handling.');
+            logger.warn('[SECURITY WARNING] UPLISTING_WEBHOOK_SECRET is not set — rejecting unsigned webhook. Set UPLISTING_WEBHOOK_SECRET for webhook handling.');
             return res.status(503).json({ error: 'Webhook secret not configured' });
         }
         
@@ -373,12 +401,12 @@ app.post('/api/uplisting/webhook', express.raw({type: 'application/json'}), asyn
             const result = await uplisting.handleWebhook(parsedBody);
             res.json(result);
         } else {
-            console.warn('⚠️ Uplisting service not initialized yet');
+            logger.warn('⚠️ Uplisting service not initialized yet');
             res.json({ received: true, warning: 'Service initializing' });
         }
 
     } catch (error) {
-        console.error('Uplisting webhook error:', error.message);
+        logger.error('Uplisting webhook error:', { error: error.message });
         if (!res.headersSent) {
             return res.status(500).json({ error: 'Webhook processing failed' });
         }
@@ -639,8 +667,8 @@ async function checkAvailability(accommodation, checkIn, checkOut) {
         return uplistingAvailable;
         
     } catch (error) {
-        console.error('❌ Availability check error:', error);
-        console.log('📝 Availability check failed, allowing booking based on local DB only');
+        logger.error('❌ Availability check error:', { error: error.message });
+        logger.info('📝 Availability check failed, allowing booking based on local DB only');
         // If availability check fails, return the local DB result (default to true if DB check failed)
         return localAvailable;
     }
@@ -659,8 +687,8 @@ async function syncBookingToUplisting(bookingData) {
 async function sendBookingConfirmation(bookingData) {
     // Check if email is configured
     if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-        console.log('⚠️ Email not configured - skipping booking confirmation email');
-        console.log('📧 Booking confirmation would be sent to:', bookingData.guest_email);
+        logger.warn('⚠️ Email not configured - skipping booking confirmation email');
+        logger.debug('📧 Booking confirmation would be sent to:', { email: bookingData.guest_email });
         return;
     }
 
@@ -693,9 +721,9 @@ async function sendBookingConfirmation(bookingData) {
     
     try {
         await emailTransporter.sendMail(mailOptions);
-        console.log('✅ Booking confirmation email sent to:', bookingData.guest_email || bookingData.email);
+        logger.info('✅ Booking confirmation email sent to:', { email: bookingData.guest_email || bookingData.email });
     } catch (error) {
-        console.error('❌ Failed to send booking confirmation:', error);
+        logger.error('❌ Failed to send booking confirmation:', { error: error.message });
         // Don't throw error - booking should still proceed even if email fails
     }
 }
@@ -704,8 +732,8 @@ async function sendBookingConfirmation(bookingData) {
 async function sendPaymentConfirmation(bookingData) {
     // Check if email is configured
     if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-        console.log('⚠️ Email not configured - skipping payment confirmation email');
-        console.log('📧 Payment confirmation would be sent to:', bookingData.guest_email);
+        logger.warn('⚠️ Email not configured - skipping payment confirmation email');
+        logger.debug('📧 Payment confirmation would be sent to:', { email: bookingData.guest_email });
         return;
     }
 
@@ -752,9 +780,9 @@ async function sendPaymentConfirmation(bookingData) {
     
     try {
         await emailTransporter.sendMail(mailOptions);
-        console.log('✅ Payment confirmation email sent to:', bookingData.guest_email);
+        logger.info('✅ Payment confirmation email sent to:', { email: bookingData.guest_email });
     } catch (error) {
-        console.error('❌ Failed to send payment confirmation:', error);
+        logger.error('❌ Failed to send payment confirmation:', { error: error.message });
     }
 }
 
@@ -767,7 +795,7 @@ async function handleStripeWebhook(event, res) {
         });
     });
     if (existing) {
-        console.log(`Webhook event ${event.id} already processed, skipping`);
+        logger.debug(`Webhook event ${event.id} already processed, skipping`);
         return res.json({ received: true });
     }
 
@@ -784,7 +812,7 @@ async function handleStripeWebhook(event, res) {
             );
         });
         if (alreadyCompleted) {
-            console.log('[PAYMENT] Webhook already processed for session:', session.id, '(booking already completed)');
+            logger.info('[PAYMENT] Webhook already processed for session:', { sessionId: session.id });
             // Record as processed so future retries are caught by the event-level check above
             db.run('INSERT OR IGNORE INTO processed_webhook_events (event_id) VALUES (?)', [event.id]);
             return res.json({ received: true, already_processed: true });
@@ -820,7 +848,7 @@ async function handleStripeWebhook(event, res) {
                     }
                 });
             } catch (depositErr) {
-                console.error('[PAYMENT] Security deposit hold failed (booking payment already captured):', {
+                logger.error('[PAYMENT] Security deposit hold failed (booking payment already captured):', {
                     sessionId: session.id,
                     bookingId: session.metadata.bookingId,
                     error: depositErr.message
@@ -867,7 +895,7 @@ async function handleStripeWebhook(event, res) {
                     throw new Error('DB update verification failed — booking not found or payment_status not updated');
                 }
 
-                console.log(`Booking confirmed${depositSucceeded ? ' with security deposit' : ' (deposit hold failed)'} for session:`, session.id);
+                logger.info(`Booking confirmed${depositSucceeded ? ' with security deposit' : ' (deposit hold failed)'} for session:`, { sessionId: session.id });
 
                 // Record successful processing for idempotency
                 db.run('INSERT OR IGNORE INTO processed_webhook_events (event_id) VALUES (?)', [event.id]);
@@ -893,13 +921,13 @@ async function handleStripeWebhook(event, res) {
                             booking_id: verifiedBooking.id
                         });
                     } catch (asyncErr) {
-                        console.error('[PAYMENT] Non-critical post-payment error:', asyncErr.message);
+                        logger.error('[PAYMENT] Non-critical post-payment error:', { error: asyncErr.message });
                         // Don't fail the webhook — payment and booking are saved
                     }
                 }
             } catch (dbErr) {
                 // CRITICAL: Payment was captured by Stripe but DB update failed
-                console.error('[CRITICAL] Payment succeeded but DB update failed:', {
+                logger.error('[CRITICAL] Payment succeeded but DB update failed:', {
                     sessionId: session.id,
                     paymentIntent: capturedPayment?.id,
                     depositIntentId: depositIntent?.id,
@@ -952,7 +980,7 @@ async function handleStripeWebhook(event, res) {
                     throw new Error('DB update verification failed — booking not found or payment_status not updated');
                 }
 
-                console.log('Booking confirmed for session:', session.id);
+                logger.info('Booking confirmed for session:', { sessionId: session.id });
 
                 // Record successful processing for idempotency
                 db.run('INSERT OR IGNORE INTO processed_webhook_events (event_id) VALUES (?)', [event.id]);
@@ -972,13 +1000,13 @@ async function handleStripeWebhook(event, res) {
                             booking_id: verifiedBooking.id
                         });
                     } catch (asyncErr) {
-                        console.error('[PAYMENT] Non-critical post-payment error:', asyncErr.message);
+                        logger.error('[PAYMENT] Non-critical post-payment error:', { error: asyncErr.message });
                         // Don't fail the webhook — payment and booking are saved
                     }
                 }
             } catch (dbErr) {
                 // CRITICAL: Payment completed on Stripe but DB update failed
-                console.error('[CRITICAL] Payment succeeded but DB update failed:', {
+                logger.error('[CRITICAL] Payment succeeded but DB update failed:', {
                     sessionId: session.id,
                     paymentIntent: session.payment_intent,
                     bookingId: session.metadata.bookingId,
@@ -1009,16 +1037,16 @@ async function handleStripeWebhook(event, res) {
                     function(err) { if (err) reject(err); else resolve(); }
                 );
             });
-            console.log(`[WEBHOOK] Refund recorded: $${refundAmount} for payment ${charge.payment_intent}`);
+            logger.info(`[WEBHOOK] Refund recorded: $${refundAmount} for payment ${charge.payment_intent}`);
         } catch (err) {
-            console.error('[WEBHOOK] Failed to record refund:', err.message);
+            logger.error('[WEBHOOK] Failed to record refund:', { error: err.message });
         }
         db.run('INSERT OR IGNORE INTO processed_webhook_events (event_id) VALUES (?)', [event.id]);
 
     } else if (event.type === 'charge.dispute.created') {
         const dispute = event.data.object;
         const disputeAmount = (dispute.amount / 100).toFixed(2);
-        console.warn(`[CHARGEBACK] Dispute created: ${dispute.id}, amount: $${disputeAmount}, reason: ${dispute.reason}`);
+        logger.warn(`[CHARGEBACK] Dispute created: ${dispute.id}, amount: $${disputeAmount}, reason: ${dispute.reason}`);
         try {
             await new Promise((resolve, reject) => {
                 db.run(
@@ -1028,7 +1056,7 @@ async function handleStripeWebhook(event, res) {
                 );
             });
         } catch (err) {
-            console.error('[WEBHOOK] Failed to record dispute:', err.message);
+            logger.error('[WEBHOOK] Failed to record dispute:', { error: err.message });
         }
         if (emailNotifications) {
             try {
@@ -1036,7 +1064,7 @@ async function handleStripeWebhook(event, res) {
                     `A chargeback/dispute has been filed.\nAmount: $${disputeAmount}\nReason: ${dispute.reason}\nDispute ID: ${dispute.id}`
                 );
             } catch (emailErr) {
-                console.error('[WEBHOOK] Failed to send dispute alert email:', emailErr.message);
+                logger.error('[WEBHOOK] Failed to send dispute alert email:', { error: emailErr.message });
             }
         }
         db.run('INSERT OR IGNORE INTO processed_webhook_events (event_id) VALUES (?)', [event.id]);
@@ -1044,7 +1072,7 @@ async function handleStripeWebhook(event, res) {
     } else if (event.type === 'payment_intent.payment_failed') {
         const paymentIntent = event.data.object;
         const failureMessage = paymentIntent.last_payment_error?.message || 'Unknown failure';
-        console.warn(`[WEBHOOK] Payment failed: ${paymentIntent.id}, reason: ${failureMessage}`);
+        logger.warn(`[WEBHOOK] Payment failed: ${paymentIntent.id}, reason: ${failureMessage}`);
         try {
             const bookingId = paymentIntent.metadata?.bookingId;
             if (bookingId) {
@@ -1057,7 +1085,7 @@ async function handleStripeWebhook(event, res) {
                 });
             }
         } catch (err) {
-            console.error('[WEBHOOK] Failed to record payment failure:', err.message);
+            logger.error('[WEBHOOK] Failed to record payment failure:', { error: err.message });
         }
         db.run('INSERT OR IGNORE INTO processed_webhook_events (event_id) VALUES (?)', [event.id]);
 
@@ -1082,11 +1110,11 @@ async function handleStripeWebhook(event, res) {
                             function(err) { if (err) reject(err); else resolve(); }
                         );
                     });
-                    console.log(`[WEBHOOK] Checkout session expired for booking: ${booking.id}`);
+                    logger.info(`[WEBHOOK] Checkout session expired for booking: ${booking.id}`);
                 }
             }
         } catch (err) {
-            console.error('[WEBHOOK] Failed to handle expired checkout session:', err.message);
+            logger.error('[WEBHOOK] Failed to handle expired checkout session:', { error: err.message });
         }
         db.run('INSERT OR IGNORE INTO processed_webhook_events (event_id) VALUES (?)', [event.id]);
 
@@ -1131,7 +1159,7 @@ async function logFailedWebhookEvent(event, session, error) {
                 if (err) reject(err); else resolve();
             });
         });
-        console.error('[CRITICAL] Failed webhook event saved to failed_webhook_events table for recovery');
+        logger.error('[CRITICAL] Failed webhook event saved to failed_webhook_events table for recovery');
         sendExternalAlert(
             'Failed Webhook Event Logged',
             `Event ${event.id} (${event.type}) for session ${session.id} failed and was saved for recovery. Error: ${(error.message || String(error)).substring(0, 200)}`,
@@ -1139,15 +1167,14 @@ async function logFailedWebhookEvent(event, session, error) {
         );
     } catch (logErr) {
         // Last resort: if even the recovery table write fails, log everything to stdout
-        console.error('[CRITICAL] UNABLE TO WRITE TO RECOVERY TABLE. Manual intervention required.');
-        console.error('[CRITICAL] Recovery data:', JSON.stringify({
+        logger.error('[CRITICAL] UNABLE TO WRITE TO RECOVERY TABLE. Manual intervention required.', {
             event_id: event.id,
             event_type: event.type,
             stripe_session_id: session.id,
             stripe_payment_id: session.payment_intent,
             booking_id: session.metadata?.bookingId,
             error: error.message || String(error)
-        }));
+        });
     }
 }
 
@@ -1208,7 +1235,7 @@ async function sendExternalAlert(title, message, severity = 'CRITICAL') {
             req.end();
         });
     } catch (err) {
-        console.error('[ALERT] Failed to send external alert:', err.message);
+        logger.error('[ALERT] Failed to send external alert:', { error: err.message });
     }
 }
 
@@ -1234,9 +1261,9 @@ async function checkOrphanedPayments() {
         });
 
         if (orphaned.length > 0) {
-            console.warn(`[STARTUP WARNING] Found ${orphaned.length} potentially orphaned payment(s):`);
+            logger.warn(`[STARTUP WARNING] Found ${orphaned.length} potentially orphaned payment(s):`);
             orphaned.forEach(b => {
-                console.warn(`  - Booking ${b.id}: ${b.accommodation}, email: ${b.guest_email}, created: ${b.created_at}`);
+                logger.warn(`  - Booking ${b.id}: ${b.accommodation}, email: ${b.guest_email}, created: ${b.created_at}`);
             });
             sendExternalAlert(
                 'Orphaned Payments Detected',
@@ -1257,13 +1284,13 @@ async function checkOrphanedPayments() {
         });
 
         if (unresolved.length > 0) {
-            console.warn(`[STARTUP WARNING] Found ${unresolved.length} unresolved failed webhook event(s):`);
+            logger.warn(`[STARTUP WARNING] Found ${unresolved.length} unresolved failed webhook event(s):`);
             unresolved.forEach(e => {
-                console.warn(`  - Event ${e.event_id}: session=${e.stripe_session_id}, booking=${e.booking_id}, created: ${e.created_at}`);
+                logger.warn(`  - Event ${e.event_id}: session=${e.stripe_session_id}, booking=${e.booking_id}, created: ${e.created_at}`);
             });
         }
     } catch (err) {
-        console.error('[STARTUP] Failed to check for orphaned payments:', err.message);
+        logger.error('[STARTUP] Failed to check for orphaned payments:', { error: err.message });
     }
 }
 
@@ -1291,7 +1318,7 @@ async function retryFailedWebhookEvents() {
 
         if (unresolvedEvents.length === 0) return;
 
-        console.log(`[RETRY] Processing ${unresolvedEvents.length} unresolved failed webhook event(s)...`);
+        logger.info(`[RETRY] Processing ${unresolvedEvents.length} unresolved failed webhook event(s)...`);
 
         for (const failedEvent of unresolvedEvents) {
             try {
@@ -1309,7 +1336,7 @@ async function retryFailedWebhookEvents() {
                 const session = await stripe.checkout.sessions.retrieve(failedEvent.stripe_session_id);
 
                 if (session.payment_status !== 'paid' && session.status !== 'complete') {
-                    console.log(`[RETRY] Session ${failedEvent.stripe_session_id} is not complete (status: ${session.status}), skipping`);
+                    logger.info(`[RETRY] Session ${failedEvent.stripe_session_id} is not complete (status: ${session.status}), skipping`);
                     // Check if max retries reached after increment
                     if (currentRetryCount >= 10) {
                         await markFailedEventResolved(failedEvent.id, 'Max retries reached');
@@ -1332,14 +1359,14 @@ async function retryFailedWebhookEvents() {
                 });
 
                 if (!booking) {
-                    console.warn(`[RETRY] Booking not found for event ${failedEvent.event_id}, marking resolved`);
+                    logger.warn(`[RETRY] Booking not found for event ${failedEvent.event_id}, marking resolved`);
                     await markFailedEventResolved(failedEvent.id);
                     continue;
                 }
 
                 if (booking.payment_status === 'completed') {
                     // Already completed (perhaps by a Stripe retry), just mark resolved
-                    console.log(`[RETRY] Booking ${booking.id} already completed, marking event resolved`);
+                    logger.info(`[RETRY] Booking ${booking.id} already completed, marking event resolved`);
                     await markFailedEventResolved(failedEvent.id);
                     continue;
                 }
@@ -1360,11 +1387,11 @@ async function retryFailedWebhookEvents() {
                 // Mark the failed event as resolved
                 await markFailedEventResolved(failedEvent.id);
 
-                console.log(`[RETRY] Successfully recovered booking ${booking.id} from failed event ${failedEvent.event_id}`);
+                logger.info(`[RETRY] Successfully recovered booking ${booking.id} from failed event ${failedEvent.event_id}`);
 
             } catch (retryErr) {
                 // Log but don't mark as resolved — it will be retried next cycle
-                console.error(`[RETRY] Failed to recover event ${failedEvent.event_id}:`, retryErr.message);
+                logger.error(`[RETRY] Failed to recover event ${failedEvent.event_id}:`, { error: retryErr.message });
 
                 // Check if max retries reached after this failed attempt
                 const currentRetryCount = (failedEvent.retry_count || 0) + 1;
@@ -1377,13 +1404,13 @@ async function retryFailedWebhookEvents() {
                             'CRITICAL'
                         );
                     } catch (markErr) {
-                        console.error(`[RETRY] Failed to mark max-retry event ${failedEvent.event_id}:`, markErr.message);
+                        logger.error(`[RETRY] Failed to mark max-retry event ${failedEvent.event_id}:`, { error: markErr.message });
                     }
                 }
             }
         }
     } catch (err) {
-        console.error('[RETRY] Failed to query unresolved webhook events:', err.message);
+        logger.error('[RETRY] Failed to query unresolved webhook events:', { error: err.message });
     }
 }
 
@@ -1414,7 +1441,7 @@ function scheduleDepositRelease(bookingId, depositIntentId) {
     // Get booking checkout date to calculate release time
     db.get('SELECT check_out FROM bookings WHERE id = ?', [bookingId], (err, booking) => {
         if (err || !booking) {
-            console.error('❌ Failed to get booking for deposit release:', err);
+            logger.error('❌ Failed to get booking for deposit release:', { error: err?.message });
             return;
         }
 
@@ -1429,7 +1456,7 @@ function scheduleDepositRelease(bookingId, depositIntentId) {
             [releaseDate.toISOString(), bookingId],
             (updateErr) => {
                 if (updateErr) {
-                    console.error('❌ Failed to persist deposit release date:', updateErr.message);
+                    logger.error('❌ Failed to persist deposit release date:', { error: updateErr.message });
                 }
             }
         );
@@ -1440,12 +1467,12 @@ function scheduleDepositRelease(bookingId, depositIntentId) {
                 setTimeout(() => {
                     scheduleDepositRelease(bookingId, depositIntentId);
                 }, MAX_TIMER_DELAY);
-                console.log(`⏰ Deposit release for booking ${bookingId} is >24h away (${releaseDate.toLocaleString('en-NZ')}), scheduling re-check`);
+                logger.info(`⏰ Deposit release for booking ${bookingId} is >24h away (${releaseDate.toLocaleString('en-NZ')}), scheduling re-check`);
             } else {
                 setTimeout(async () => {
                     await autoReleaseSecurityDeposit(bookingId, depositIntentId);
                 }, timeUntilRelease);
-                console.log(`⏰ Security deposit scheduled for release on: ${releaseDate.toLocaleString('en-NZ')} for booking ${bookingId}`);
+                logger.info(`⏰ Security deposit scheduled for release on: ${releaseDate.toLocaleString('en-NZ')} for booking ${bookingId}`);
             }
         } else {
             // Release immediately if checkout + 48 hours has already passed
@@ -1466,16 +1493,16 @@ function recoverPendingDepositReleases() {
 
     db.all(sql, [], (err, rows) => {
         if (err) {
-            console.error('❌ Failed to recover pending deposit releases:', err.message);
+            logger.error('❌ Failed to recover pending deposit releases:', { error: err.message });
             return;
         }
 
         if (!rows || rows.length === 0) {
-            console.log('✅ No pending deposit releases to recover');
+            logger.info('✅ No pending deposit releases to recover');
             return;
         }
 
-        console.log(`🔄 Recovering ${rows.length} pending deposit release(s)...`);
+        logger.info(`🔄 Recovering ${rows.length} pending deposit release(s)...`);
 
         for (const booking of rows) {
             const releaseDate = new Date(booking.deposit_release_due);
@@ -1483,20 +1510,20 @@ function recoverPendingDepositReleases() {
 
             if (timeUntilRelease <= 0) {
                 // Release immediately - past due
-                console.log(`⏰ Releasing overdue deposit for booking ${booking.id}`);
+                logger.info(`⏰ Releasing overdue deposit for booking ${booking.id}`);
                 autoReleaseSecurityDeposit(booking.id, booking.security_deposit_intent_id);
             } else if (timeUntilRelease > MAX_TIMER_DELAY) {
                 // Cap the timer to avoid 32-bit overflow; re-check later
                 setTimeout(() => {
                     scheduleDepositRelease(booking.id, booking.security_deposit_intent_id);
                 }, MAX_TIMER_DELAY);
-                console.log(`⏰ Deposit release for booking ${booking.id} is >24h away, scheduling re-check`);
+                logger.info(`⏰ Deposit release for booking ${booking.id} is >24h away, scheduling re-check`);
             } else {
                 // Re-schedule the timeout
                 setTimeout(async () => {
                     await autoReleaseSecurityDeposit(booking.id, booking.security_deposit_intent_id);
                 }, timeUntilRelease);
-                console.log(`⏰ Re-scheduled deposit release for booking ${booking.id} at ${releaseDate.toLocaleString('en-NZ')}`);
+                logger.info(`⏰ Re-scheduled deposit release for booking ${booking.id} at ${releaseDate.toLocaleString('en-NZ')}`);
             }
         }
     });
@@ -1518,7 +1545,7 @@ setInterval(async () => {
             await autoReleaseSecurityDeposit(booking.id, booking.security_deposit_intent_id);
         }
     } catch (err) {
-        console.error('Deposit release poll error:', err.message);
+        logger.error('Deposit release poll error:', { error: err.message });
     }
 }, 60 * 60 * 1000).unref();
 
@@ -1527,7 +1554,7 @@ setInterval(async () => {
     try {
         await retryFailedWebhookEvents();
     } catch (err) {
-        console.error('Failed webhook retry poll error:', err.message);
+        logger.error('Failed webhook retry poll error:', { error: err.message });
     }
 }, 30 * 60 * 1000).unref();
 
@@ -1538,7 +1565,7 @@ setInterval(async () => {
             await uplisting.reconcileCalendar();
         }
     } catch (err) {
-        console.error('Calendar reconciliation poll error:', err.message);
+        logger.error('Calendar reconciliation poll error:', { error: err.message });
     }
 }, 30 * 60 * 1000).unref();
 
@@ -1547,7 +1574,7 @@ setInterval(async () => {
     try {
         await retryFailedUplistingSyncs();
     } catch (err) {
-        console.error('Uplisting sync retry error:', err.message);
+        logger.error('Uplisting sync retry error:', { error: err.message });
     }
 }, 15 * 60 * 1000).unref();
 
@@ -1574,24 +1601,24 @@ async function retryFailedUplistingSyncs() {
 
         if (failedBookings.length === 0) return;
 
-        console.log(`[Uplisting Retry] Found ${failedBookings.length} bookings to retry sync`);
+        logger.info(`[Uplisting Retry] Found ${failedBookings.length} bookings to retry sync`);
 
         for (const booking of failedBookings) {
             try {
                 await syncBookingToUplisting(booking);
-                console.log(`[Uplisting Retry] Successfully synced booking ${booking.id}`);
+                logger.info(`[Uplisting Retry] Successfully synced booking ${booking.id}`);
             } catch (err) {
-                console.error(`[Uplisting Retry] Failed to sync booking ${booking.id}:`, err.message);
+                logger.error(`[Uplisting Retry] Failed to sync booking ${booking.id}:`, { error: err.message });
             }
         }
     } catch (error) {
-        console.error('[Uplisting Retry] Error querying failed syncs:', error.message);
+        logger.error('[Uplisting Retry] Error querying failed syncs:', { error: error.message });
     }
 }
 
 async function autoReleaseSecurityDeposit(bookingId, depositIntentId) {
     if (!stripe) {
-        console.warn('⚠️ Stripe not initialised (DEV_MODE) — skipping deposit release for', bookingId);
+        logger.warn('⚠️ Stripe not initialised (DEV_MODE) — skipping deposit release for', { bookingId });
         return;
     }
     try {
@@ -1608,9 +1635,9 @@ async function autoReleaseSecurityDeposit(bookingId, depositIntentId) {
         
         db.run(sql, [bookingId], (err) => {
             if (err) {
-                console.error('❌ Failed to update security deposit release status:', err);
+                logger.error('❌ Failed to update security deposit release status:', { error: err?.message });
             } else {
-                console.log(`✅ Security deposit automatically released for booking ${bookingId}`);
+                logger.info(`✅ Security deposit automatically released for booking ${bookingId}`);
                 
                 // Send notification email to admin
                 db.get('SELECT * FROM bookings WHERE id = ?', [bookingId], async (err, booking) => {
@@ -1627,7 +1654,7 @@ async function autoReleaseSecurityDeposit(bookingId, depositIntentId) {
                                 }
                             );
                         } catch (asyncErr) {
-                            console.error('Post-deposit-release notification error:', asyncErr);
+                            logger.error('Post-deposit-release notification error:', { error: asyncErr?.message });
                         }
                     }
                 });
@@ -1635,7 +1662,7 @@ async function autoReleaseSecurityDeposit(bookingId, depositIntentId) {
         });
         
     } catch (error) {
-        console.error('❌ Failed to auto-release security deposit:', error);
+        logger.error('❌ Failed to auto-release security deposit:', { error: error.message, bookingId });
         
         // Send alert to admin about failed release
         await emailNotifications.sendSystemAlert('error',
@@ -1657,14 +1684,14 @@ const executeDbOperation = executeDbOpUtil;
 
 app.get('/sw.js', (req, res) => {
     const swPath = path.join(__dirname, 'sw.js');
-    console.log('🔧 SW request - Path:', swPath);
+    logger.debug('🔧 SW request - Path:', { path: swPath });
     res.setHeader('Content-Type', 'application/javascript');
     res.sendFile(swPath, (err) => {
         if (err) {
-            console.error('❌ Error serving sw.js:', err);
+            logger.error('❌ Error serving sw.js:', { error: err?.message });
             res.status(404).send('Service worker not found');
         } else {
-            console.log('✅ SW served successfully');
+            logger.debug('✅ SW served successfully');
         }
     });
 });
@@ -1705,7 +1732,7 @@ function ensureSystemSettingsTable(callback) {
         `;
     db.run(createTableSql, [], function(err) {
         if (err) {
-            console.error('Error ensuring system_settings table:', err);
+            logger.error('Error ensuring system_settings table:', { error: err?.message });
         }
         callback(err);
     });
@@ -1756,15 +1783,15 @@ app.use((req, res) => {
 });
 
 const server = app.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT}`);
-    console.log(`📁 Serving from: ${__dirname}`);
+    logger.info(`🚀 Server running on port ${PORT}`);
+    logger.info(`📁 Serving from: ${__dirname}`);
     if (DEV_MODE) {
-        console.log(`⚠️  DEV_MODE: Running without Stripe - payments will return mock responses`);
+        logger.warn(`⚠️  DEV_MODE: Running without Stripe - payments will return mock responses`);
     }
-    console.log(`🔑 Stripe configured:`, process.env.STRIPE_SECRET_KEY ? 'YES' : 'NO');
-    console.log(`📧 Email configured:`, process.env.EMAIL_USER ? 'YES' : 'NO');
-    console.log(`🏨 Uplisting configured:`, process.env.UPLISTING_API_KEY ? 'YES' : 'NO');
-    console.log(`💾 Backup system:`, process.env.NODE_ENV === 'production' ? 'SCHEDULED' : 'MANUAL');
+    logger.info(`🔑 Stripe configured: ${process.env.STRIPE_SECRET_KEY ? 'YES' : 'NO'}`);
+    logger.info(`📧 Email configured: ${process.env.EMAIL_USER ? 'YES' : 'NO'}`);
+    logger.info(`🏨 Uplisting configured: ${process.env.UPLISTING_API_KEY ? 'YES' : 'NO'}`);
+    logger.info(`💾 Backup system: ${process.env.NODE_ENV === 'production' ? 'SCHEDULED' : 'MANUAL'}`);
 });
 
 // Register process-level error handlers
