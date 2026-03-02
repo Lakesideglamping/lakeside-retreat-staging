@@ -48,6 +48,16 @@ function loadConfig() {
         warnings.push('EMAIL_USER/EMAIL_PASS not set - email notifications disabled');
     }
 
+    // --- Admin ---
+    if (isProduction && !process.env.ADMIN_PASSWORD_HASH) {
+        warnings.push('ADMIN_PASSWORD_HASH not set — admin login will fail until a password is configured via DB or env');
+    }
+
+    // --- Stripe Webhook Secret ---
+    if (isProduction && stripeSecretKey && !process.env.STRIPE_WEBHOOK_SECRET) {
+        warnings.push('STRIPE_WEBHOOK_SECRET not set — Stripe webhooks will be rejected');
+    }
+
     // --- Public URL ---
     if (!process.env.PUBLIC_BASE_URL) {
         warnings.push('PUBLIC_BASE_URL not set, using default. Set this for production security.');

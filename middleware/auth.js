@@ -207,7 +207,10 @@ function verifyAdmin(req, res, next) {
             return sendError(res, 401, ERROR_CODES.INVALID_TOKEN, 'Token has been revoked');
         }
 
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const decoded = jwt.verify(token, process.env.JWT_SECRET, {
+            issuer: 'lakeside-retreat',
+            audience: 'admin-panel'
+        });
         if (decoded.role !== 'admin') {
             return sendError(res, 403, ERROR_CODES.ADMIN_ACCESS_REQUIRED, 'Admin access required');
         }

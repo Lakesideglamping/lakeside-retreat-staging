@@ -1246,6 +1246,10 @@ setInterval(async () => {
 }, 60 * 60 * 1000).unref();
 
 async function autoReleaseSecurityDeposit(bookingId, depositIntentId) {
+    if (!stripe) {
+        console.warn('⚠️ Stripe not initialised (DEV_MODE) — skipping deposit release for', bookingId);
+        return;
+    }
     try {
         // Cancel the authorization hold (releases the funds)
         await stripe.paymentIntents.cancel(depositIntentId);
