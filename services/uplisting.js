@@ -88,34 +88,25 @@ class UplistingService {
         }
 
         try {
-            const propertyId = getPropertyId(accommodation);
-            if (!propertyId) {
-                console.warn(`⚠️ No Uplisting property ID for ${accommodation}`);
-                return true;
-            }
+            // Use the proven bookings-based approach to check availability
+            // The /availability endpoint returns calendar data, not a simple boolean
+            const blockedDates = await this.fetchBlockedDatesFromUplisting(accommodation);
 
-            const url = `${UPLISTING_API_BASE}/properties/${propertyId}/availability?start_date=${checkIn}&end_date=${checkOut}`;
-            console.log('🔍 Checking Uplisting availability:', url);
+            // Check if any requested date falls on a blocked date
+            const start = new Date(checkIn);
+            const end = new Date(checkOut);
+            const blockedSet = new Set(blockedDates);
 
-            const response = await this.fetchWithRetry(url, {
-                method: 'GET',
-                headers: {
-                    'Authorization': this.authHeader,
-                    'Content-Type': 'application/json'
+            for (let d = new Date(start); d < end; d.setDate(d.getDate() + 1)) {
+                const dateStr = d.toISOString().split('T')[0];
+                if (blockedSet.has(dateStr)) {
+                    console.log(`📅 Date ${dateStr} is blocked on Uplisting for ${accommodation}`);
+                    return false;
                 }
-            });
-
-            console.log('📡 Uplisting API response status:', response.status);
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('❌ Uplisting API error:', response.status, errorText);
-                return true; // Fail open
             }
 
-            const data = await response.json();
-            console.log('📝 Uplisting availability data:', data);
-            return data.available === true;
+            console.log(`✅ All dates available on Uplisting for ${accommodation}: ${checkIn} to ${checkOut}`);
+            return true;
 
         } catch (error) {
             console.error('❌ Uplisting availability check failed:', error);
