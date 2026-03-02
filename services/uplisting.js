@@ -239,7 +239,7 @@ class UplistingService {
      * Handle an incoming Uplisting webhook event.
      * Upserts booking data into local database.
      */
-    handleWebhook(parsedBody, res) {
+    async handleWebhook(parsedBody, res) {
         const { event, data } = parsedBody;
 
         if (event === 'booking.created' || event === 'booking.updated') {
