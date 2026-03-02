@@ -16,11 +16,16 @@
     <meta property="og:description" content="Private vineyard escape with luxury glamping domes and lakefront cottage. Spas, lake views, world-class wineries. Book direct and save vs Airbnb.">
     <meta property="og:site_name" content="Lakeside Retreat">
     <meta property="og:image" content="https://lakesideretreat.co.nz/images/domes-vineyard-sunset.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Luxury glamping dome with panoramic Lake Dunstan views in Central Otago wine country">
     <meta property="og:locale" content="en_NZ">
     <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://lakesideretreat.co.nz/">
     <meta name="twitter:title" content="Lakeside Retreat | Luxury Glamping Central Otago">
     <meta name="twitter:description" content="Glamping domes & lakefront cottage on Lake Dunstan. Private spas, vineyard views, 300m to cycle trail.">
     <meta name="twitter:image" content="https://lakesideretreat.co.nz/images/domes-vineyard-sunset.jpg">
+    <meta name="twitter:image:alt" content="Luxury glamping dome with panoramic Lake Dunstan views in Central Otago wine country">
     <meta name="theme-color" content="#753742">
     <link rel="preload" as="image" href="images/domes-vineyard-sunset.jpg">
     
@@ -109,29 +114,6 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#753742">
-    
-    <!-- Open Graph / Facebook -->
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://lakesideretreat.co.nz/">
-    <meta property="og:title" content="Central Otago Luxury Accommodation | Lake Dunstan Glamping Domes">
-    <meta property="og:description" content="Luxury glamping on Lake Dunstan, Central Otago. Stargazing domes with private spas and lakeside cottage. 55 min from Queenstown. Book direct for best rates.">
-    <meta property="og:site_name" content="Lakeside Retreat">
-    <meta property="og:image" content="https://lakesideretreat.co.nz/images/domes-vineyard-sunset.jpg">
-    <meta property="og:image:width" content="1200">
-    <meta property="og:image:height" content="630">
-    <meta property="og:image:alt" content="Luxury glamping dome with panoramic Lake Dunstan views in Central Otago wine country">
-    <meta property="og:locale" content="en_NZ">
-    
-    <!-- Twitter Cards for Social Sharing -->
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:url" content="https://lakesideretreat.co.nz/">
-    <meta name="twitter:title" content="Central Otago Luxury Accommodation | Lake Dunstan Glamping">
-    <meta name="twitter:description" content="Luxury glamping domes with Lake Dunstan views in Central Otago wine country. Sustainably powered, 300m to cycle trail. 4.9★ rated eco-luxury accommodation.">
-    <meta name="twitter:image" content="https://lakesideretreat.co.nz/images/domes-vineyard-sunset.jpg">
-    <meta name="twitter:image:alt" content="Luxury glamping dome with panoramic Lake Dunstan views in Central Otago wine country near Cromwell">
-    
-    <!-- Canonical URL -->
-    <link rel="canonical" href="https://lakesideretreat.co.nz/">
     
     <!-- Multilingual Support -->
     <link rel="alternate" hreflang="en-nz" href="https://lakesideretreat.co.nz/">
@@ -551,6 +533,8 @@
                                 <input type="text" class="booking-form-input" id="specialRequests" placeholder="Early check-in, dietary requirements, etc.">
                             </div>
 
+                            <div class="form-error-message" id="guestError" role="alert" aria-live="polite"></div>
+
                             <!-- Pet Option for Lakeside Cottage -->
                             <div id="petOptionSection" style="display: none; background: #dcfdf7; border: 1px solid #10b981; padding: 1rem; border-radius: 10px; margin-top: 1rem;">
                                 <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
@@ -709,7 +693,7 @@
                 <div class="parallax-layer parallax-layer-mid" style="background-image: none;"></div>
                 <div class="parallax-layer parallax-layer-front" style="background-image: none;"></div>
                 <!-- Navigation inside hero -->
-                <nav class="navbar" id="navbar" aria-label="Main navigation">
+                <nav class="navbar" aria-label="Main navigation">
                     <div class="nav-container" style="display: flex; justify-content: center; align-items: center; width: 100%;">
                         <!-- Complete centered navigation group -->
                         <div class="nav-items-row" style="display: flex; align-items: center; gap: 2rem;">
@@ -1207,7 +1191,7 @@
                 <div class="parallax-layer parallax-layer-bg" style="background-image: url('images/dome-rose-interior.jpeg');"></div>
                 <div class="parallax-layer parallax-layer-mid" style="background-image: none;"></div>
                 <!-- Navigation inside hero -->
-                <nav class="navbar" id="navbar" aria-label="Main navigation">
+                <nav class="navbar" aria-label="Main navigation">
                     <div class="nav-container" style="display: flex; justify-content: center; align-items: center; width: 100%;">
                         <!-- Complete centered navigation group -->
                         <div class="nav-items-row" style="display: flex; align-items: center; gap: 2rem;">
@@ -1628,7 +1612,7 @@
                 <div class="parallax-layer parallax-layer-bg" style="background-image: none;"></div>
                 <div class="parallax-layer parallax-layer-mid" style="background-image: none;"></div>
                 <!-- Navigation inside hero -->
-                <nav class="navbar" id="navbar" aria-label="Main navigation">
+                <nav class="navbar" aria-label="Main navigation">
                     <div class="nav-container" style="display: flex; justify-content: center; align-items: center; width: 100%;">
                         <!-- Complete centered navigation group -->
                         <div class="nav-items-row" style="display: flex; align-items: center; gap: 2rem;">
@@ -1923,7 +1907,7 @@
                 <div class="parallax-layer parallax-layer-bg" style="background-image: none;"></div>
                 <div class="parallax-layer parallax-layer-mid" style="background-image: none;"></div>
                 <!-- Navigation inside hero -->
-                <nav class="navbar" id="navbar" aria-label="Main navigation">
+                <nav class="navbar" aria-label="Main navigation">
                     <div class="nav-container" style="display: flex; justify-content: center; align-items: center; width: 100%;">
                         <!-- Complete centered navigation group -->
                         <div class="nav-items-row" style="display: flex; align-items: center; gap: 2rem;">
@@ -2206,7 +2190,7 @@
                         </div>
 
                         <!-- Seasonal Activities Calendar -->
-                        <div class="guide-item" id="winery-guide" style="background: white; border-radius: 15px; margin-bottom: 1.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.08); overflow: hidden; border: 1px solid #e5e7eb;">
+                        <div class="guide-item" id="seasonal-activities-guide" style="background: white; border-radius: 15px; margin-bottom: 1.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.08); overflow: hidden; border: 1px solid #e5e7eb;">
                             <div class="guide-header" data-action="toggleGuide" style="padding: 1.8rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%); user-select: none; transition: all 0.3s ease;" >
                                 <div style="flex: 1;">
                                     <h3 style="color: #ec4899; margin: 0 0 0.5rem 0; font-size: 1.4rem; display: flex; align-items: center; gap: 0.5rem;">
@@ -2694,7 +2678,7 @@
                 <div class="parallax-layer parallax-layer-bg" style="background-image: none;"></div>
                 <div class="parallax-layer parallax-layer-mid" style="background-image: none;"></div>
                 <!-- Navigation inside hero -->
-                <nav class="navbar" id="navbar" aria-label="Main navigation">
+                <nav class="navbar" aria-label="Main navigation">
                     <div class="nav-container" style="display: flex; justify-content: center; align-items: center; width: 100%;">
                         <!-- Complete centered navigation group -->
                         <div class="nav-items-row" style="display: flex; align-items: center; gap: 2rem;">
@@ -2934,7 +2918,7 @@
                 <div class="parallax-layer parallax-layer-bg" style="background-image: none;"></div>
                 <div class="parallax-layer parallax-layer-mid" style="background-image: none;"></div>
                 <!-- Navigation inside hero -->
-                <nav class="navbar" id="navbar" aria-label="Main navigation">
+                <nav class="navbar" aria-label="Main navigation">
                     <div class="nav-container" style="display: flex; justify-content: center; align-items: center; width: 100%;">
                         <!-- Complete centered navigation group -->
                         <div class="nav-items-row" style="display: flex; align-items: center; gap: 2rem;">
@@ -3059,7 +3043,7 @@
                 <div class="parallax-layer parallax-layer-bg" style="background-image: none;"></div>
                 <div class="parallax-layer parallax-layer-mid" style="background-image: none;"></div>
                 <!-- Navigation inside hero -->
-                <nav class="navbar" id="navbar" aria-label="Main navigation">
+                <nav class="navbar" aria-label="Main navigation">
                     <div class="nav-container" style="display: flex; justify-content: center; align-items: center; width: 100%;">
                         <!-- Complete centered navigation group -->
                         <div class="nav-items-row" style="display: flex; align-items: center; gap: 2rem;">
@@ -3208,7 +3192,7 @@
                 <div class="parallax-layer parallax-layer-bg" style="background-image: none;"></div>
                 <div class="parallax-layer parallax-layer-mid" style="background-image: none;"></div>
                 <!-- Navigation inside hero -->
-                <nav class="navbar" id="navbar" aria-label="Main navigation">
+                <nav class="navbar" aria-label="Main navigation">
                     <div class="nav-container" style="display: flex; justify-content: center; align-items: center; width: 100%;">
                         <!-- Complete centered navigation group -->
                         <div class="nav-items-row" style="display: flex; align-items: center; gap: 2rem;">
@@ -3299,14 +3283,14 @@
                                 <h3 class="card-title">Send us a Message</h3>
                                 <form id="contactForm" data-submit="sendContactMessage">
                                     <div class="form-group">
-                                        <input type="text" id="contactName" class="form-input" placeholder="Your Name" required>
+                                        <input type="text" id="contactName" name="name" class="form-input" placeholder="Your Name" required>
                                     </div>
                                     <div class="form-group">
-                                        <input type="email" id="contactEmail" class="form-input" placeholder="Your Email" required data-validate="email" data-clear-email-error="true">
+                                        <input type="email" id="contactEmail" name="email" class="form-input" placeholder="Your Email" required data-validate="email" data-clear-email-error="true">
                         <div class="email-error-message" id="contactEmailError" style="display: none; color: #dc2626; font-size: 0.85rem; margin-top: 0.25rem;"></div>
                                     </div>
                                     <div class="form-group">
-                                        <textarea id="contactMessage" class="form-textarea" rows="4" placeholder="Your Message" required></textarea>
+                                        <textarea id="contactMessage" name="message" class="form-textarea" rows="4" placeholder="Your Message" required></textarea>
                                     </div>
                                     <button type="submit" class="btn btn-primary" id="contactSubmitBtn">Send Message</button>
                                     <div id="contactFormStatus" style="margin-top: 1rem; display: none;"></div>
@@ -4172,7 +4156,7 @@ class WebsiteSecurityManager {
                 this.checkRateLimit('booking', 5);
                 callback();
             } catch (error) {
-                alert('Too many booking attempts. Please wait a moment before trying again.');
+                showFormError('date', 'Too many booking attempts. Please wait a moment before trying again.');
             }
         };
     }
@@ -4949,7 +4933,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 if (!firstName || !lastName || !phone) {
-                    alert('Please fill in all required guest information');
+                    showFormError('guest', 'Please fill in all required guest information');
                     return;
                 }
 
@@ -5000,7 +4984,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (window.SecureFrontend && window.SecureFrontend.showSuccess) {
                         window.SecureFrontend.showSuccess('Payment processed successfully! Your booking is confirmed.');
                     } else {
-                        alert('Payment processed successfully! Your booking is confirmed.');
+                        showBookingNotification('Payment processed successfully! Your booking is confirmed.', 'success');
                     }
 
                     // Close modal and redirect
@@ -5016,7 +5000,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (window.SecureFrontend && window.SecureFrontend.handleSecurityError) {
                     window.SecureFrontend.handleSecurityError(error, 'payment_processing');
                 } else {
-                    alert('Payment processing failed. Please try again.');
+                    showBookingNotification('Payment processing failed. Please try again.', 'error');
                 }
             }
         }
@@ -5275,7 +5259,7 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             if (!guestData.firstName || !guestData.lastName || !guestData.email || !guestData.phone) {
-                alert('Please fill in all required fields');
+                showFormError('guest', 'Please fill in all required fields');
                 return;
             }
 
@@ -5362,7 +5346,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             } catch (error) {
                 console.error('Booking error:', error);
-                alert('Booking failed: ' + error.message + '. Please try again.');
+                showBookingNotification('Booking failed: ' + error.message + '. Please try again.', 'error');
                 if (button) {
                     button.innerHTML = 'Confirm & Pay';
                     button.disabled = false;
@@ -5468,6 +5452,28 @@ document.addEventListener('DOMContentLoaded', () => {
             if (errorElement) {
                 errorElement.classList.remove('show');
             }
+        }
+
+        // Styled booking notification (replaces alert() calls)
+        function showBookingNotification(message, type = 'info') {
+            const existing = document.getElementById('bookingNotification');
+            if (existing) existing.remove();
+
+            const colors = {
+                success: { bg: '#f0fdf4', border: '#22c55e', text: '#166534' },
+                error: { bg: '#fef2f2', border: '#ef4444', text: '#991b1b' },
+                info: { bg: '#eff6ff', border: '#3b82f6', text: '#1e40af' }
+            };
+            const c = colors[type] || colors.info;
+
+            const div = document.createElement('div');
+            div.id = 'bookingNotification';
+            div.setAttribute('role', 'alert');
+            div.style.cssText = `position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:5000;padding:1rem 1.5rem;border-radius:12px;background:${c.bg};border:1px solid ${c.border};color:${c.text};font-size:0.95rem;max-width:90%;box-shadow:0 4px 12px rgba(0,0,0,0.15);animation:bookingStepIn 0.35s ease forwards;`;
+            div.textContent = message;
+            document.body.appendChild(div);
+
+            setTimeout(() => { div.style.opacity = '0'; div.style.transition = 'opacity 0.3s'; setTimeout(() => div.remove(), 300); }, 4000);
         }
 
         // Phone number validation function
@@ -6233,7 +6239,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Virtual Tour Functionality (placeholder)
         function startVirtualTour(accommodation) {
-            alert(`Virtual tour feature coming soon! For now, browse through our ${accommodation} photo gallery above or contact us for a video tour.`);
+            showBookingNotification(`Virtual tour feature coming soon! For now, browse through our ${accommodation} photo gallery above or contact us for a video tour.`, 'info');
         }
 
         window.acceptCookies = function() {
@@ -7082,11 +7088,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const checkoutEl = document.getElementById('bookingCheckout');
         if (!checkinEl || !checkoutEl) return;
 
+        const modalContent = document.querySelector('.booking-modal-content');
+
         checkinPicker = flatpickr(checkinEl, {
             dateFormat: 'Y-m-d',
             minDate: 'today',
             disable: currentBlockedDates,
             disableMobile: true,
+            appendTo: modalContent,
             onChange(selectedDates) {
                 if (selectedDates.length > 0) {
                     const nextDay = new Date(selectedDates[0]);
@@ -7110,6 +7119,7 @@ document.addEventListener('DOMContentLoaded', () => {
             minDate: 'today',
             disable: currentBlockedDates,
             disableMobile: true,
+            appendTo: modalContent,
             onChange() {
                 clearFormError('date');
                 updateNightsCount();
