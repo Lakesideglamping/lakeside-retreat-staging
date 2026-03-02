@@ -985,7 +985,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 petFee = 50;
             }
 
-            const cleaningFee = 75;
+            const cleaningFee = 50;
             const serviceFee = Math.round(subtotal * 0.03); // 3% service fee
             const securityBond = 300; // $300 refundable security bond
 

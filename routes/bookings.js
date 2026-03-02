@@ -322,7 +322,7 @@ function createBookingRoutes(deps) {
                 const pets = parseInt(req.body.pets) || 0;
                 const expectedPetFee = (accommodationConfig.petFee && pets > 0) ? accommodationConfig.petFee : 0;
 
-                const cleaningFee = 75;
+                const cleaningFee = 50;
                 const expectedTotal = expectedAccommodationCost + expectedExtraGuestFee + expectedPetFee + cleaningFee;
                 const minExpected = expectedTotal * 0.9;
                 const maxExpected = expectedTotal * 1.1;
@@ -476,7 +476,7 @@ function createBookingRoutes(deps) {
                 const securityDepositAmount = accommodationConfig?.securityDeposit || 300;
                 const hasSecurityDeposit = securityDepositAmount > 0;
 
-                const cleaningFee = 75;
+                const cleaningFee = 50;
                 const nights = Math.ceil(
                     (new Date(booking.check_out) - new Date(booking.check_in)) / (1000 * 60 * 60 * 24)
                 );

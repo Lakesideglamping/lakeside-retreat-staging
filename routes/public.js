@@ -278,9 +278,9 @@ function createPublicRoutes(deps) {
 
             // Defaults match config/accommodations.js base prices
             const defaultPricing = {
-                'dome_pinot': { base: 530, weekend: 530, peak: 530, cleaning: 75, minNights: 1 },
-                'dome_rose': { base: 510, weekend: 510, peak: 510, cleaning: 75, minNights: 1 },
-                'lakeside_cottage': { base: 295, weekend: 295, peak: 295, cleaning: 75, minNights: 2 }
+                'dome_pinot': { base: 530, weekend: 530, peak: 530, cleaning: 50, minNights: 1 },
+                'dome_rose': { base: 510, weekend: 510, peak: 510, cleaning: 50, minNights: 1 },
+                'lakeside_cottage': { base: 295, weekend: 295, peak: 295, cleaning: 50, minNights: 2 }
             };
 
             const pricing = { ...defaultPricing };
