@@ -1,4 +1,9 @@
-/* Extracted from inline <script> blocks in index.html */
+/**
+ * DEPRECATED — This file is NOT loaded by any HTML page.
+ * All JavaScript runs via inline <script> blocks in index.html.
+ * This file exists as a reference copy only. Do not add new code here.
+ * Last updated: 2026-03-02
+ */
 
 // --- Script block 1 ---
 (function() {
