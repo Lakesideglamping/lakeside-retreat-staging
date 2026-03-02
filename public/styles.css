@@ -383,7 +383,7 @@
             background: var(--dark);
             color: white;
             padding: 1rem;
-            z-index: 1000;
+            z-index: 1100;
             display: none;
             align-items: center;
             justify-content: space-between;
@@ -457,6 +457,7 @@
             background-position: center;
             background-repeat: no-repeat;
             will-change: transform;
+            pointer-events: none;
         }
 
         .parallax-layer-bg {
