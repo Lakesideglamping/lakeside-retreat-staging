@@ -438,7 +438,7 @@ function createBookingRoutes(deps) {
                     };
                 }
 
-                const idempotencyKey = `booking-${bookingId}-${Date.now()}`;
+                const idempotencyKey = `booking-${bookingId}`;
                 const session = await stripe.checkout.sessions.create(sessionConfig, {
                     idempotencyKey
                 });
