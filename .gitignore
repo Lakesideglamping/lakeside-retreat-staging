@@ -69,9 +69,15 @@ temp/
 # SQLite database files (contain sensitive booking/customer data)
 *.db
 *.db-journal
+*.db-shm
+*.db-wal
 *.sqlite
 *.sqlite3
 lakeside.db
+
+# Database backups (may contain PII)
+backups/*.db
+backups/*.sql
 
 # Test snapshots
 tests/__snapshots__/
