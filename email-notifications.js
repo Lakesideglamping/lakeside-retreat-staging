@@ -103,7 +103,7 @@ class EmailNotifications {
                     </div>
                     ` : ''}
                     
-                    <p><a href="https://lakeside-retreat-staging.onrender.com/admin-dashboard.html">View in Admin Dashboard</a></p>
+                    <p><a href="${process.env.PUBLIC_BASE_URL || 'https://lakesideretreat.co.nz'}/admin-dashboard.html">View in Admin Dashboard</a></p>
                 `
             };
             
@@ -225,7 +225,7 @@ class EmailNotifications {
                                 <p>Warm regards,<br>Stephen & Sandy<br>Lakeside Retreat</p>
                             </div>
                             <div class="footer">
-                                <p>Lakeside Retreat, 96 Smiths Way, Mount Pisa, Cromwell, Central Otago 9310, New Zealand</p>
+                                <p>Lakeside Retreat, 96 Smiths Way, Mount Pisa, Cromwell, Central Otago 9383, New Zealand</p>
                             </div>
                         </div>
                     </body>
@@ -307,7 +307,7 @@ class EmailNotifications {
                                 <p>Warm regards,<br>Stephen & Sandy<br>Lakeside Retreat</p>
                             </div>
                             <div class="footer">
-                                <p>Lakeside Retreat, 96 Smiths Way, Mount Pisa, Cromwell, Central Otago 9310, New Zealand</p>
+                                <p>Lakeside Retreat, 96 Smiths Way, Mount Pisa, Cromwell, Central Otago 9383, New Zealand</p>
                             </div>
                         </div>
                     </body>
@@ -391,7 +391,7 @@ class EmailNotifications {
                                 <p>Warm regards,<br>Stephen & Sandy<br>Lakeside Retreat</p>
                             </div>
                             <div class="footer">
-                                <p>Lakeside Retreat, 96 Smiths Way, Mount Pisa, Cromwell, Central Otago 9310, New Zealand</p>
+                                <p>Lakeside Retreat, 96 Smiths Way, Mount Pisa, Cromwell, Central Otago 9383, New Zealand</p>
                             </div>
                         </div>
                     </body>
@@ -474,7 +474,7 @@ class EmailNotifications {
                                 <p>Warm regards,<br>Stephen & Sandy<br>Lakeside Retreat</p>
                             </div>
                             <div class="footer">
-                                <p>Lakeside Retreat, 96 Smiths Way, Mount Pisa, Cromwell, Central Otago 9310, New Zealand</p>
+                                <p>Lakeside Retreat, 96 Smiths Way, Mount Pisa, Cromwell, Central Otago 9383, New Zealand</p>
                             </div>
                         </div>
                     </body>
@@ -573,7 +573,7 @@ class EmailNotifications {
                                 <p>Warm regards,<br>Stephen & Sandy<br>Lakeside Retreat</p>
                             </div>
                             <div class="footer">
-                                <p>Lakeside Retreat, 96 Smiths Way, Mount Pisa, Cromwell, Central Otago 9310, New Zealand</p>
+                                <p>Lakeside Retreat, 96 Smiths Way, Mount Pisa, Cromwell, Central Otago 9383, New Zealand</p>
                             </div>
                         </div>
                     </body>

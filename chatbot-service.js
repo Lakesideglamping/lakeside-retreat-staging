@@ -341,7 +341,7 @@ All rates include:
 - Local winery recommendations
 - Stephen & Sandy's personal hosting
 
-A $350 security deposit (authorization hold only) is required and automatically released 48 hours after checkout.
+A $300 security deposit (authorization hold only) is required and automatically released 48 hours after checkout.
 
 Would you like to proceed with a booking? You can book directly at lakesideretreat.co.nz or reply to this email with your preferred dates.
 

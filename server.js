@@ -476,6 +476,50 @@ app.use((req, res, next) => {
     next();
 });
 
+// ==========================================
+// ADMIN PAGE AUTH GUARD
+// ==========================================
+// Protect admin HTML pages (except admin.html which is the login page).
+// Requests for admin-*.html must carry a valid JWT auth token (cookie or header).
+// If the token is missing or invalid, redirect to the login page.
+const { parseCookies: parseAdminCookies, isTokenBlacklisted: isAdminTokenBlacklisted } = require('./middleware/auth');
+
+app.use((req, res, next) => {
+    const requestPath = req.path.toLowerCase();
+    // Only guard admin-*.html pages (not admin.html itself, not admin CSS/JS assets)
+    if (requestPath.startsWith('/admin-') && requestPath.endsWith('.html')) {
+        try {
+            // Extract JWT from Authorization header or httpOnly cookie
+            let token = req.headers.authorization?.split(' ')[1];
+            if (!token) {
+                const cookies = parseAdminCookies(req);
+                token = cookies['auth-token'];
+            }
+
+            if (!token || isAdminTokenBlacklisted(token)) {
+                return res.redirect('/admin.html');
+            }
+
+            const decoded = require('jsonwebtoken').verify(token, process.env.JWT_SECRET, {
+                issuer: 'lakeside-retreat',
+                audience: 'admin-panel'
+            });
+
+            if (decoded.role !== 'admin') {
+                return res.redirect('/admin.html');
+            }
+
+            // Token is valid — allow the request to continue to express.static
+            req.admin = decoded;
+            return next();
+        } catch (_err) {
+            // Invalid or expired token — redirect to login
+            return res.redirect('/admin.html');
+        }
+    }
+    next();
+});
+
 // Enhanced static file serving with proper caching
 // First: redirect responsive image subdirectories to flat images/ directory
 // (Desktop/, MobileLarge/, MobileSmall/, Tablet/ were planned but never populated)
@@ -696,7 +740,7 @@ async function sendBookingConfirmation(bookingData) {
             <p><strong>Next Steps:</strong></p>
             <p>Complete your secure payment to confirm your booking. Once payment is processed, you'll receive a final confirmation email with detailed check-in instructions.</p>
             
-            <p>Questions? Contact us at info@lakesideretreat.co.nz or +64 27 888 5888</p>
+            <p>Questions? Contact us at info@lakesideretreat.co.nz or +64 21 368 682</p>
             
             <p>Best regards,<br>Stephen &amp; Sandy<br>Lakeside Retreat Team</p>
         `
@@ -742,13 +786,13 @@ async function sendPaymentConfirmation(bookingData) {
             <h3>Check-in Information:</h3>
             <p><strong>Check-in Time:</strong> 3:00 PM<br>
             <strong>Check-out Time:</strong> 10:00 AM<br>
-            <strong>Address:</strong> 123 Lakeside Road, Cromwell, Central Otago</p>
+            <strong>Address:</strong> 96 Smiths Way, Mount Pisa, Cromwell</p>
             
             <p><strong>What's Next:</strong></p>
             <ul>
                 <li>We'll send detailed check-in instructions 48 hours before your arrival</li>
                 <li>If you have any special requests, please reply to this email</li>
-                <li>For urgent matters, call us at +64 27 888 5888</li>
+                <li>For urgent matters, call us at +64 21 368 682</li>
             </ul>
             
             <p><strong>Looking forward to hosting you at our energy-positive geodesic domes!</strong></p>
@@ -756,7 +800,7 @@ async function sendPaymentConfirmation(bookingData) {
             <p>Warm regards,<br>
             Stephen &amp; Sandy<br>
             <strong>Lakeside Retreat Team</strong><br>
-            +64 27 888 5888<br>
+            +64 21 368 682<br>
             info@lakesideretreat.co.nz</p>
         `
     };
@@ -797,7 +841,7 @@ async function handleStripeWebhook(event, res) {
         if (alreadyCompleted) {
             logger.info('[PAYMENT] Webhook already processed for session:', { sessionId: session.id });
             // Record as processed so future retries are caught by the event-level check above
-            db.run('INSERT OR IGNORE INTO processed_webhook_events (event_id) VALUES (?)', [event.id]);
+            db.run('INSERT INTO processed_webhook_events (event_id) VALUES (?) ON CONFLICT DO NOTHING', [event.id]);
             return res.json({ received: true, already_processed: true });
         }
 
@@ -881,7 +925,7 @@ async function handleStripeWebhook(event, res) {
                 logger.info(`Booking confirmed${depositSucceeded ? ' with security deposit' : ' (deposit hold failed)'} for session:`, { sessionId: session.id });
 
                 // Record successful processing for idempotency
-                db.run('INSERT OR IGNORE INTO processed_webhook_events (event_id) VALUES (?)', [event.id]);
+                db.run('INSERT INTO processed_webhook_events (event_id) VALUES (?) ON CONFLICT DO NOTHING', [event.id]);
 
                 // Schedule automatic release of security deposit (only if deposit succeeded)
                 if (depositSucceeded) {
@@ -985,7 +1029,7 @@ async function handleStripeWebhook(event, res) {
                 logger.info('Booking confirmed for session:', { sessionId: session.id });
 
                 // Record successful processing for idempotency
-                db.run('INSERT OR IGNORE INTO processed_webhook_events (event_id) VALUES (?)', [event.id]);
+                db.run('INSERT INTO processed_webhook_events (event_id) VALUES (?) ON CONFLICT DO NOTHING', [event.id]);
 
                 // Post-payment processing (non-critical: sync + email)
                 if (verifiedBooking) {
@@ -1062,7 +1106,7 @@ async function handleStripeWebhook(event, res) {
         } catch (err) {
             logger.error('[WEBHOOK] Failed to record refund:', { error: err.message });
         }
-        db.run('INSERT OR IGNORE INTO processed_webhook_events (event_id) VALUES (?)', [event.id]);
+        db.run('INSERT INTO processed_webhook_events (event_id) VALUES (?) ON CONFLICT DO NOTHING', [event.id]);
 
     } else if (event.type === 'charge.dispute.created') {
         const dispute = event.data.object;
@@ -1088,7 +1132,7 @@ async function handleStripeWebhook(event, res) {
                 logger.error('[WEBHOOK] Failed to send dispute alert email:', { error: emailErr.message });
             }
         }
-        db.run('INSERT OR IGNORE INTO processed_webhook_events (event_id) VALUES (?)', [event.id]);
+        db.run('INSERT INTO processed_webhook_events (event_id) VALUES (?) ON CONFLICT DO NOTHING', [event.id]);
 
     } else if (event.type === 'payment_intent.payment_failed') {
         const paymentIntent = event.data.object;
@@ -1122,7 +1166,7 @@ async function handleStripeWebhook(event, res) {
         } catch (err) {
             logger.error('[WEBHOOK] Failed to record payment failure:', { error: err.message });
         }
-        db.run('INSERT OR IGNORE INTO processed_webhook_events (event_id) VALUES (?)', [event.id]);
+        db.run('INSERT INTO processed_webhook_events (event_id) VALUES (?) ON CONFLICT DO NOTHING', [event.id]);
 
     } else if (event.type === 'checkout.session.expired') {
         const session = event.data.object;
@@ -1167,11 +1211,11 @@ async function handleStripeWebhook(event, res) {
         } catch (err) {
             logger.error('[WEBHOOK] Failed to handle expired checkout session:', { error: err.message });
         }
-        db.run('INSERT OR IGNORE INTO processed_webhook_events (event_id) VALUES (?)', [event.id]);
+        db.run('INSERT INTO processed_webhook_events (event_id) VALUES (?) ON CONFLICT DO NOTHING', [event.id]);
 
     } else {
         // Other events: record as processed
-        db.run('INSERT OR IGNORE INTO processed_webhook_events (event_id) VALUES (?)', [event.id]);
+        db.run('INSERT INTO processed_webhook_events (event_id) VALUES (?) ON CONFLICT DO NOTHING', [event.id]);
     }
 
     res.json({ received: true });
