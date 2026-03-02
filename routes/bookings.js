@@ -319,11 +319,9 @@ function createBookingRoutes(deps) {
                     expectedExtraGuestFee = (sanitizedData.guests - 2) * accommodationConfig.extraGuestFee * nights;
                 }
                 const cleaningFee = 75;
-                // Pet fees are variable (not sent by frontend), so widen tolerance to account for up to 2 pets
-                const maxPossiblePetFee = (accommodationConfig.petFee || 0) * 2 * nights;
                 const expectedTotal = expectedAccommodationCost + expectedExtraGuestFee + cleaningFee;
                 const minExpected = expectedTotal * 0.9;
-                const maxExpected = (expectedTotal + maxPossiblePetFee) * 1.1;
+                const maxExpected = expectedTotal * 1.1;
                 if (sanitizedData.total_price < minExpected || sanitizedData.total_price > maxExpected) {
                     return res.status(400).json({ success: false, error: 'Price validation failed. Please try again.' });
                 }

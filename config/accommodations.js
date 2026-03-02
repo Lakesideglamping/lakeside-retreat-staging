@@ -40,14 +40,13 @@ const accommodations = [
         id: 'lakeside-cottage',
         name: 'Lakeside Cottage',
         description: 'Family-friendly cottage with direct lake access',
-        maxGuests: 6,
+        maxGuests: 3,
         basePrice: 295,
         minStay: 2,
         securityDeposit: 300,
         childrenAllowed: true,
         adultsOnly: false,
         extraGuestFee: 100,
-        petFee: 25,
         amenities: ['2 bedrooms', 'Full kitchen', 'Lake views', 'Pet friendly'],
         images: ['lakesidecottageexterior.jpeg', 'lakesidecottageinterior.jpeg']
     }

@@ -973,13 +973,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
             
-            // Calculate pet fees for cottage
-            let petFee = 0;
-            if (selectedAccommodation === 'lakeside-cottage' && bookingData.pets > 0) {
-                petFee = bookingData.pets * 25 * bookingData.nights; // $25 per pet per night
-                subtotal += petFee;
-            }
-            
             const cleaningFee = 75;
             const serviceFee = Math.round(subtotal * 0.03); // 3% service fee
             const securityBond = 300; // $300 refundable security bond
@@ -994,7 +987,6 @@ document.addEventListener('DOMContentLoaded', () => {
             bookingData.nightlyRate = nightlyRate;
             bookingData.subtotal = subtotal;
             bookingData.extraGuestCharge = extraGuestCharge;
-            bookingData.petFee = petFee;
             bookingData.cleaningFee = cleaningFee;
             bookingData.serviceFee = serviceFee;
             bookingData.securityBond = securityBond;
@@ -1016,21 +1008,6 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 extraGuestRow.style.display = 'none';
                 extraGuestChargeElement.textContent = '$0';
-            }
-            
-            // Show/hide pet fee for cottage
-            const petFeeRow = document.getElementById('petFeeRow');
-            const petFeeElement = document.getElementById('petFee');
-            if (selectedAccommodation === 'lakeside-cottage' && petFee > 0) {
-                if (petFeeRow) {
-                    petFeeRow.style.display = 'flex';
-                    petFeeElement.textContent = `${petFee} NZD`;
-                }
-            } else {
-                if (petFeeRow) {
-                    petFeeRow.style.display = 'none';
-                    petFeeElement.textContent = '$0';
-                }
             }
             
             document.getElementById('cleaningFee').textContent = `${cleaningFee} NZD`;
@@ -1290,20 +1267,12 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Show/hide optional fees
             const finalExtraGuestRow = document.getElementById('finalExtraGuestRow');
-            const finalPetFeeRow = document.getElementById('finalPetFeeRow');
-            
+
             if (bookingData.extraGuestCharge && bookingData.extraGuestCharge > 0) {
                 finalExtraGuestRow.style.display = 'flex';
                 document.getElementById('finalExtraGuestFee').textContent = `$${bookingData.extraGuestCharge}`;
             } else {
                 finalExtraGuestRow.style.display = 'none';
-            }
-            
-            if (bookingData.petFee && bookingData.petFee > 0) {
-                finalPetFeeRow.style.display = 'flex';
-                document.getElementById('finalPetFee').textContent = `$${bookingData.petFee}`;
-            } else {
-                finalPetFeeRow.style.display = 'none';
             }
             
             document.getElementById('finalGST').textContent = `$${bookingData.gst}`;
@@ -1760,7 +1729,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <p>Guests are responsible for the accommodation during their stay. Any damage or excessive cleaning required will be charged to the guest's account. Smoking is not permitted inside any accommodation.</p>
                         
                         <h3>5. Pet Policy</h3>
-                        <p>Pets are welcome in Lakeside Cottage only, subject to prior approval. A pet fee of $50 per stay applies. Pets must be well-behaved and not left unattended.</p>
+                        <p>Pets are welcome in Lakeside Cottage only, subject to prior approval. Pets must be well-behaved and not left unattended.</p>
                         
                         <h3>6. Power Supply</h3>
                         <p>Our accommodation is powered by a sustainable energy system. While we maintain 99.9% uptime, we cannot guarantee uninterrupted power supply. No refunds will be given for power-related issues.</p>
@@ -2645,27 +2614,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     Book Now
                 </button>
                 
-                <!-- WhatsApp Quick Contact -->
-                <a href="https://wa.me/642136868?text=Hi! I'm interested in booking a stay at Lakeside Retreat. Can you help me with availability and pricing?" target="_blank" rel="noopener noreferrer" style="
-                    background: #25D366;
-                    color: white;
-                    border: none;
-                    padding: 12px;
-                    border-radius: 50%;
-                    font-size: 1.2rem;
-                    box-shadow: 0 6px 20px rgba(37, 211, 102, 0.3);
-                    cursor: pointer;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    text-decoration: none;
-                    margin-top: 15px;
-                    width: 50px;
-                    height: 50px;
-                    transition: all 0.3s ease;
-                " class="hover-scale-whatsapp" title="Chat with us on WhatsApp">
-                    💬
-                </a>
             `;
             
             floatingButton.style.cssText = `

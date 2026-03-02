@@ -333,7 +333,7 @@ Our current nightly rates are:
 - Dome Pinot (50sqm luxury dome): $530 NZD - includes continental breakfast, private spa
 - Dome Rosé (40sqm romantic dome): $510 NZD - includes continental breakfast, outdoor spa
 - Lakeside Cottage: $295 NZD - full kitchen, wood-fired hot tub, direct lake access
-  (Extra guest fee: $100, Pet fee: $25)
+  (Extra guest fee: $100)
 
 All rates include:
 - Free WiFi and parking

@@ -627,7 +627,7 @@ class MarketingAutomation {
                 propertyTips = `
                     <div style="background: #e8f4fd; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #2196F3;">
                         <h4 style="margin-top: 0;">Pet Policy</h4>
-                        <p style="margin-bottom: 0;">Pets are welcome at Lakeside Cottage! Please keep them off the furniture and clean up after them on the property. An additional cleaning fee may apply if needed.</p>
+                        <p style="margin-bottom: 0;">Pets are welcome at Lakeside Cottage! Please keep them off the furniture and clean up after them on the property.</p>
                     </div>
                 `;
             }

@@ -370,9 +370,6 @@
                                 <option value="1">1 Adult</option>
                                 <option value="2" selected>2 Adults</option>
                                 <option value="3">3 Adults</option>
-                                <option value="4">4 Adults</option>
-                                <option value="5">5 Adults</option>
-                                <option value="6">6 Adults</option>
                             </select>
                         </div>
                         <div class="booking-form-group">
@@ -380,17 +377,14 @@
                             <select class="booking-form-select" id="bookingChildren">
                                 <option value="0" selected>0 Children</option>
                                 <option value="1">1 Child</option>
-                                <option value="2">2 Children</option>
-                                <option value="3">3 Children</option>
-                                <option value="4">4 Children</option>
                             </select>
                         </div>
                         <div class="booking-form-group" id="petSelectionGroup" style="display: none;">
                             <label class="booking-form-label" for="bookingPets">Pets</label>
                             <select class="booking-form-select" id="bookingPets">
                                 <option value="0" selected>No Pets</option>
-                                <option value="1">1 Pet ($25 per night)</option>
-                                <option value="2">2 Pets ($50 per night)</option>
+                                <option value="1">1 Pet</option>
+                                <option value="2">2 Pets</option>
                             </select>
                         </div>
                     </div>
@@ -439,10 +433,6 @@
                         <div class="price-row" id="extraGuestRow" style="display: none;">
                             <span>Extra Guest Charge:</span>
                             <span id="extraGuestCharge">$0</span>
-                        </div>
-                        <div class="price-row" id="petFeeRow" style="display: none;">
-                            <span>Pet Cleaning Fee:</span>
-                            <span id="petFee">$0</span>
                         </div>
                         <div class="price-row">
                             <span>Cleaning Fee:</span>
@@ -522,7 +512,7 @@
                                 </div>
                                 
                                 <div style="background: #f0fdf4; padding: 0.75rem; border-radius: 8px; margin-top: 0.5rem; font-size: 0.85rem; color: #166534;">
-                                    <p style="margin: 0;"><strong>Pet Policy:</strong> Maximum 2 pets. $25 cleaning fee per pet. Pets must be supervised and not left alone in the cottage.</p>
+                                    <p style="margin: 0;"><strong>Pet Policy:</strong> Maximum 2 pets. Pets must be supervised and not left alone in the cottage.</p>
                                 </div>
                             </div>
                         </div>
@@ -598,10 +588,6 @@
                         <div class="price-row" id="finalExtraGuestRow" style="display: none;">
                             <span>Extra Guest Charge:</span>
                             <span id="finalExtraGuestFee">$0</span>
-                        </div>
-                        <div class="price-row" id="finalPetFeeRow" style="display: none;">
-                            <span>Pet Fee:</span>
-                            <span id="finalPetFee">$0</span>
                         </div>
                         <div class="price-row price-total">
                             <span>Total Amount (GST Incl.):</span>
@@ -3353,7 +3339,7 @@
                                     <span class="faq-arrow" style="transition: transform 0.3s; font-size: 0.8rem;">▼</span>
                                 </div>
                                 <div style="max-height: 0; overflow: hidden; transition: max-height 0.3s ease; padding: 0 1.25rem;">
-                                    <p style="padding-bottom: 1.25rem; color: #666; line-height: 1.7;">The Lakeside Cottage is pet-friendly with prior approval ($25/pet/night cleaning fee, max 2 pets). Please let us know breed and size when booking. The domes are not suitable for pets. All pets must be well-behaved and supervised at all times.</p>
+                                    <p style="padding-bottom: 1.25rem; color: #666; line-height: 1.7;">The Lakeside Cottage is pet-friendly with prior approval (max 2 pets). Please let us know breed and size when booking. The domes are not suitable for pets. All pets must be well-behaved and supervised at all times.</p>
                                 </div>
                             </div>
 
@@ -3414,7 +3400,7 @@
                         <div style="font-size: 4rem; margin-bottom: 1rem;">⚠️</div>
                         <h2 style="color: var(--brand-teal); margin-bottom: 1rem;">Payment Received</h2>
                         <p style="color: #555; margin-bottom: 2rem;">Your payment was successful, but we couldn't load the booking details right now. Don't worry — you'll receive a confirmation email shortly.</p>
-                        <p style="color: #666; font-size: 0.9rem; margin-bottom: 2rem;">If you don't receive an email within 30 minutes, please contact us at <a href="mailto:stay@lakesideretreat.co.nz" style="color: var(--brand-teal);">stay@lakesideretreat.co.nz</a> or call <a href="tel:+6421368682" style="color: var(--brand-teal);">+64 21 368 682</a>.</p>
+                        <p style="color: #666; font-size: 0.9rem; margin-bottom: 2rem;">If you don't receive an email within 30 minutes, please contact us at <a href="mailto:info@lakesideretreat.co.nz" style="color: var(--brand-teal);">info@lakesideretreat.co.nz</a> or call <a href="tel:+6421368682" style="color: var(--brand-teal);">+64 21 368 682</a>.</p>
                         <a href="#" data-page="home" class="btn btn-primary">Return Home</a>
                     </div>
                 </div>
@@ -3557,7 +3543,7 @@
                         </div>
                         <div class="faq-answer" style="padding: 0; max-height: 0; overflow: hidden; transition: all 0.3s ease;">
                             <div style="padding: 1.5rem; border-top: 1px solid #f0f0f0; color: var(--text); line-height: 1.6;">
-                                The Lakeside Cottage is pet-friendly! Your furry friends are welcome with prior arrangement. The geodesic domes are not suitable for pets. Pet fee applies.
+                                The Lakeside Cottage is pet-friendly! Your furry friends are welcome with prior arrangement. The geodesic domes are not suitable for pets.
                             </div>
                         </div>
                     </div>
@@ -3858,7 +3844,7 @@ document.addEventListener('DOMContentLoaded', () => {
       "petsAllowed": "Lakeside Cottage only",
       "smokingAllowed": false,
       "numberOfRooms": "3",
-      "maximumAttendeeCapacity": "6",
+      "maximumAttendeeCapacity": "3",
       "hasMap": "https://maps.google.com/?q=-45.038710,169.197693",
       "sameAs": [
         "https://www.facebook.com/lakesideretreatnz",
@@ -4702,6 +4688,22 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 100);
         }
         
+        // Helper: dynamically limit children options based on adults selected (max 3 total)
+        function updateCottageChildrenOptions(adultsSelect, childrenSelect) {
+            const adults = parseInt(adultsSelect.value) || 2;
+            const maxChildren = Math.max(0, 3 - adults);
+            const currentChildren = parseInt(childrenSelect.value) || 0;
+            const options = [{value: '0', text: '0 Children', selected: currentChildren === 0}];
+            for (let i = 1; i <= maxChildren; i++) {
+                options.push({value: String(i), text: i === 1 ? '1 Child' : `${i} Children`, selected: currentChildren === i});
+            }
+            safeCreateSelectOptions(childrenSelect, options);
+            // If current children exceeds new max, reset to max
+            if (currentChildren > maxChildren) {
+                childrenSelect.value = String(maxChildren);
+            }
+        }
+
         function updateBookingFormForAccommodation(accommodationType) {
             const adultsSelect = document.getElementById('bookingAdults');
             const childrenSelect = document.getElementById('bookingChildren');
@@ -4743,22 +4745,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Console statement removed for production
             } else {
-                // Cottage: Maximum 4 people total, pets allowed
+                // Cottage: Maximum 3 people total (not including pets)
                 safeCreateSelectOptions(adultsSelect, [
                     {value: '1', text: '1 Adult'},
                     {value: '2', text: '2 Adults', selected: true},
-                    {value: '3', text: '3 Adults'},
-                    {value: '4', text: '4 Adults'}
+                    {value: '3', text: '3 Adults'}
                 ]);
 
-                // Show children section for cottage (max 2 children to keep total at 4)
+                // Show children section for cottage (max 3 total guests)
                 if (childrenGroup) {
                     childrenGroup.style.display = 'block';
-                    safeCreateSelectOptions(childrenSelect, [
-                        {value: '0', text: '0 Children', selected: true},
-                        {value: '1', text: '1 Child'},
-                        {value: '2', text: '2 Children'}
-                    ]);
+                    updateCottageChildrenOptions(adultsSelect, childrenSelect);
+                    // Update children options when adults selection changes
+                    adultsSelect.addEventListener('change', function() {
+                        updateCottageChildrenOptions(adultsSelect, childrenSelect);
+                    });
                 }
 
                 // Show pet option for cottage
@@ -5039,13 +5040,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // Calculate pet fees for cottage
-            let petFee = 0;
-            if (selectedAccommodation === 'lakeside-cottage' && bookingData.pets > 0) {
-                petFee = bookingData.pets * 25 * bookingData.nights; // $25 per pet per night
-                subtotal += petFee;
-            }
-
             const cleaningFee = 75;
             const securityBond = 300; // $300 refundable security bond
 
@@ -5059,7 +5053,6 @@ document.addEventListener('DOMContentLoaded', () => {
             bookingData.nightlyRate = nightlyRate;
             bookingData.subtotal = subtotal;
             bookingData.extraGuestCharge = extraGuestCharge;
-            bookingData.petFee = petFee;
             bookingData.cleaningFee = cleaningFee;
             bookingData.securityBond = securityBond;
             bookingData.gst = gst;
@@ -5091,21 +5084,6 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 extraGuestRow.style.display = 'none';
                 extraGuestChargeElement.textContent = '$0';
-            }
-
-            // Show/hide pet fee for cottage
-            const petFeeRow = document.getElementById('petFeeRow');
-            const petFeeElement = document.getElementById('petFee');
-            if (selectedAccommodation === 'lakeside-cottage' && petFee > 0) {
-                if (petFeeRow) {
-                    petFeeRow.style.display = 'flex';
-                    petFeeElement.textContent = `${petFee} NZD`;
-                }
-            } else {
-                if (petFeeRow) {
-                    petFeeRow.style.display = 'none';
-                    petFeeElement.textContent = '$0';
-                }
             }
 
             document.getElementById('cleaningFee').textContent = `${cleaningFee} NZD`;
@@ -5191,20 +5169,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Show/hide optional fees
             const finalExtraGuestRow = document.getElementById('finalExtraGuestRow');
-            const finalPetFeeRow = document.getElementById('finalPetFeeRow');
-            
+
             if (bookingData.extraGuestCharge && bookingData.extraGuestCharge > 0) {
                 finalExtraGuestRow.style.display = 'flex';
                 document.getElementById('finalExtraGuestFee').textContent = `$${bookingData.extraGuestCharge}`;
             } else {
                 finalExtraGuestRow.style.display = 'none';
-            }
-            
-            if (bookingData.petFee && bookingData.petFee > 0) {
-                finalPetFeeRow.style.display = 'flex';
-                document.getElementById('finalPetFee').textContent = `$${bookingData.petFee}`;
-            } else {
-                finalPetFeeRow.style.display = 'none';
             }
             
             document.getElementById('finalGST').textContent = `$${bookingData.gst}`;
@@ -5842,7 +5812,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <p>Guests are responsible for the accommodation during their stay. Any damage or excessive cleaning required will be charged to the guest's account. Smoking is not permitted inside any accommodation.</p>
                         
                         <h3>5. Pet Policy</h3>
-                        <p>Pets are welcome in Lakeside Cottage only, subject to prior approval. A pet fee of $50 per stay applies. Pets must be well-behaved and not left unattended.</p>
+                        <p>Pets are welcome in Lakeside Cottage only, subject to prior approval. Pets must be well-behaved and not left unattended.</p>
                         
                         <h3>6. Power Supply</h3>
                         <p>Our accommodation is powered by a sustainable energy system. While we maintain 99.9% uptime, we cannot guarantee uninterrupted power supply. No refunds will be given for power-related issues.</p>
@@ -6755,28 +6725,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     <span style="font-size: 1.2rem;">📅</span>
                     Book Now
                 </button>
-                
-                <!-- WhatsApp Quick Contact -->
-                <a href="https://wa.me/6421368682?text=Hi! I'm interested in booking a stay at Lakeside Retreat. Can you help me with availability and pricing?" target="_blank" rel="noopener noreferrer" style="
-                    background: #25D366;
-                    color: white;
-                    border: none;
-                    padding: 12px;
-                    border-radius: 50%;
-                    font-size: 1.2rem;
-                    box-shadow: 0 6px 20px rgba(37, 211, 102, 0.3);
-                    cursor: pointer;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    text-decoration: none;
-                    margin-top: 15px;
-                    width: 50px;
-                    height: 50px;
-                    transition: all 0.3s ease;
-                " class="hover-scale-whatsapp" title="Chat with us on WhatsApp">
-                    💬
-                </a>
             `;
             
             floatingButton.style.cssText = `

@@ -76,8 +76,8 @@
       "name": "Lakeside Cottage",
       "type": "Family Cottage",
       "size": "Full cottage",
-      "maxGuests": 6,
-      "price": { "base": 300, "currency": "NZD", "extraGuestFee": 100, "petFee": 25 },
+      "maxGuests": 3,
+      "price": { "base": 300, "currency": "NZD", "extraGuestFee": 100 },
       "description": "Spacious family-friendly cottage with direct lake access and wood-fired hot tub. Perfect for families or groups wanting space and lake activities.",
       "amenities": [
         "2 bedrooms",
@@ -88,11 +88,11 @@
         "Washing machine",
         "Outdoor BBQ",
         "Free WiFi",
-        "Pet-friendly (max 2 pets, $25 fee per pet)"
+        "Pet-friendly (max 2 pets)"
       ],
       "views": "Direct Lake Dunstan access and views",
       "petFriendly": true,
-      "petPolicy": "Maximum 2 pets. $25 cleaning fee per pet. Pets must be supervised and not left alone in the cottage."
+      "petPolicy": "Maximum 2 pets. Pets must be supervised and not left alone in the cottage."
     }
   ],
   "policies": {
@@ -111,7 +111,7 @@
       "note": "Authorization hold - automatically released 48 hours after checkout"
     },
     "cancellation": "Please contact us for our cancellation policy details",
-    "pets": "Only allowed at Lakeside Cottage. Maximum 2 pets with $25 fee per pet.",
+    "pets": "Only allowed at Lakeside Cottage. Maximum 2 pets.",
     "smoking": "Not permitted in any accommodation"
   },
   "faqs": [
@@ -137,7 +137,7 @@
     },
     {
       "question": "Can we bring our pet?",
-      "answer": "The Lakeside Cottage is pet-friendly! Your furry friends are welcome with prior arrangement. Maximum 2 pets with a $25 cleaning fee per pet. Pets must be supervised and not left alone in the cottage. The geodesic domes are not suitable for pets.",
+      "answer": "The Lakeside Cottage is pet-friendly! Your furry friends are welcome with prior arrangement. Maximum 2 pets. Pets must be supervised and not left alone in the cottage. The geodesic domes are not suitable for pets.",
       "keywords": ["pet", "pets", "dog", "dogs", "cat", "animal", "furry"]
     },
     {
@@ -192,7 +192,7 @@
     },
     "pricing": {
       "patterns": ["price", "cost", "rate", "how much", "expensive", "cheap", "afford"],
-      "response": "Our nightly rates are: Dome Pinot (50sqm luxury dome) - $530 NZD, Dome Rosé (40sqm romantic dome) - $510 NZD, and Lakeside Cottage (family cottage) - $295 NZD. The cottage has an extra guest fee of $100 and pet fee of $25. All prices include continental breakfast for dome guests. Would you like to know more about what's included?"
+      "response": "Our nightly rates are: Dome Pinot (50sqm luxury dome) - $530 NZD, Dome Rosé (40sqm romantic dome) - $510 NZD, and Lakeside Cottage (family cottage) - $295 NZD. The cottage has an extra guest fee of $100. All prices include continental breakfast for dome guests. Would you like to know more about what's included?"
     },
     "contact_human": {
       "patterns": ["speak to someone", "talk to human", "real person", "contact", "call", "phone", "email"],
