@@ -251,6 +251,163 @@ class EmailNotifications {
         return names[accommodation] || accommodation;
     }
 
+    async sendDuringStayCheckin(booking) {
+        if (!this.transporter || !this.fromEmail) {
+            console.log('📧 Email not configured - during-stay check-in skipped');
+            return { success: false, reason: 'Email not configured' };
+        }
+
+        try {
+            const accommodationName = this.formatAccommodationName(booking.accommodation);
+
+            const email = {
+                from: this.fromEmail,
+                to: booking.guest_email,
+                subject: `Welcome to Lakeside Retreat - We hope you're settling in!`,
+                html: `
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <style>
+                            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                            .header { background: #2c5530; color: white; padding: 20px; text-align: center; }
+                            .content { padding: 20px; background: #f9f9f9; }
+                            .details-box { background: white; padding: 15px; border-radius: 8px; margin: 15px 0; }
+                            .cta-button { display: inline-block; background: #25D366; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 10px 0; }
+                            .footer { text-align: center; padding: 20px; font-size: 12px; color: #666; }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="container">
+                            <div class="header">
+                                <h1>Welcome to Lakeside Retreat!</h1>
+                                <p style="margin: 0;">${accommodationName}</p>
+                            </div>
+                            <div class="content">
+                                <p>Hi ${booking.guest_name || 'there'},</p>
+
+                                <p>We hope you've settled in and are enjoying your stay at ${accommodationName}! We just wanted to check in and make sure everything is perfect for you.</p>
+
+                                <div class="details-box">
+                                    <h3 style="margin-top: 0;">A Few Reminders</h3>
+                                    <p><strong>Spa & Hot Tub:</strong> Feel free to enjoy the spa/hot tub during your stay — it's a wonderful way to unwind after a day exploring Central Otago.</p>
+                                    <p><strong>WiFi:</strong> Connect to <code>Lakeside_Guest</code> — the password is in your welcome guide.</p>
+                                    <p><strong>Emergency Contact:</strong> <a href="tel:+6421368682">+64 21 368 682</a></p>
+                                </div>
+
+                                <p>If anything isn't quite right or you need anything at all, please don't hesitate to reach out. We're just a message away!</p>
+
+                                <div style="text-align: center; margin: 25px 0;">
+                                    <a href="https://wa.me/6421368682" class="cta-button">Message Us on WhatsApp</a>
+                                </div>
+
+                                <p>Enjoy your evening!</p>
+                                <p>Warm regards,<br>Stephen & Sandy<br>Lakeside Retreat</p>
+                            </div>
+                            <div class="footer">
+                                <p>Lakeside Retreat, 96 Smiths Way, Mount Pisa, Cromwell, Central Otago 9310, New Zealand</p>
+                            </div>
+                        </div>
+                    </body>
+                    </html>
+                `
+            };
+
+            await this.transporter.sendMail(email);
+            console.log(`✅ During-stay check-in email sent to ${booking.guest_email}`);
+            return { success: true };
+
+        } catch (error) {
+            console.error(`❌ Failed to send during-stay check-in to ${booking.guest_email}:`, error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    async sendCheckoutThankYou(booking) {
+        if (!this.transporter || !this.fromEmail) {
+            console.log('📧 Email not configured - checkout thank-you skipped');
+            return { success: false, reason: 'Email not configured' };
+        }
+
+        try {
+            const accommodationName = this.formatAccommodationName(booking.accommodation);
+
+            // Review links
+            const googleReviewUrl = 'https://g.page/r/lakeside-retreat-cromwell/review';
+            const airbnbUrl = 'https://www.airbnb.co.nz/users/show/lakesideretreat';
+
+            const email = {
+                from: this.fromEmail,
+                to: booking.guest_email,
+                subject: `Thank you for staying at Lakeside Retreat!`,
+                html: `
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <style>
+                            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                            .header { background: #2c5530; color: white; padding: 20px; text-align: center; }
+                            .content { padding: 20px; background: #f9f9f9; }
+                            .details-box { background: white; padding: 15px; border-radius: 8px; margin: 15px 0; }
+                            .review-buttons { text-align: center; margin: 20px 0; }
+                            .review-button { display: inline-block; padding: 12px 25px; margin: 5px; text-decoration: none; border-radius: 5px; color: white; }
+                            .google { background: #4285f4; }
+                            .airbnb { background: #ff5a5f; }
+                            .book-direct { background: #f0f8ff; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #2c5530; }
+                            .footer { text-align: center; padding: 20px; font-size: 12px; color: #666; }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="container">
+                            <div class="header">
+                                <h1>Thank You for Your Stay!</h1>
+                                <p style="margin: 0;">Lakeside Retreat</p>
+                            </div>
+                            <div class="content">
+                                <p>Hi ${booking.guest_name || 'there'},</p>
+
+                                <p>Thank you so much for staying with us at ${accommodationName}! We truly hope you had a wonderful time and that Lakeside Retreat felt like a home away from home.</p>
+
+                                <div class="details-box">
+                                    <h3 style="margin-top: 0;">Security Bond</h3>
+                                    <p style="margin-bottom: 0;">Your security bond authorization hold will be automatically released within <strong>48 hours</strong>. You don't need to do anything — it will drop off your statement on its own.</p>
+                                </div>
+
+                                <p>If you enjoyed your stay, we'd love to hear about it! A quick review helps other travellers discover us and means the world to our small family-run retreat.</p>
+
+                                <div class="review-buttons">
+                                    <a href="${googleReviewUrl}" class="review-button google">Review on Google</a>
+                                    <a href="${airbnbUrl}" class="review-button airbnb">Review on Airbnb</a>
+                                </div>
+
+                                <div class="book-direct">
+                                    <p style="margin: 0;"><strong>Book direct next time and save 18%!</strong> When you book through our website at <a href="https://lakesideretreat.co.nz">lakesideretreat.co.nz</a>, you skip the platform fees and get the best possible rate. We'd love to welcome you back!</p>
+                                </div>
+
+                                <p>Thank you again for choosing Lakeside Retreat. We hope to see you again soon!</p>
+                                <p>Warm regards,<br>Stephen & Sandy<br>Lakeside Retreat</p>
+                            </div>
+                            <div class="footer">
+                                <p>Lakeside Retreat, 96 Smiths Way, Mount Pisa, Cromwell, Central Otago 9310, New Zealand</p>
+                            </div>
+                        </div>
+                    </body>
+                    </html>
+                `
+            };
+
+            await this.transporter.sendMail(email);
+            console.log(`✅ Checkout thank-you email sent to ${booking.guest_email}`);
+            return { success: true };
+
+        } catch (error) {
+            console.error(`❌ Failed to send checkout thank-you to ${booking.guest_email}:`, error);
+            return { success: false, error: error.message };
+        }
+    }
+
     async sendPaymentNotification(booking, paymentDetails) {
         if (!this.transporter || !this.fromEmail) {
             return { success: false, reason: 'Email not configured' };

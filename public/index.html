@@ -89,17 +89,12 @@
     </script>
     
 
-    <!-- Advanced SEO meta tags -->
+    <!-- SEO meta tags -->
     <meta name="language" content="en-NZ">
-    <meta name="revisit-after" content="3 days">
-    <meta name="distribution" content="web">
-    <meta name="rating" content="general">
     <meta name="googlebot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
     <meta name="bingbot" content="index, follow">
-    
-    <!-- Geographic Targeting (CRITICAL for local SEO) -->
-    <meta name="geo.region" content="NZ-OTA">
-    <meta name="geo.placename" content="Cromwell, Central Otago, New Zealand">
+
+    <!-- Geographic Targeting (local SEO) -->
     <meta name="geo.position" content="-45.038710, 169.197693">
     <meta name="ICBM" content="-45.038710, 169.197693">
     
@@ -107,8 +102,6 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#753742">
-    
     <!-- Multilingual Support -->
     <link rel="alternate" hreflang="en-nz" href="https://lakesideretreat.co.nz/">
     <link rel="alternate" hreflang="en-au" href="https://lakesideretreat.co.nz/">
@@ -116,6 +109,7 @@
     
     <!-- Performance Optimizations -->
     <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <link rel="dns-prefetch" href="//images.unsplash.com">
     <!-- Enhanced Performance Optimizations -->
@@ -126,9 +120,6 @@
     <meta name="format-detection" content="telephone=no">
     <meta name="msapplication-tap-highlight" content="no">
 
-    <!-- Enhanced viewport for better mobile experience -->
-    <meta name="HandheldFriendly" content="true">
-    <meta name="MobileOptimized" content="width">
     <!-- Favicons -->
     <link rel="icon" type="image/x-icon" href="images/favicon.ico">
     <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32x32.png">
@@ -149,9 +140,7 @@
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-M6TC9MB5CR"></script>
     
 
-    <!-- Search Console Verification - Add your verification code when available -->
-    <!-- <meta name="google-site-verification" content=""> -->
-  <!-- Clarity Analytics removed — re-add with a valid project ID if needed -->
+    <!-- Clarity Analytics removed — re-add with a valid project ID if needed -->
     
     <!-- Performance monitoring -->
     <script>
@@ -198,15 +187,8 @@
     <script src="vendor/flatpickr/flatpickr.min.js" defer></script>
 
     <!-- Security and Performance optimization -->
-    <script src="security-fixes-immediate.js"></script>
-    <script src="secure-payment-integration.js"></script>
-    
-    
-    
-<!-- Enhanced Security & Performance Manager -->
-
-</head>
-<body>
+    <script src="security-fixes-immediate.js" defer></script>
+    <script src="secure-payment-integration.js" defer></script>
     <!-- STEP 1: Skip Navigation -->
     <a href="#mainContent" class="skip-link">Skip to main content</a>
     
@@ -248,16 +230,16 @@
     </div>
 
     <!-- Gallery Lightbox -->
-    <div class="lightbox" id="lightbox">
+    <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Image gallery viewer">
         <div class="lightbox-content">
-            <button class="lightbox-close" data-action="closeLightbox">
+            <button class="lightbox-close" data-action="closeLightbox" aria-label="Close gallery">
                 <i class="fas fa-times"></i>
             </button>
-            <button class="lightbox-nav lightbox-prev" data-action="prevImage">
+            <button class="lightbox-nav lightbox-prev" data-action="prevImage" aria-label="Previous image">
                 <i class="fas fa-chevron-left"></i>
             </button>
             <img class="lightbox-image" id="lightboxImage" alt="Gallery Image">
-            <button class="lightbox-nav lightbox-next" data-action="nextImage">
+            <button class="lightbox-nav lightbox-next" data-action="nextImage" aria-label="Next image">
                 <i class="fas fa-chevron-right"></i>
             </button>
         </div>
@@ -265,7 +247,7 @@
 
 
     <!-- STREAMLINED 3-BUTTON BOOKING MODAL -->
-    <div class="booking-modal" id="bookingModal">
+    <div class="booking-modal" id="bookingModal" role="dialog" aria-modal="true" aria-label="Book your stay">
         <div class="booking-modal-content">
             <div class="booking-modal-header">
                 <h2>Book Your Stay</h2>
@@ -313,7 +295,7 @@
                     
                     <div class="booking-accommodation-selector">
                         <div class="accommodation-option" data-accommodation="dome-pinot" data-select-accommodation="dome-pinot">
-                            <img class="accom-thumb" src="images/dome-pinot-hero.jpeg" alt="Dome Pinot">
+                            <img class="accom-thumb" src="images/dome-pinot-hero.jpeg" alt="Dome Pinot" width="80" height="80">
                             <div class="accom-info">
                                 <h4>Dome Pinot <span style="background: #dc3545; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: 600; vertical-align: middle;">Adults Only</span></h4>
                                 <p>Flagship 50sqm luxury dome with panoramic views and private spa</p>
@@ -322,7 +304,7 @@
                         </div>
 
                         <div class="accommodation-option" data-accommodation="dome-rose" data-select-accommodation="dome-rose">
-                            <img class="accom-thumb" src="images/dome-rose-spa1.jpeg" alt="Dome Rosé">
+                            <img class="accom-thumb" src="images/dome-rose-spa1.jpeg" alt="Dome Rosé" width="80" height="80">
                             <div class="accom-info">
                                 <h4>Dome Rosé <span style="background: #dc3545; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: 600; vertical-align: middle;">Adults Only</span></h4>
                                 <p>Romantic 40sqm retreat perfect for couples</p>
@@ -331,7 +313,7 @@
                         </div>
 
                         <div class="accommodation-option" data-accommodation="lakeside-cottage" data-select-accommodation="lakeside-cottage">
-                            <img class="accom-thumb" src="images/lakeside-cottage-exterior.jpeg" alt="Lakeside Cottage">
+                            <img class="accom-thumb" src="images/lakeside-cottage-exterior.jpeg" alt="Lakeside Cottage" width="80" height="80">
                             <div class="accom-info">
                                 <h4>Lakeside Cottage</h4>
                                 <p>Family-friendly cottage with direct lake access</p>
@@ -867,7 +849,7 @@
                         <div class="card">
                             <picture>
   <source srcset="images/pinotinternal.webp" type="image/webp">
-  <img src="images/pinotinternal.jpeg" alt="Dome Pinot luxury glamping accommodation with Lake Dunstan views Central Otago" class="card-image" loading="lazy" decoding="async" data-lightbox="true">
+  <img src="images/pinotinternal.jpeg" alt="Dome Pinot luxury glamping accommodation with Lake Dunstan views Central Otago" class="card-image" loading="lazy" decoding="async" data-lightbox="true" width="600" height="400">
 </picture>
                             <div class="card-content">
                                 <h3 class="card-title">Dome Pinot <span style="background: #dc3545; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; vertical-align: middle;">Adults Only</span></h3>
@@ -893,7 +875,7 @@
                         <div class="card">
                             <picture>
   <source srcset="images/dome-rose.webp" type="image/webp">
-  <img src="images/dome-rose.jpeg" alt="Dome Rosé romantic glamping accommodation Central Otago wine country" class="card-image" loading="lazy" decoding="async" data-lightbox="true">
+  <img src="images/dome-rose.jpeg" alt="Dome Rosé romantic glamping accommodation Central Otago wine country" class="card-image" loading="lazy" decoding="async" data-lightbox="true" width="600" height="400">
 </picture>
                             <div class="card-content">
                                 <h3 class="card-title">Dome Rosé <span style="background: #dc3545; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; vertical-align: middle;">Adults Only</span></h3>
@@ -919,7 +901,7 @@
                         <div class="card">
                             <picture>
   <source srcset="images/lakeside-cottage-exterior.webp" type="image/webp">
-  <img src="images/lakeside-cottage-exterior.jpeg" alt="Lakeside Cottage family accommodation Lake Dunstan Central Otago" class="card-image" loading="lazy" decoding="async" data-lightbox="true">
+  <img src="images/lakeside-cottage-exterior.jpeg" alt="Lakeside Cottage family accommodation Lake Dunstan Central Otago" class="card-image" loading="lazy" decoding="async" data-lightbox="true" width="600" height="400">
 </picture>
                             <div class="card-content">
                                 <h3 class="card-title">Lakeside Cottage</h3>
@@ -985,13 +967,16 @@
                             <h3>Send us a Message</h3>
                             <form id="contactFormLanding" data-submit="sendContactMessage">
                                 <div class="form-group">
+                                    <label for="contactNameLanding" class="sr-only">Your Name</label>
                                     <input type="text" id="contactNameLanding" class="form-input" placeholder="Your Name" required>
                                 </div>
                                 <div class="form-group">
+                                    <label for="contactEmailLanding" class="sr-only">Your Email</label>
                                     <input type="email" id="contactEmailLanding" class="form-input" placeholder="Your Email" required data-validate="email" data-clear-email-error="true">
                                     <div class="email-error-message" id="contactEmailLandingError" style="display: none; color: #dc2626; font-size: 0.85rem; margin-top: 0.25rem;"></div>
                                 </div>
                                 <div class="form-group">
+                                    <label for="contactMessageLanding" class="sr-only">Your Message</label>
                                     <textarea id="contactMessageLanding" class="form-textarea" rows="4" placeholder="Your Message" required></textarea>
                                 </div>
                                 <button type="submit" class="btn btn-primary" id="contactSubmitBtnLanding">Send Message</button>
@@ -1111,7 +1096,7 @@
                                 <div style="font-size: 0.75rem; opacity: 0.7;">Return Guests</div>
                             </div>
                             <div style="text-align: center; min-width: 70px;">
-                                <div style="font-size: 1.3rem; font-weight: 700; color: var(--brand-teal);">5</div>
+                                <div style="font-size: 1.3rem; font-weight: 700; color: var(--brand-teal);">6+</div>
                                 <div style="font-size: 0.75rem; opacity: 0.7;">Years Hosting</div>
                             </div>
                             <div style="text-align: center; min-width: 70px;">
@@ -1271,8 +1256,8 @@
 </picture>
                                 </div>
                                 <!-- Navigation Arrows -->
-                                <button class="carousel-arrow carousel-arrow-left" data-carousel-nav="carousel-pinot" data-direction="prev" style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: white; border: none; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; font-size: 18px; z-index: 10; transition: all 0.3s ease;" >‹</button>
-                                <button class="carousel-arrow carousel-arrow-right" data-carousel-nav="carousel-pinot" data-direction="next" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: white; border: none; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; font-size: 18px; z-index: 10; transition: all 0.3s ease;" >›</button>
+                                <button class="carousel-arrow carousel-arrow-left" data-carousel-nav="carousel-pinot" data-direction="prev" aria-label="Previous image" style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: white; border: none; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; font-size: 18px; z-index: 10; transition: all 0.3s ease;" >‹</button>
+                                <button class="carousel-arrow carousel-arrow-right" data-carousel-nav="carousel-pinot" data-direction="next" aria-label="Next image" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: white; border: none; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; font-size: 18px; z-index: 10; transition: all 0.3s ease;" >›</button>
                                 <!-- Image Counter -->
                                 <div class="image-counter" style="position: absolute; bottom: 15px; right: 15px; background: rgba(0,0,0,0.7); color: white; padding: 5px 10px; border-radius: 15px; font-size: 12px; z-index: 10;">
                                     <span id="counter-pinot">1 / 5</span>
@@ -1336,8 +1321,8 @@
 </picture>
                                 </div>
                                 <!-- Navigation Arrows -->
-                                <button class="carousel-arrow carousel-arrow-left" data-carousel-nav="carousel-rose" data-direction="prev" style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: white; border: none; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; font-size: 18px; z-index: 10; transition: all 0.3s ease;" >‹</button>
-                                <button class="carousel-arrow carousel-arrow-right" data-carousel-nav="carousel-rose" data-direction="next" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: white; border: none; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; font-size: 18px; z-index: 10; transition: all 0.3s ease;" >›</button>
+                                <button class="carousel-arrow carousel-arrow-left" data-carousel-nav="carousel-rose" data-direction="prev" aria-label="Previous image" style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: white; border: none; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; font-size: 18px; z-index: 10; transition: all 0.3s ease;" >‹</button>
+                                <button class="carousel-arrow carousel-arrow-right" data-carousel-nav="carousel-rose" data-direction="next" aria-label="Next image" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: white; border: none; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; font-size: 18px; z-index: 10; transition: all 0.3s ease;" >›</button>
                                 <!-- Image Counter -->
                                 <div class="image-counter" style="position: absolute; bottom: 15px; right: 15px; background: rgba(0,0,0,0.7); color: white; padding: 5px 10px; border-radius: 15px; font-size: 12px; z-index: 10;">
                                     <span id="counter-rose">1 / 5</span>
@@ -1400,8 +1385,8 @@
 </picture>
                                 </div>
                                 <!-- Navigation Arrows -->
-                                <button class="carousel-arrow carousel-arrow-left" data-carousel-nav="carousel-cottage" data-direction="prev" style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: white; border: none; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; font-size: 18px; z-index: 10; transition: all 0.3s ease;" >‹</button>
-                                <button class="carousel-arrow carousel-arrow-right" data-carousel-nav="carousel-cottage" data-direction="next" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: white; border: none; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; font-size: 18px; z-index: 10; transition: all 0.3s ease;" >›</button>
+                                <button class="carousel-arrow carousel-arrow-left" data-carousel-nav="carousel-cottage" data-direction="prev" aria-label="Previous image" style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: white; border: none; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; font-size: 18px; z-index: 10; transition: all 0.3s ease;" >‹</button>
+                                <button class="carousel-arrow carousel-arrow-right" data-carousel-nav="carousel-cottage" data-direction="next" aria-label="Next image" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: white; border: none; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; font-size: 18px; z-index: 10; transition: all 0.3s ease;" >›</button>
                                 <!-- Image Counter -->
                                 <div class="image-counter" style="position: absolute; bottom: 15px; right: 15px; background: rgba(0,0,0,0.7); color: white; padding: 5px 10px; border-radius: 15px; font-size: 12px; z-index: 10;">
                                     <span id="counter-cottage">1 / 5</span>
@@ -1434,7 +1419,7 @@
 
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem;">
                                     <span style="font-weight: 600; color: var(--dark); font-size: 1.1rem;">From $295/night <span style="font-size: 0.75rem; color: #666;">(GST incl.)</span></span>
-                                    <button data-page="lakeside-cottage" class="btn btn-outline">Book Now</button>
+                                    <button data-action="openBookingModal" data-accommodation="lakeside-cottage" class="btn btn-outline">Book Now</button>
                                 </div>
                             </div>
                         </div>
@@ -2757,11 +2742,11 @@
                         <div style="text-align: center; margin-top: 2rem; padding-top: 2rem; border-top: 1px solid var(--border);">
                             <p style="margin-bottom: 1rem; color: var(--text); opacity: 0.8;">Also verified on:</p>
                             <div style="display: flex; justify-content: center; gap: 2rem; flex-wrap: wrap;">
-                                <a href="#" style="display: flex; align-items: center; gap: 0.5rem; color: var(--brand-teal); text-decoration: none; font-weight: 500;">
+                                <a href="https://www.airbnb.com/h/lakesideretreat" target="_blank" rel="noopener noreferrer" style="display: flex; align-items: center; gap: 0.5rem; color: var(--brand-teal); text-decoration: none; font-weight: 500;">
                                     <span style="background: #ff5a5f; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.8rem;">Airbnb</span>
                                     4.9/5.0 (416 reviews)
                                 </a>
-                                <a href="#" style="display: flex; align-items: center; gap: 0.5rem; color: var(--brand-teal); text-decoration: none; font-weight: 500;">
+                                <a href="https://www.booking.com/hotel/nz/lakeside-retreat.html" target="_blank" rel="noopener noreferrer" style="display: flex; align-items: center; gap: 0.5rem; color: var(--brand-teal); text-decoration: none; font-weight: 500;">
                                     <span style="background: #003580; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.8rem;">Booking.com</span>
                                     9.8/10
                                 </a>
@@ -3278,13 +3263,16 @@
                                 <h3 class="card-title">Send us a Message</h3>
                                 <form id="contactForm" data-submit="sendContactMessage">
                                     <div class="form-group">
+                                        <label for="contactName" class="sr-only">Your Name</label>
                                         <input type="text" id="contactName" name="name" class="form-input" placeholder="Your Name" required>
                                     </div>
                                     <div class="form-group">
+                                        <label for="contactEmail" class="sr-only">Your Email</label>
                                         <input type="email" id="contactEmail" name="email" class="form-input" placeholder="Your Email" required data-validate="email" data-clear-email-error="true">
                         <div class="email-error-message" id="contactEmailError" style="display: none; color: #dc2626; font-size: 0.85rem; margin-top: 0.25rem;"></div>
                                     </div>
                                     <div class="form-group">
+                                        <label for="contactMessage" class="sr-only">Your Message</label>
                                         <textarea id="contactMessage" name="message" class="form-textarea" rows="4" placeholder="Your Message" required></textarea>
                                     </div>
                                     <button type="submit" class="btn btn-primary" id="contactSubmitBtn">Send Message</button>
@@ -3300,7 +3288,7 @@
 
                         <div style="max-width: 700px; margin: 0 auto;">
                             <div style="background: white; border-radius: 12px; margin-bottom: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow: hidden;">
-                                <div style="padding: 1.25rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: 600; color: var(--dark);" onclick="this.parentElement.classList.toggle('faq-open'); this.querySelector('.faq-arrow').style.transform = this.parentElement.classList.contains('faq-open') ? 'rotate(180deg)' : '';">
+                                <div role="button" tabindex="0" aria-expanded="false" data-action="toggleFaq" style="padding: 1.25rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: 600; color: var(--dark);">
                                     How do I check in?
                                     <span class="faq-arrow" style="transition: transform 0.3s; font-size: 0.8rem;">▼</span>
                                 </div>
@@ -3310,7 +3298,7 @@
                             </div>
 
                             <div style="background: white; border-radius: 12px; margin-bottom: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow: hidden;">
-                                <div style="padding: 1.25rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: 600; color: var(--dark);" onclick="this.parentElement.classList.toggle('faq-open'); this.querySelector('.faq-arrow').style.transform = this.parentElement.classList.contains('faq-open') ? 'rotate(180deg)' : '';">
+                                <div role="button" tabindex="0" aria-expanded="false" data-action="toggleFaq" style="padding: 1.25rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: 600; color: var(--dark);">
                                     What's your cancellation policy?
                                     <span class="faq-arrow" style="transition: transform 0.3s; font-size: 0.8rem;">▼</span>
                                 </div>
@@ -3320,7 +3308,7 @@
                             </div>
 
                             <div style="background: white; border-radius: 12px; margin-bottom: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow: hidden;">
-                                <div style="padding: 1.25rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: 600; color: var(--dark);" onclick="this.parentElement.classList.toggle('faq-open'); this.querySelector('.faq-arrow').style.transform = this.parentElement.classList.contains('faq-open') ? 'rotate(180deg)' : '';">
+                                <div role="button" tabindex="0" aria-expanded="false" data-action="toggleFaq" style="padding: 1.25rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: 600; color: var(--dark);">
                                     How do I get to Lakeside Retreat?
                                     <span class="faq-arrow" style="transition: transform 0.3s; font-size: 0.8rem;">▼</span>
                                 </div>
@@ -3330,7 +3318,7 @@
                             </div>
 
                             <div style="background: white; border-radius: 12px; margin-bottom: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow: hidden;">
-                                <div style="padding: 1.25rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: 600; color: var(--dark);" onclick="this.parentElement.classList.toggle('faq-open'); this.querySelector('.faq-arrow').style.transform = this.parentElement.classList.contains('faq-open') ? 'rotate(180deg)' : '';">
+                                <div role="button" tabindex="0" aria-expanded="false" data-action="toggleFaq" style="padding: 1.25rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: 600; color: var(--dark);">
                                     What should I bring?
                                     <span class="faq-arrow" style="transition: transform 0.3s; font-size: 0.8rem;">▼</span>
                                 </div>
@@ -3340,7 +3328,7 @@
                             </div>
 
                             <div style="background: white; border-radius: 12px; margin-bottom: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow: hidden;">
-                                <div style="padding: 1.25rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: 600; color: var(--dark);" onclick="this.parentElement.classList.toggle('faq-open'); this.querySelector('.faq-arrow').style.transform = this.parentElement.classList.contains('faq-open') ? 'rotate(180deg)' : '';">
+                                <div role="button" tabindex="0" aria-expanded="false" data-action="toggleFaq" style="padding: 1.25rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: 600; color: var(--dark);">
                                     Can I bring my pet?
                                     <span class="faq-arrow" style="transition: transform 0.3s; font-size: 0.8rem;">▼</span>
                                 </div>
@@ -3350,7 +3338,7 @@
                             </div>
 
                             <div style="background: white; border-radius: 12px; margin-bottom: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow: hidden;">
-                                <div style="padding: 1.25rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: 600; color: var(--dark);" onclick="this.parentElement.classList.toggle('faq-open'); this.querySelector('.faq-arrow').style.transform = this.parentElement.classList.contains('faq-open') ? 'rotate(180deg)' : '';">
+                                <div role="button" tabindex="0" aria-expanded="false" data-action="toggleFaq" style="padding: 1.25rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: 600; color: var(--dark);">
                                     What's the best time to visit?
                                     <span class="faq-arrow" style="transition: transform 0.3s; font-size: 0.8rem;">▼</span>
                                 </div>
@@ -3360,7 +3348,7 @@
                             </div>
 
                             <div style="background: white; border-radius: 12px; margin-bottom: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow: hidden;">
-                                <div style="padding: 1.25rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: 600; color: var(--dark);" onclick="this.parentElement.classList.toggle('faq-open'); this.querySelector('.faq-arrow').style.transform = this.parentElement.classList.contains('faq-open') ? 'rotate(180deg)' : '';">
+                                <div role="button" tabindex="0" aria-expanded="false" data-action="toggleFaq" style="padding: 1.25rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: 600; color: var(--dark);">
                                     Why book direct instead of Airbnb?
                                     <span class="faq-arrow" style="transition: transform 0.3s; font-size: 0.8rem;">▼</span>
                                 </div>
@@ -3558,6 +3546,11 @@
     </div>
        
     </footer>
+
+    <!-- Sticky Book Now CTA (appears after scrolling past hero) -->
+    <div class="sticky-book-cta" id="stickyBookCta">
+        <button class="btn btn-primary" data-action="openBookingModal">Book Now — From $295/night</button>
+    </div>
 
     <!-- Back to Top Button -->
     <button id="backToTopBtn" data-action="scrollToTop" style="
@@ -3835,8 +3828,8 @@ document.addEventListener('DOMContentLoaded', () => {
       "sameAs": [
         "https://www.facebook.com/lakesideretreatnz",
         "https://www.instagram.com/lakesideretreatnz",
-        "https://www.tripadvisor.com/lakesideretreat",
-        "https://www.booking.com/lakesideretreat"
+        "https://www.airbnb.com/h/lakesideretreat",
+        "https://www.booking.com/hotel/nz/lakeside-retreat.html"
       ]
     }
 </script>
@@ -3887,23 +3880,37 @@ document.addEventListener('DOMContentLoaded', () => {
           "@type": "Answer",
           "text": "Lake Dunstan offers kayaking, paddleboarding, fishing, and scenic walks right from our doorstep. The lake is perfect for photography, bird watching, and water sports. The Cromwell Gorge walks provide stunning views and heritage sites."
         }
+      },{
+        "@type": "Question",
+        "name": "How do I check in?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Check-in is from 3pm. We send a detailed arrival guide with directions, gate code, and welcome instructions 2 days before your stay. Stephen or Sandy will greet you personally on arrival."
+        }
+      },{
+        "@type": "Question",
+        "name": "What's the cancellation policy?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Full refund if cancelled 7+ days before check-in. 50% refund for 3-7 days. No refund within 3 days. The $300 security bond is released 48 hours after checkout."
+        }
+      },{
+        "@type": "Question",
+        "name": "Can I bring my pet?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The Lakeside Cottage is pet-friendly with prior approval ($25/pet/night). The domes are not suitable for pets."
+        }
+      },{
+        "@type": "Question",
+        "name": "Why book direct instead of Airbnb?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Booking direct saves you 12-18% in service fees that platforms like Airbnb and Booking.com add. Same stay, better price, direct host communication."
+        }
       }]
     }
 </script>
-
-    <script type="application/ld+json">
-    {
-        "@context": "https://schema.org",
-        "@type": "FAQPage",
-        "mainEntity": [
-            {"@type": "Question", "name": "How do I check in?", "acceptedAnswer": {"@type": "Answer", "text": "Check-in is from 3pm. We send a detailed arrival guide with directions, gate code, and welcome instructions 2 days before your stay. Stephen or Sandy will greet you personally on arrival."}},
-            {"@type": "Question", "name": "What's your cancellation policy?", "acceptedAnswer": {"@type": "Answer", "text": "Full refund if cancelled 7+ days before check-in. 50% refund for 3-7 days. No refund within 3 days. The $300 security bond is released 48 hours after checkout."}},
-            {"@type": "Question", "name": "How do I get to Lakeside Retreat?", "acceptedAnswer": {"@type": "Answer", "text": "55 minutes from Queenstown Airport via SH6, or 2.5 hours from Dunedin Airport via SH8. Car hire recommended."}},
-            {"@type": "Question", "name": "Can I bring my pet?", "acceptedAnswer": {"@type": "Answer", "text": "The Lakeside Cottage is pet-friendly with prior approval ($25/pet/night). The domes are not suitable for pets."}},
-            {"@type": "Question", "name": "Why book direct instead of Airbnb?", "acceptedAnswer": {"@type": "Answer", "text": "Booking direct saves you 12-18% in service fees that platforms like Airbnb and Booking.com add. Same stay, better price, direct host communication."}}
-        ]
-    }
-    </script>
 
 <script type="application/ld+json">
 {
@@ -3912,18 +3919,18 @@ document.addEventListener('DOMContentLoaded', () => {
       "itemListElement": [{
         "@type": "ListItem",
         "position": 1,
-        "name": "Central Otago Accommodation",
+        "name": "Home",
         "item": "https://lakesideretreat.co.nz/"
       },{
-        "@type": "ListItem", 
+        "@type": "ListItem",
         "position": 2,
-        "name": "Lake Dunstan Accommodation",
-        "item": "https://lakesideretreat.co.nz/#accommodations"
+        "name": "Accommodation",
+        "item": "https://lakesideretreat.co.nz/stay.html"
       },{
         "@type": "ListItem",
         "position": 3,
-        "name": "Cromwell Wine Country Activities", 
-        "item": "https://lakesideretreat.co.nz/#explore"
+        "name": "Things to Do",
+        "item": "https://lakesideretreat.co.nz/explore.html"
       }]
     }
 </script>
@@ -3933,16 +3940,7 @@ document.addEventListener('DOMContentLoaded', () => {
       "@context": "https://schema.org",
       "@type": "WebSite",
       "name": "Lakeside Retreat Central Otago",
-      "url": "https://lakesideretreat.co.nz",
-      "potentialAction": {
-        "@type": "SearchAction",
-        "target": "https://lakesideretreat.co.nz/search?q={search_term_string}",
-        "query-input": "required name=search_term_string"
-      },
-      "sameAs": [
-        "https://www.facebook.com/lakesideretreatnz",
-        "https://www.instagram.com/lakesideretreatnz"
-      ]
+      "url": "https://lakesideretreat.co.nz"
     }
 </script>
 
@@ -4349,12 +4347,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }, { threshold: 0.1 });
 
             document.querySelectorAll('.card').forEach(card => {
+                card.classList.add('card-animate');
                 cardObserver.observe(card);
             });
 
             // Re-observe cards when SPA page changes (fixes cards stuck at opacity:0)
             window.reObserveCards = function() {
                 document.querySelectorAll('.card').forEach(card => {
+                    card.classList.add('card-animate');
                     cardObserver.unobserve(card);
                     cardObserver.observe(card);
                 });
@@ -4489,6 +4489,9 @@ document.addEventListener('DOMContentLoaded', () => {
             _modalTrigger = document.activeElement; // remember trigger for focus restoration
             document.getElementById('bookingModal').classList.add('active');
             document.body.style.overflow = 'hidden';
+            // Hide sticky CTA while modal is open
+            const stickyBtn = document.getElementById('stickyBookCta');
+            if (stickyBtn) stickyBtn.classList.remove('visible');
 
             // Pre-select accommodation if specified BEFORE reset
             if (preSelectedAccommodation) {
@@ -6177,6 +6180,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const lightboxTitle = document.getElementById('lightboxTitle');
 
             lightboxImage.src = imageSrc;
+            // Set dynamic alt text from source image
+            const sourceImg = document.querySelector('img[src="' + imageSrc + '"], img[data-src="' + imageSrc + '"]');
+            lightboxImage.alt = (sourceImg && sourceImg.alt) ? sourceImg.alt : (imageTitle || 'Gallery image');
             lightbox.classList.add('active');
             document.body.style.overflow = 'hidden';
 
@@ -6414,8 +6420,19 @@ document.addEventListener('DOMContentLoaded', () => {
             const scrollHeight = document.documentElement.scrollHeight - window.innerHeight;
             const scrollTop = window.scrollY;
             const scrollPercentage = (scrollTop / scrollHeight) * 100;
-            
+
             document.getElementById('scrollIndicator').style.width = `${scrollPercentage}%`;
+
+            // Show/hide sticky Book Now CTA after scrolling past hero
+            const stickyBtn = document.getElementById('stickyBookCta');
+            if (stickyBtn) {
+                const bookingModalOpen = document.getElementById('bookingModal')?.classList.contains('active');
+                if (scrollTop > 600 && !bookingModalOpen) {
+                    stickyBtn.classList.add('visible');
+                } else {
+                    stickyBtn.classList.remove('visible');
+                }
+            }
         }
 
         window.loadMoreReviews = function() {
@@ -7084,6 +7101,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         acc ? openBookingModal(acc) : openBookingModal(); break;
                     case 'closeBookingModal': closeBookingModal(); break;
                     case 'closeLegalModal': closeLegalModal(); break;
+                    case 'toggleFaq':
+                        const faqParent = actionBtn.parentElement;
+                        faqParent.classList.toggle('faq-open');
+                        const isOpen = faqParent.classList.contains('faq-open');
+                        actionBtn.setAttribute('aria-expanded', isOpen);
+                        const arrow = actionBtn.querySelector('.faq-arrow');
+                        if (arrow) arrow.style.transform = isOpen ? 'rotate(180deg)' : '';
+                        break;
                     case 'closeLightbox': closeLightbox(); break;
                     case 'prevImage': prevImage(); break;
                     case 'nextImage': nextImage(); break;
@@ -7106,6 +7131,17 @@ document.addEventListener('DOMContentLoaded', () => {
             if (accEl) {
                 selectAccommodation(accEl.getAttribute('data-select-accommodation'));
                 return;
+            }
+        });
+
+        // Keyboard support for data-action buttons (Enter/Space on role="button" elements)
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                const actionEl = e.target.closest('[data-action][role="button"]');
+                if (actionEl) {
+                    e.preventDefault();
+                    actionEl.click();
+                }
             }
         });
 

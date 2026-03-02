@@ -7,6 +7,8 @@ class MarketingAutomation {
         this.isRunning = false;
         this.abandonedCheckInterval = null;
         this.reviewRequestInterval = null;
+        this.duringStayInterval = null;
+        this.checkoutThanksInterval = null;
     }
 
     // Initialize the marketing automation system
@@ -116,7 +118,7 @@ class MarketingAutomation {
         // Check for abandoned checkouts every 15 minutes
         this.abandonedCheckInterval = setInterval(() => {
             this.processAbandonedCheckouts();
-        }, 15 * 60 * 1000); // 15 minutes
+        }, 15 * 60 * 1000).unref(); // 15 minutes
 
         // Check for review requests daily at 10am (run every hour, check time)
         this.reviewRequestInterval = setInterval(() => {
@@ -124,14 +126,24 @@ class MarketingAutomation {
             if (hour === 10) { // 10am
                 this.processReviewRequests();
             }
-        }, 60 * 60 * 1000); // 1 hour
+        }, 60 * 60 * 1000).unref(); // 1 hour
 
         // Check for pre-arrival emails every hour
         this.preArrivalInterval = setInterval(() => {
             this.processPreArrivalEmails();
-        }, 60 * 60 * 1000); // 1 hour
+        }, 60 * 60 * 1000).unref(); // 1 hour
 
-        console.log('   Scheduled jobs started (abandoned: 15min, reviews: daily 10am, pre-arrival: hourly)');
+        // Check for during-stay check-in emails every hour
+        this.duringStayInterval = setInterval(() => {
+            this.processDuringStayCheckins();
+        }, 60 * 60 * 1000).unref(); // 1 hour
+
+        // Check for checkout thank-you emails every hour
+        this.checkoutThanksInterval = setInterval(() => {
+            this.processCheckoutThankYous();
+        }, 60 * 60 * 1000).unref(); // 1 hour
+
+        console.log('   Scheduled jobs started (abandoned: 15min, reviews: daily 10am, pre-arrival: hourly, during-stay: hourly, checkout-thanks: hourly)');
     }
 
     // Stop scheduled jobs
@@ -144,6 +156,12 @@ class MarketingAutomation {
         }
         if (this.preArrivalInterval) {
             clearInterval(this.preArrivalInterval);
+        }
+        if (this.duringStayInterval) {
+            clearInterval(this.duringStayInterval);
+        }
+        if (this.checkoutThanksInterval) {
+            clearInterval(this.checkoutThanksInterval);
         }
     }
 
@@ -718,6 +736,196 @@ class MarketingAutomation {
                 else resolve(rows || []);
             });
         });
+    }
+
+    // ==========================================
+    // FEATURE 4a: During-Stay Check-in Email
+    // ==========================================
+
+    async processDuringStayCheckins() {
+        try {
+            // Only send after 5pm NZ time (UTC+12/13)
+            const nzHour = new Date().toLocaleString('en-NZ', { timeZone: 'Pacific/Auckland', hour: 'numeric', hour12: false });
+            if (parseInt(nzHour, 10) < 17) {
+                return;
+            }
+
+            console.log('[Marketing] Checking for during-stay check-in emails to send...');
+
+            // Today's date in YYYY-MM-DD format
+            const today = new Date().toISOString().split('T')[0];
+
+            // Find confirmed bookings checking in today
+            const eligibleBookings = await new Promise((resolve, reject) => {
+                const sql = `
+                    SELECT b.*
+                    FROM bookings b
+                    WHERE b.payment_status = 'completed'
+                    AND DATE(b.check_in) = ?
+                `;
+                this.db.all(sql, [today], (err, rows) => {
+                    if (err) reject(err);
+                    else resolve(rows || []);
+                });
+            });
+
+            console.log(`[Marketing] Found ${eligibleBookings.length} bookings checking in today (${today})`);
+
+            for (const booking of eligibleBookings) {
+                // Check if during-stay email was already sent for this booking
+                const alreadySent = await this.isDuringStayEmailSent(booking.id);
+                if (alreadySent) {
+                    console.log(`[Marketing] During-stay email already sent for booking ${booking.id}, skipping`);
+                    continue;
+                }
+
+                await this.sendDuringStayEmail(booking);
+            }
+        } catch (error) {
+            console.error('[Marketing] Error processing during-stay check-in emails:', error);
+        }
+    }
+
+    async isDuringStayEmailSent(bookingId) {
+        return new Promise((resolve, reject) => {
+            const key = `during_stay_sent_${bookingId}`;
+            this.db.get(
+                'SELECT setting_value FROM system_settings WHERE setting_key = ?',
+                [key],
+                (err, row) => {
+                    if (err) reject(err);
+                    else resolve(!!row);
+                }
+            );
+        });
+    }
+
+    async markDuringStayEmailSent(bookingId) {
+        return new Promise((resolve, reject) => {
+            const key = `during_stay_sent_${bookingId}`;
+            const sql = `
+                INSERT OR REPLACE INTO system_settings (setting_key, setting_value, updated_at)
+                VALUES (?, ?, CURRENT_TIMESTAMP)
+            `;
+            this.db.run(sql, [key, new Date().toISOString()], (err) => {
+                if (err) reject(err);
+                else resolve();
+            });
+        });
+    }
+
+    async sendDuringStayEmail(booking) {
+        try {
+            if (!this.emailTransporter || !process.env.EMAIL_USER) {
+                console.log(`[Marketing] Email not configured - during-stay email for booking ${booking.id} skipped`);
+                await this.markDuringStayEmailSent(booking.id);
+                return;
+            }
+
+            const EmailNotifications = require('./email-notifications');
+            const emailNotifier = new EmailNotifications(this.emailTransporter);
+            await emailNotifier.sendDuringStayCheckin(booking);
+            await this.markDuringStayEmailSent(booking.id);
+
+            console.log(`[Marketing] Sent during-stay check-in email to ${booking.guest_email} for booking ${booking.id}`);
+        } catch (error) {
+            console.error(`[Marketing] Failed to send during-stay email to ${booking.guest_email}:`, error.message);
+        }
+    }
+
+    // ==========================================
+    // FEATURE 4b: Checkout Thank-You Email
+    // ==========================================
+
+    async processCheckoutThankYous() {
+        try {
+            // Only send after 10am NZ time (UTC+12/13)
+            const nzHour = new Date().toLocaleString('en-NZ', { timeZone: 'Pacific/Auckland', hour: 'numeric', hour12: false });
+            if (parseInt(nzHour, 10) < 10) {
+                return;
+            }
+
+            console.log('[Marketing] Checking for checkout thank-you emails to send...');
+
+            // Today's date in YYYY-MM-DD format
+            const today = new Date().toISOString().split('T')[0];
+
+            // Find bookings checking out today
+            const eligibleBookings = await new Promise((resolve, reject) => {
+                const sql = `
+                    SELECT b.*
+                    FROM bookings b
+                    WHERE b.payment_status = 'completed'
+                    AND DATE(b.check_out) = ?
+                `;
+                this.db.all(sql, [today], (err, rows) => {
+                    if (err) reject(err);
+                    else resolve(rows || []);
+                });
+            });
+
+            console.log(`[Marketing] Found ${eligibleBookings.length} bookings checking out today (${today})`);
+
+            for (const booking of eligibleBookings) {
+                // Check if checkout thank-you email was already sent for this booking
+                const alreadySent = await this.isCheckoutThanksEmailSent(booking.id);
+                if (alreadySent) {
+                    console.log(`[Marketing] Checkout thank-you already sent for booking ${booking.id}, skipping`);
+                    continue;
+                }
+
+                await this.sendCheckoutThanksEmail(booking);
+            }
+        } catch (error) {
+            console.error('[Marketing] Error processing checkout thank-you emails:', error);
+        }
+    }
+
+    async isCheckoutThanksEmailSent(bookingId) {
+        return new Promise((resolve, reject) => {
+            const key = `checkout_thanks_sent_${bookingId}`;
+            this.db.get(
+                'SELECT setting_value FROM system_settings WHERE setting_key = ?',
+                [key],
+                (err, row) => {
+                    if (err) reject(err);
+                    else resolve(!!row);
+                }
+            );
+        });
+    }
+
+    async markCheckoutThanksEmailSent(bookingId) {
+        return new Promise((resolve, reject) => {
+            const key = `checkout_thanks_sent_${bookingId}`;
+            const sql = `
+                INSERT OR REPLACE INTO system_settings (setting_key, setting_value, updated_at)
+                VALUES (?, ?, CURRENT_TIMESTAMP)
+            `;
+            this.db.run(sql, [key, new Date().toISOString()], (err) => {
+                if (err) reject(err);
+                else resolve();
+            });
+        });
+    }
+
+    async sendCheckoutThanksEmail(booking) {
+        try {
+            if (!this.emailTransporter || !process.env.EMAIL_USER) {
+                console.log(`[Marketing] Email not configured - checkout thank-you for booking ${booking.id} skipped`);
+                await this.markCheckoutThanksEmailSent(booking.id);
+                return;
+            }
+
+            const EmailNotifications = require('./email-notifications');
+            const emailNotifier = new EmailNotifications(this.emailTransporter);
+            await emailNotifier.sendCheckoutThankYou(booking);
+            await this.markCheckoutThanksEmailSent(booking.id);
+
+            console.log(`[Marketing] Sent checkout thank-you email to ${booking.guest_email} for booking ${booking.id}`);
+        } catch (error) {
+            console.error(`[Marketing] Failed to send checkout thank-you email to ${booking.guest_email}:`, error.message);
+        }
     }
 
     // ==========================================

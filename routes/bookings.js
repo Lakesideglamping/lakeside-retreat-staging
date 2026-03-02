@@ -48,6 +48,7 @@ const stripeSessionLimit = rateLimit({
  * @param {Object} deps.paymentQueue - Request queue for payments
  * @param {Object} deps.database - Database module for transactions
  * @param {Function} deps.sendBookingConfirmation - Email confirmation sender
+ * @param {Function} [deps.uplisting] - Returns Uplisting service instance (optional)
  * @param {Object} deps.tracking - Booking tracking functions
  */
 function createBookingRoutes(deps) {
@@ -56,6 +57,12 @@ function createBookingRoutes(deps) {
         database, checkAvailability, sendBookingConfirmation,
         tracking: { trackBookingStart, trackBookingStep, trackBookingSuccess, trackBookingFailure }
     } = deps;
+
+    const getUplisting = deps.uplisting || (() => null);
+
+    // In-memory cache for Uplisting blocked dates (keyed by accommodation)
+    const uplistingBlockedDatesCache = {};
+    const UPLISTING_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
     // --- Blocked dates ---
     router.get('/api/blocked-dates', async (req, res) => {
@@ -67,29 +74,53 @@ function createBookingRoutes(deps) {
 
         try {
             const sql = `
-                SELECT check_in, check_out 
-                FROM bookings 
-                WHERE accommodation = ? 
+                SELECT check_in, check_out
+                FROM bookings
+                WHERE accommodation = ?
                 AND status IN ('confirmed', 'pending')
                 AND check_out >= date('now')
             `;
 
-            db().all(sql, [accommodation], (err, rows) => {
+            db().all(sql, [accommodation], async (err, rows) => {
                 if (err) {
                     console.error('Error fetching blocked dates:', err);
                     return res.json({ success: true, blockedDates: [] });
                 }
 
-                const blockedDates = [];
+                const localDates = new Set();
                 rows.forEach(booking => {
                     const start = new Date(booking.check_in);
                     const end = new Date(booking.check_out);
                     for (let d = new Date(start); d < end; d.setDate(d.getDate() + 1)) {
-                        blockedDates.push(d.toISOString().split('T')[0]);
+                        localDates.add(d.toISOString().split('T')[0]);
                     }
                 });
 
-                res.json({ success: true, blockedDates });
+                // Try to merge Uplisting blocked dates (cached, fail gracefully)
+                let uplistingDates = [];
+                try {
+                    const uplistingService = getUplisting();
+                    if (uplistingService?.isConfigured) {
+                        const cached = uplistingBlockedDatesCache[accommodation];
+                        const now = Date.now();
+
+                        if (cached && (now - cached.timestamp) < UPLISTING_CACHE_TTL) {
+                            uplistingDates = cached.dates;
+                        } else {
+                            uplistingDates = await uplistingService.fetchBlockedDatesFromUplisting(accommodation);
+                            uplistingBlockedDatesCache[accommodation] = { dates: uplistingDates, timestamp: now };
+                        }
+                    }
+                } catch (uplistingErr) {
+                    console.error('Uplisting blocked dates fetch failed, using local only:', uplistingErr.message);
+                }
+
+                // Merge and deduplicate
+                for (const date of uplistingDates) {
+                    localDates.add(date);
+                }
+
+                res.json({ success: true, blockedDates: [...localDates].sort() });
             });
         } catch (error) {
             console.error('Error in blocked-dates endpoint:', error);
@@ -426,7 +457,7 @@ function createBookingRoutes(deps) {
                             currency: 'nzd',
                             product_data: {
                                 name: `Lakeside Retreat - ${booking.accommodation}`,
-                                description: `${booking.check_in} to ${booking.check_out} (${booking.guests} guests)`
+                                description: `${booking.check_in} to ${booking.check_out} (${booking.guests} guests) (GST inclusive)`
                             },
                             unit_amount: Math.round(booking.total_price * 100)
                         },
@@ -440,7 +471,7 @@ function createBookingRoutes(deps) {
                             currency: 'nzd',
                             product_data: {
                                 name: 'Security Deposit (Authorization Hold)',
-                                description: 'Refundable security deposit - will be released automatically 48 hours after checkout'
+                                description: 'Refundable security deposit - will be released automatically 48 hours after checkout (GST inclusive)'
                             },
                             unit_amount: Math.round(securityDepositAmount * 100)
                         },

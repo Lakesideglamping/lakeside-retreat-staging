@@ -231,6 +231,7 @@ function createTablesPostgres() {
                     error_message TEXT,
                     resolved BOOLEAN DEFAULT false,
                     resolved_at TIMESTAMP,
+                    retry_count INTEGER DEFAULT 0,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             `);
@@ -391,6 +392,7 @@ function createTablesSqlite() {
                 error_message TEXT,
                 resolved INTEGER DEFAULT 0,
                 resolved_at DATETIME,
+                retry_count INTEGER DEFAULT 0,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         `;

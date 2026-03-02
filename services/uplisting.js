@@ -13,7 +13,7 @@
  * uplisting-pricing-integration.js, and config/properties.js
  */
 
-const { getPropertyId, getAccommodationName } = require('../config/properties');
+const { getPropertyId, getAccommodationName, PROPERTY_IDS } = require('../config/properties');
 const { sanitizeInput } = require('../middleware/auth');
 
 const UPLISTING_API_BASE = 'https://connect.uplisting.io';
@@ -479,6 +479,186 @@ class UplistingService {
         } catch (error) {
             console.error('❌ Failed to get Uplisting pricing:', error.message);
             return null;
+        }
+    }
+
+    // ==========================================
+    // CALENDAR RECONCILIATION
+    // ==========================================
+
+    /**
+     * Fetch bookings from Uplisting for a specific property within a date range.
+     * @param {string} propertyId - Uplisting property ID
+     * @param {string} startDate - Start date (YYYY-MM-DD)
+     * @param {string} endDate - End date (YYYY-MM-DD)
+     * @returns {Array} Array of booking objects from Uplisting, or empty array on failure
+     */
+    async fetchBookingsForProperty(propertyId, startDate, endDate) {
+        try {
+            const url = `${UPLISTING_API_BASE}/properties/${propertyId}/bookings?start_date=${startDate}&end_date=${endDate}&per_page=100`;
+            const response = await this.fetchWithRetry(url, {
+                method: 'GET',
+                headers: {
+                    'Authorization': this.authHeader,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                console.error(`❌ Failed to fetch bookings for property ${propertyId}: ${response.status}`);
+                return [];
+            }
+
+            const result = await response.json();
+            return (result.data && Array.isArray(result.data)) ? result.data : [];
+        } catch (error) {
+            console.error(`❌ Error fetching bookings for property ${propertyId}:`, error.message);
+            return [];
+        }
+    }
+
+    /**
+     * Fetch blocked/unavailable dates from Uplisting for a specific accommodation.
+     * Returns an array of date strings (YYYY-MM-DD) that are blocked.
+     * @param {string} accommodation - Internal accommodation identifier
+     * @returns {string[]} Array of blocked date strings
+     */
+    async fetchBlockedDatesFromUplisting(accommodation) {
+        if (!this.isConfigured) return [];
+
+        try {
+            const propertyId = getPropertyId(accommodation);
+            if (!propertyId) return [];
+
+            const today = new Date();
+            const endDate = new Date(today);
+            endDate.setDate(endDate.getDate() + 365);
+
+            const startStr = today.toISOString().split('T')[0];
+            const endStr = endDate.toISOString().split('T')[0];
+
+            const bookings = await this.fetchBookingsForProperty(propertyId, startStr, endStr);
+
+            const blockedDates = [];
+            for (const booking of bookings) {
+                const attrs = booking.attributes || booking;
+                const status = attrs.status || attrs.state;
+                if (status === 'cancelled' || status === 'declined') continue;
+
+                const checkIn = attrs.check_in || attrs.checkin;
+                const checkOut = attrs.check_out || attrs.checkout;
+                if (!checkIn || !checkOut) continue;
+
+                const start = new Date(checkIn);
+                const end = new Date(checkOut);
+                for (let d = new Date(start); d < end; d.setDate(d.getDate() + 1)) {
+                    blockedDates.push(d.toISOString().split('T')[0]);
+                }
+            }
+
+            return blockedDates;
+        } catch (error) {
+            console.error(`❌ Error fetching Uplisting blocked dates for ${accommodation}:`, error.message);
+            return [];
+        }
+    }
+
+    /**
+     * Reconcile calendar by fetching bookings from Uplisting for all properties
+     * and inserting any missing bookings into the local database.
+     * Safe to run repeatedly (idempotent).
+     */
+    async reconcileCalendar() {
+        if (!this.isConfigured) return;
+
+        try {
+            const allMappings = { ...PROPERTY_IDS };
+            const propertyEntries = Object.entries(allMappings).filter(([, id]) => !!id);
+
+            if (propertyEntries.length === 0) return;
+
+            const today = new Date();
+            const endDate = new Date(today);
+            endDate.setDate(endDate.getDate() + 90);
+            const startStr = today.toISOString().split('T')[0];
+            const endStr = endDate.toISOString().split('T')[0];
+
+            let newBookingsCount = 0;
+            const database = require('../database');
+
+            for (const [accommodation, propertyId] of propertyEntries) {
+                const bookings = await this.fetchBookingsForProperty(propertyId, startStr, endStr);
+
+                for (const booking of bookings) {
+                    const attrs = booking.attributes || booking;
+                    const uplistingId = booking.id || attrs.id;
+                    if (!uplistingId) continue;
+
+                    // Check if this booking already exists in local DB
+                    const existing = await database.get(
+                        'SELECT id FROM bookings WHERE uplisting_id = ?',
+                        [String(uplistingId)]
+                    );
+
+                    if (existing) continue;
+
+                    // Insert using the same pattern as handleWebhook / processWebhookBooking
+                    const channel = attrs.channel || attrs.source || attrs.platform || 'uplisting';
+                    const guestFirst = attrs.guest?.first_name || attrs.guest_first_name || 'Guest';
+                    const guestLast = attrs.guest?.last_name || attrs.guest_last_name || '';
+                    const guestEmail = attrs.guest?.email || attrs.guest_email || '';
+                    const guestPhone = attrs.guest?.phone || attrs.guest_phone || '';
+                    const status = attrs.status || attrs.state || 'confirmed';
+
+                    const bookingData = {
+                        id: `uplisting-${uplistingId}`,
+                        guest_name: sanitizeInput(`${guestFirst} ${guestLast}`.trim()),
+                        guest_email: sanitizeInput(guestEmail),
+                        guest_phone: sanitizeInput(guestPhone),
+                        accommodation,
+                        check_in: attrs.check_in || attrs.checkin,
+                        check_out: attrs.check_out || attrs.checkout,
+                        guests: attrs.guests || attrs.number_of_guests || 1,
+                        total_price: attrs.total_amount || attrs.amount || 0,
+                        status: ['confirmed', 'completed'].includes(status) ? 'confirmed' : (status === 'cancelled' || status === 'declined') ? 'cancelled' : 'pending',
+                        payment_status: attrs.payment_status === 'completed' ? 'completed' : 'pending',
+                        notes: sanitizeInput(attrs.notes || 'Booking from Uplisting (calendar sync)'),
+                        uplisting_id: String(uplistingId),
+                        booking_source: channel
+                    };
+
+                    const sql = `
+                        INSERT INTO bookings (
+                            id, guest_name, guest_email, guest_phone, accommodation,
+                            check_in, check_out, guests, total_price, status,
+                            payment_status, notes, uplisting_id, booking_source, created_at
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                        ON CONFLICT (id) DO NOTHING
+                    `;
+
+                    await database.run(sql, [
+                        bookingData.id, bookingData.guest_name, bookingData.guest_email,
+                        bookingData.guest_phone, bookingData.accommodation,
+                        bookingData.check_in, bookingData.check_out, bookingData.guests,
+                        bookingData.total_price, bookingData.status,
+                        bookingData.payment_status, bookingData.notes, bookingData.uplisting_id,
+                        bookingData.booking_source
+                    ]);
+
+                    newBookingsCount++;
+                }
+
+                // Rate limit delay between property fetches
+                await new Promise(r => setTimeout(r, 500));
+            }
+
+            if (newBookingsCount > 0) {
+                console.log(`[CALENDAR SYNC] Reconciled ${newBookingsCount} new bookings from Uplisting`);
+            } else {
+                console.log('[CALENDAR SYNC] Reconciled 0 new bookings from Uplisting');
+            }
+        } catch (error) {
+            console.error('❌ Calendar reconciliation error:', error.message);
         }
     }
 }

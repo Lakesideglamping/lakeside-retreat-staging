@@ -525,6 +525,7 @@ app.use(createBookingRoutes({
     executeDbOperation: (operation, params) => executeDbOperation(operation, params),
     database,
     sendBookingConfirmation,
+    uplisting: () => uplisting,
     tracking: { trackBookingStart, trackBookingStep, trackBookingSuccess, trackBookingFailure }
 }));
 
@@ -1060,6 +1061,35 @@ async function handleStripeWebhook(event, res) {
         }
         db.run('INSERT OR IGNORE INTO processed_webhook_events (event_id) VALUES (?)', [event.id]);
 
+    } else if (event.type === 'checkout.session.expired') {
+        const session = event.data.object;
+        const bookingId = session.metadata?.bookingId;
+        try {
+            if (bookingId) {
+                const booking = await new Promise((resolve, reject) => {
+                    db.get(
+                        'SELECT id, payment_status FROM bookings WHERE stripe_session_id = ? OR id = ?',
+                        [session.id, bookingId],
+                        (err, row) => { if (err) reject(err); else resolve(row); }
+                    );
+                });
+
+                if (booking && booking.payment_status === 'pending') {
+                    await new Promise((resolve, reject) => {
+                        db.run(
+                            `UPDATE bookings SET status = 'cancelled', payment_status = 'expired' WHERE id = ?`,
+                            [booking.id],
+                            function(err) { if (err) reject(err); else resolve(); }
+                        );
+                    });
+                    console.log(`[WEBHOOK] Checkout session expired for booking: ${booking.id}`);
+                }
+            }
+        } catch (err) {
+            console.error('[WEBHOOK] Failed to handle expired checkout session:', err.message);
+        }
+        db.run('INSERT OR IGNORE INTO processed_webhook_events (event_id) VALUES (?)', [event.id]);
+
     } else {
         // Other events: record as processed
         db.run('INSERT OR IGNORE INTO processed_webhook_events (event_id) VALUES (?)', [event.id]);
@@ -1249,9 +1279,9 @@ async function retryFailedWebhookEvents() {
     try {
         const unresolvedEvents = await new Promise((resolve, reject) => {
             db.all(
-                `SELECT id, event_id, stripe_session_id, booking_id, error_message, created_at
+                `SELECT id, event_id, stripe_session_id, booking_id, error_message, retry_count, created_at
                  FROM failed_webhook_events
-                 WHERE resolved = ?
+                 WHERE resolved = ? AND retry_count < 10
                  ORDER BY created_at ASC
                  LIMIT 5`,
                 [database.isUsingPostgres() ? false : 0],
@@ -1265,11 +1295,30 @@ async function retryFailedWebhookEvents() {
 
         for (const failedEvent of unresolvedEvents) {
             try {
+                // Increment retry_count for this attempt
+                await new Promise((resolve, reject) => {
+                    db.run(
+                        `UPDATE failed_webhook_events SET retry_count = retry_count + 1 WHERE id = ?`,
+                        [failedEvent.id],
+                        function(err) { if (err) reject(err); else resolve(); }
+                    );
+                });
+                const currentRetryCount = (failedEvent.retry_count || 0) + 1;
+
                 // Re-fetch the session from Stripe to check its current status
                 const session = await stripe.checkout.sessions.retrieve(failedEvent.stripe_session_id);
 
                 if (session.payment_status !== 'paid' && session.status !== 'complete') {
                     console.log(`[RETRY] Session ${failedEvent.stripe_session_id} is not complete (status: ${session.status}), skipping`);
+                    // Check if max retries reached after increment
+                    if (currentRetryCount >= 10) {
+                        await markFailedEventResolved(failedEvent.id, 'Max retries reached');
+                        sendExternalAlert(
+                            'Webhook Retry Max Reached',
+                            `Event ${failedEvent.event_id} has reached 10 retries without resolution. Session status: ${session.status}. Manual intervention required.`,
+                            'CRITICAL'
+                        );
+                    }
                     continue;
                 }
 
@@ -1316,6 +1365,21 @@ async function retryFailedWebhookEvents() {
             } catch (retryErr) {
                 // Log but don't mark as resolved — it will be retried next cycle
                 console.error(`[RETRY] Failed to recover event ${failedEvent.event_id}:`, retryErr.message);
+
+                // Check if max retries reached after this failed attempt
+                const currentRetryCount = (failedEvent.retry_count || 0) + 1;
+                if (currentRetryCount >= 10) {
+                    try {
+                        await markFailedEventResolved(failedEvent.id, 'Max retries reached');
+                        sendExternalAlert(
+                            'Webhook Retry Max Reached',
+                            `Event ${failedEvent.event_id} has reached 10 retries and last attempt failed: ${retryErr.message}. Manual intervention required.`,
+                            'CRITICAL'
+                        );
+                    } catch (markErr) {
+                        console.error(`[RETRY] Failed to mark max-retry event ${failedEvent.event_id}:`, markErr.message);
+                    }
+                }
             }
         }
     } catch (err) {
@@ -1325,13 +1389,17 @@ async function retryFailedWebhookEvents() {
 
 /**
  * Mark a failed webhook event as resolved with the current timestamp.
+ * Optionally append a note to the error_message (e.g. 'Max retries reached').
  */
-async function markFailedEventResolved(failedEventId) {
+async function markFailedEventResolved(failedEventId, note) {
+    const noteSql = note
+        ? `, error_message = COALESCE(error_message, '') || ' [${note}]'`
+        : '';
     await new Promise((resolve, reject) => {
         db.run(
             `UPDATE failed_webhook_events
              SET resolved = ${database.isUsingPostgres() ? 'true' : '1'},
-                 resolved_at = CURRENT_TIMESTAMP
+                 resolved_at = CURRENT_TIMESTAMP${noteSql}
              WHERE id = ?`,
             [failedEventId],
             function(err) { if (err) reject(err); else resolve(); }
@@ -1462,6 +1530,64 @@ setInterval(async () => {
         console.error('Failed webhook retry poll error:', err.message);
     }
 }, 30 * 60 * 1000).unref();
+
+// Calendar reconciliation every 30 minutes (syncs bookings from Uplisting to local DB)
+setInterval(async () => {
+    try {
+        if (uplisting) {
+            await uplisting.reconcileCalendar();
+        }
+    } catch (err) {
+        console.error('Calendar reconciliation poll error:', err.message);
+    }
+}, 30 * 60 * 1000).unref();
+
+// Retry failed Uplisting syncs every 15 minutes (recovers from transient API failures)
+setInterval(async () => {
+    try {
+        await retryFailedUplistingSyncs();
+    } catch (err) {
+        console.error('Uplisting sync retry error:', err.message);
+    }
+}, 15 * 60 * 1000).unref();
+
+async function retryFailedUplistingSyncs() {
+    if (!uplisting || !uplisting.isConfigured) return;
+    if (!db) return;
+
+    try {
+        const failedBookings = await new Promise((resolve, reject) => {
+            const sql = `
+                SELECT *
+                FROM bookings
+                WHERE payment_status = 'completed'
+                AND uplisting_id IS NULL
+                AND booking_source = 'website'
+                ORDER BY created_at DESC
+                LIMIT 5
+            `;
+            db.all(sql, [], (err, rows) => {
+                if (err) reject(err);
+                else resolve(rows || []);
+            });
+        });
+
+        if (failedBookings.length === 0) return;
+
+        console.log(`[Uplisting Retry] Found ${failedBookings.length} bookings to retry sync`);
+
+        for (const booking of failedBookings) {
+            try {
+                await syncBookingToUplisting(booking);
+                console.log(`[Uplisting Retry] Successfully synced booking ${booking.id}`);
+            } catch (err) {
+                console.error(`[Uplisting Retry] Failed to sync booking ${booking.id}:`, err.message);
+            }
+        }
+    } catch (error) {
+        console.error('[Uplisting Retry] Error querying failed syncs:', error.message);
+    }
+}
 
 async function autoReleaseSecurityDeposit(bookingId, depositIntentId) {
     if (!stripe) {
