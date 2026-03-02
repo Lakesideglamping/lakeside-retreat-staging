@@ -448,10 +448,6 @@
                             <span>Cleaning Fee:</span>
                             <span id="cleaningFee">$75</span>
                         </div>
-                        <div class="price-row">
-                            <span>Service Fee:</span>
-                            <span id="serviceFee">$0</span>
-                        </div>
                         <div class="price-row price-total">
                             <span>Total Amount (GST Incl.):</span>
                             <span id="totalAmount">$0</span>
@@ -598,10 +594,6 @@
                         <div class="price-row">
                             <span>Cleaning Fee:</span>
                             <span id="finalCleaningFee">$75</span>
-                        </div>
-                        <div class="price-row">
-                            <span>Service Fee:</span>
-                            <span id="finalServiceFee">$0</span>
                         </div>
                         <div class="price-row" id="finalExtraGuestRow" style="display: none;">
                             <span>Extra Guest Charge:</span>
@@ -3390,6 +3382,60 @@
             </section>
         </div>
 
+        <!-- Booking Success Page (after Stripe payment) -->
+        <div class="page" id="bookingSuccessPage">
+            <section style="min-height: 80vh; display: flex; align-items: center; justify-content: center; padding: 2rem;">
+                <div style="max-width: 600px; width: 100%; text-align: center;">
+                    <div id="bookingSuccessLoading">
+                        <span class="loading-spinner" style="width: 48px; height: 48px; border-width: 4px;"></span>
+                        <h2 style="color: var(--brand-teal); margin-top: 1.5rem;">Verifying your payment…</h2>
+                        <p style="color: #666; margin-top: 0.5rem;">Please wait while we confirm your booking.</p>
+                    </div>
+                    <div id="bookingSuccessContent" style="display: none;">
+                        <div style="font-size: 4rem; margin-bottom: 1rem;">🎉</div>
+                        <h2 style="color: var(--brand-teal); margin-bottom: 1rem;">Booking Confirmed!</h2>
+                        <p style="color: #555; margin-bottom: 2rem;">Thank you for choosing Lakeside Retreat. You'll receive a confirmation email shortly with all the details for your stay.</p>
+                        <div id="bookingSuccessDetails" style="background: #FAF4F5; padding: 1.5rem; border-radius: 12px; margin-bottom: 2rem; text-align: left;">
+                            <h4 style="color: var(--brand-teal); margin-bottom: 1rem;">Your Booking Details</h4>
+                            <p><strong>Reference:</strong> <span id="successBookingRef">—</span></p>
+                            <p><strong>Accommodation:</strong> <span id="successAccommodation">—</span></p>
+                            <p><strong>Check-in:</strong> <span id="successCheckin">—</span></p>
+                            <p><strong>Check-out:</strong> <span id="successCheckout">—</span></p>
+                            <p><strong>Total Paid:</strong> <span id="successTotal">—</span></p>
+                        </div>
+                        <div style="background: #f0fdf4; padding: 1rem; border-radius: 8px; margin-bottom: 2rem; font-size: 0.9rem; color: #166534;">
+                            <strong>What happens next?</strong><br>
+                            A $300 security bond has been pre-authorised on your card. It is automatically released 48 hours after checkout, provided no damage claim is made.
+                        </div>
+                        <a href="#" data-page="home" class="btn btn-primary" style="margin-right: 0.5rem;">Return Home</a>
+                        <a href="#" data-page="blog" class="btn btn-outline">Plan Your Stay</a>
+                    </div>
+                    <div id="bookingSuccessError" style="display: none;">
+                        <div style="font-size: 4rem; margin-bottom: 1rem;">⚠️</div>
+                        <h2 style="color: var(--brand-teal); margin-bottom: 1rem;">Payment Received</h2>
+                        <p style="color: #555; margin-bottom: 2rem;">Your payment was successful, but we couldn't load the booking details right now. Don't worry — you'll receive a confirmation email shortly.</p>
+                        <p style="color: #666; font-size: 0.9rem; margin-bottom: 2rem;">If you don't receive an email within 30 minutes, please contact us at <a href="mailto:stay@lakesideretreat.co.nz" style="color: var(--brand-teal);">stay@lakesideretreat.co.nz</a> or call <a href="tel:+6421368682" style="color: var(--brand-teal);">+64 21 368 682</a>.</p>
+                        <a href="#" data-page="home" class="btn btn-primary">Return Home</a>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- Booking Cancelled Page -->
+        <div class="page" id="bookingCancelledPage">
+            <section style="min-height: 80vh; display: flex; align-items: center; justify-content: center; padding: 2rem;">
+                <div style="max-width: 600px; width: 100%; text-align: center;">
+                    <div style="font-size: 4rem; margin-bottom: 1rem;">🔙</div>
+                    <h2 style="color: var(--brand-teal); margin-bottom: 1rem;">Booking Not Completed</h2>
+                    <p style="color: #555; margin-bottom: 1.5rem;">It looks like you left the checkout before completing your payment. No charges have been made to your card.</p>
+                    <div style="background: #eff6ff; border: 1px solid #93c5fd; padding: 1rem; border-radius: 8px; margin-bottom: 2rem; font-size: 0.9rem; color: #1e40af;">
+                        <strong>Your dates may still be available.</strong> You can return to the booking form and try again — your selected dates won't be held indefinitely, so we recommend booking soon.
+                    </div>
+                    <a href="#" data-page="home" data-scroll-to="booking" class="btn btn-primary" style="margin-right: 0.5rem;">Try Again</a>
+                    <a href="#" data-page="home" class="btn btn-outline">Return Home</a>
+                </div>
+            </section>
+        </div>
 
     </main>
 
@@ -4767,20 +4813,17 @@ document.addEventListener('DOMContentLoaded', () => {
         function validateCottageMinimumStay() {
             const checkIn = document.getElementById('bookingCheckin').value;
             const checkOut = document.getElementById('bookingCheckout').value;
-            
+
             if (!checkIn || !checkOut || selectedAccommodation !== 'lakeside-cottage') {
                 return true;
             }
-            
+
             const nights = calculateNightsFrontend(checkIn, checkOut);
-            const isPeak = isPeakSeason(checkIn);
-            
-            if (isPeak && nights < 2) {
-                // Show error message
-                showDateValidationError('Minimum 2-night stay required for Lakeside Cottage during peak season (October to May)');
+
+            if (nights < 2) {
+                showDateValidationError('Minimum 2-night stay required for Lakeside Cottage');
                 return false;
             } else {
-                // Clear error message
                 clearDateValidationError();
                 return true;
             }
@@ -4811,14 +4854,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // INSTANT BOOKING: Combined availability check, pricing, and immediate payment
         window.instantBookingWithPayment = async function() {
-            // Console statement removed for production
-            // Console statement removed for production
-            // Console statement removed for production
-            // Console statement removed for production
-            
+            // Disable button to prevent double-clicks
+            const bookBtn = document.querySelector('button[data-action="instantBookingWithPayment"]');
+            if (bookBtn) {
+                bookBtn.disabled = true;
+                bookBtn._originalText = bookBtn.textContent;
+                bookBtn.innerHTML = 'Checking Availability… <span class="loading-spinner"></span>';
+            }
+
+            const resetBookBtn = () => {
+                if (bookBtn) { bookBtn.disabled = false; bookBtn.textContent = bookBtn._originalText || 'Check Availability & Book Instantly'; }
+            };
+
             if (!selectedAccommodation) {
                 showFormError('accommodation', 'Please select an accommodation');
                 document.getElementById('accommodationError')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                resetBookBtn();
                 return;
             }
 
@@ -4828,26 +4879,25 @@ document.addEventListener('DOMContentLoaded', () => {
             const children = document.getElementById('bookingChildren').value;
             const pets = document.getElementById('bookingPets') ? document.getElementById('bookingPets').value : '0';
 
-            // Console statement removed for production
-
             if (!checkin || !checkout) {
                 showFormError('date', 'Please select both check-in and check-out dates');
+                resetBookBtn();
                 return;
             }
 
             const checkinDate = new Date(checkin);
             const checkoutDate = new Date(checkout);
-            
-            // Console statement removed for production
-            
+
             if (checkoutDate <= checkinDate) {
                 showFormError('date', 'Check-out date must be after check-in date');
+                resetBookBtn();
                 return;
             }
 
             // Validate cottage minimum stay requirements
             if (!validateCottageMinimumStay()) {
-                showFormError('date', 'Minimum 2-night stay required for Lakeside Cottage during peak season (Oct–May)');
+                showFormError('date', 'Minimum 2-night stay required for Lakeside Cottage');
+                resetBookBtn();
                 return;
             }
 
@@ -4927,6 +4977,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('guestDetailsSection').style.display = 'none';
                 document.getElementById('instantPaymentSection').style.display = 'none';
             }
+
+            resetBookBtn();
         }
 
         // ENHANCED PRICING CALCULATION WITH NZ GST
@@ -4996,11 +5048,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const cleaningFee = 75;
-            const serviceFee = Math.round(subtotal * 0.03); // 3% service fee
             const securityBond = 300; // $300 refundable security bond
 
             // Calculate total (all prices already include GST)
-            const total = subtotal + cleaningFee + serviceFee;
+            const total = subtotal + cleaningFee;
             const totalCharge = total + securityBond;
             // GST is already included in all prices (15% of total)
             const gst = Math.round(total * 0.13); // GST portion is 15/115 = 13% of GST-inclusive price
@@ -5011,7 +5062,6 @@ document.addEventListener('DOMContentLoaded', () => {
             bookingData.extraGuestCharge = extraGuestCharge;
             bookingData.petFee = petFee;
             bookingData.cleaningFee = cleaningFee;
-            bookingData.serviceFee = serviceFee;
             bookingData.securityBond = securityBond;
             bookingData.gst = gst;
             bookingData.total = total;
@@ -5060,187 +5110,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             document.getElementById('cleaningFee').textContent = `${cleaningFee} NZD`;
-            document.getElementById('serviceFee').textContent = `${serviceFee} NZD`;
             document.getElementById('gst').textContent = `${gst} NZD`;
             document.getElementById('totalAmount').textContent = `${total} NZD`;
             document.getElementById('securityBondAmount').textContent = `${securityBond} NZD`;
             document.getElementById('totalChargeAmount').textContent = `${totalCharge} NZD`;
-        }
-
-        // SECURE PAYMENT: Process payment securely with Stripe
-        async function processInstantPayment() {
-            try {
-                // Validate guest details are filled
-                const firstName = document.getElementById('guestFirstName').value;
-                const lastName = document.getElementById('guestLastName').value;
-                const emailInput = document.getElementById('guestEmail');
-                const phone = document.getElementById('guestPhone').value;
-
-                // Validate email
-                if (!validateEmail(emailInput)) {
-                    return;
-                }
-
-                if (!firstName || !lastName || !phone) {
-                    showFormError('guest', 'Please fill in all required guest information');
-                    return;
-                }
-
-                // Use secure payment processing if available
-                if (window.SecurePayment && window.SecurePayment.processSecurePaymentFromForm) {
-                    await window.SecurePayment.processSecurePaymentFromForm();
-                } else {
-                    // Fallback to secure API call
-                    const bookingData = {
-                        accommodation: selectedAccommodation,
-                        checkIn: document.getElementById('bookingCheckin').value,
-                        checkOut: document.getElementById('bookingCheckout').value,
-                        guests: document.getElementById('bookingAdults').value,
-                        guestName: firstName + ' ' + lastName,
-                        guestEmail: emailInput.value,
-                        guestPhone: phone,
-                        specialRequests: document.getElementById('specialRequests').value
-                    };
-
-                    // Sanitize data if secure functions available
-                    if (window.SecureFrontend && window.SecureFrontend.sanitizeFormData) {
-                        const formData = new FormData();
-                        Object.keys(bookingData).forEach(key => {
-                            formData.append(key, bookingData[key]);
-                        });
-                        const sanitizedData = window.SecureFrontend.sanitizeFormData(formData);
-                        Object.assign(bookingData, sanitizedData);
-                    }
-
-                    // Process payment securely
-                    const response = await fetch('/api/process-booking', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-Token': await getCSRFToken()
-                        },
-                        credentials: 'include',
-                        body: JSON.stringify(bookingData)
-                    });
-
-                    if (!response.ok) {
-                        throw new Error('Payment processing failed');
-                    }
-
-                    const result = await response.json();
-                    
-                    // Show success
-                    if (window.SecureFrontend && window.SecureFrontend.showSuccess) {
-                        window.SecureFrontend.showSuccess('Payment processed successfully! Your booking is confirmed.');
-                    } else {
-                        showBookingNotification('Payment processed successfully! Your booking is confirmed.', 'success');
-                    }
-
-                    // Close modal and redirect
-                    setTimeout(() => {
-                        closeBookingModal();
-                        showPage('home');
-                    }, 2000);
-                }
-                
-            } catch (error) {
-                // Console statement removed for production
-                
-                if (window.SecureFrontend && window.SecureFrontend.handleSecurityError) {
-                    window.SecureFrontend.handleSecurityError(error, 'payment_processing');
-                } else {
-                    showBookingNotification('Payment processing failed. Please try again.', 'error');
-                }
-            }
-        }
-
-        // Process booking with Uplisting after successful payment
-        async function processBookingWithUplisting() {
-            const paymentButton = document.getElementById('instantPaymentBtn');
-            safeSetContent('instantPaymentBtn', 'Creating Booking with Uplisting', true);
-            // Add loading spinner safely
-            const spinner = document.createElement('span');
-            spinner.className = 'loading-spinner';
-            paymentButton.appendChild(spinner);
-
-            // Simulate Uplisting API call
-            await new Promise(resolve => setTimeout(resolve, 2000));
-
-            // Mock successful booking
-            const bookingReference = 'LR' + Date.now().toString().slice(-6);
-            
-            // Show success message securely
-            if (window.SecureFrontend && window.SecureFrontend.updateBookingResult) {
-                window.SecureFrontend.updateBookingResult(true, 'Instant Booking Confirmed! Thank you for choosing Lakeside Retreat. Your booking has been instantly confirmed and you\'ll receive a confirmation email shortly.');
-            } else {
-                const bookingResultSection = document.getElementById('bookingResultSection');
-                const successDiv = document.createElement('div');
-                successDiv.className = 'booking-success';
-                // Create success content safely without innerHTML
-                const iconDiv = document.createElement('div');
-                iconDiv.className = 'success-icon';
-                iconDiv.textContent = '✅';
-                
-                const heading = document.createElement('h3');
-                heading.style.color = 'var(--brand-teal)';
-                heading.style.marginBottom = '1rem';
-                heading.textContent = 'Instant Booking Confirmed!';
-                
-                const description = document.createElement('p');
-                description.textContent = 'Thank you for choosing Lakeside Retreat. Your booking has been instantly confirmed and you\'ll receive a confirmation email shortly.';
-                
-                const detailsDiv = document.createElement('div');
-                detailsDiv.style.background = '#FAF4F5';
-                detailsDiv.style.padding = '1rem';
-                detailsDiv.style.borderRadius = '10px';
-                detailsDiv.style.margin = '1.5rem 0';
-                
-                // Create detail paragraphs with safe text content
-                const refP = document.createElement('p');
-                refP.innerHTML = '<strong>Booking Reference:</strong> ';
-                refP.appendChild(document.createTextNode(sanitizeHTML(bookingReference)));
-                
-                const totalP = document.createElement('p');
-                totalP.innerHTML = '<strong>Total Paid (incl. GST):</strong> ';
-                totalP.appendChild(document.createTextNode(sanitizeHTML(bookingData.total + ' NZD')));
-                
-                const methodP = document.createElement('p');
-                methodP.innerHTML = '<strong>Payment Method:</strong> Credit Card via Stripe';
-                
-                const emailP = document.createElement('p');
-                emailP.innerHTML = '<strong>Confirmation sent to:</strong> ';
-                emailP.appendChild(document.createTextNode(sanitizeHTML(document.getElementById('guestEmail').value)));
-                
-                detailsDiv.appendChild(refP);
-                detailsDiv.appendChild(totalP);
-                detailsDiv.appendChild(methodP);
-                detailsDiv.appendChild(emailP);
-                
-                const closeButton = document.createElement('button');
-                closeButton.className = 'btn btn-primary';
-                closeButton.style.marginTop = '1rem';
-                closeButton.textContent = 'Close & Plan Your Stay';
-                closeButton.onclick = closeBookingModal;
-                
-                successDiv.appendChild(iconDiv);
-                successDiv.appendChild(heading);
-                successDiv.appendChild(description);
-                successDiv.appendChild(detailsDiv);
-                successDiv.appendChild(closeButton);
-                bookingResultSection.textContent = '';
-                bookingResultSection.appendChild(successDiv);
-            }
-
-            // Hide the payment section
-            document.getElementById('instantPaymentSection').style.display = 'none';
-            paymentButton.parentElement.style.display = 'none';
-
-            // In real implementation, this would:
-            // 1. Process payment through Stripe API
-            // 2. Create booking in Uplisting via API
-            // 3. Send confirmation emails
-            // 4. Update calendar availability
-            // 5. Sync with all booking platforms
         }
 
         function updateSelectedDetails() {
@@ -5316,8 +5189,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('finalNumberOfNights').textContent = bookingData.nights;
             document.getElementById('finalSubtotal').textContent = `$${bookingData.subtotal}`;
             document.getElementById('finalCleaningFee').textContent = `$${bookingData.cleaningFee}`;
-            document.getElementById('finalServiceFee').textContent = `$${bookingData.serviceFee}`;
-            
+
             // Show/hide optional fees
             const finalExtraGuestRow = document.getElementById('finalExtraGuestRow');
             const finalPetFeeRow = document.getElementById('finalPetFeeRow');
@@ -5446,7 +5318,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         accommodation: bookingData.accommodation,
                         checkin: bookingData.checkin,
                         checkout: bookingData.checkout,
-                        guests: bookingData.adults,
+                        guests: bookingData.adults + bookingData.children,
                         totalAmount: bookingData.total,
                         specialRequests: guestData.specialRequests
                     })
@@ -5813,6 +5685,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 title: 'Our Story | Stephen & Sandy | Lakeside Retreat Cromwell',
                 description: 'Meet Stephen & Sandy, your hosts at Lakeside Retreat. 4+ years creating luxury glamping experiences on the shores of Lake Dunstan, Central Otago.',
                 path: '/our-story'
+            },
+            bookingSuccess: {
+                title: 'Booking Confirmed | Lakeside Retreat',
+                description: 'Your booking at Lakeside Retreat has been confirmed. Check your email for full details.',
+                path: '/booking-success'
+            },
+            bookingCancelled: {
+                title: 'Booking Cancelled | Lakeside Retreat',
+                description: 'Your booking was not completed. Return to try again.',
+                path: '/booking-cancelled'
             },
             explore: {
                 title: 'Things to Do in Central Otago | Wine, Cycling & Adventure',
@@ -7150,6 +7032,52 @@ document.addEventListener('DOMContentLoaded', () => {
 
         }
 
+        // Handle /booking-success page: verify payment and show booking details
+        async function handleBookingSuccess() {
+            const params = new URLSearchParams(location.search);
+            const sessionId = params.get('session_id');
+            const loadingEl = document.getElementById('bookingSuccessLoading');
+            const contentEl = document.getElementById('bookingSuccessContent');
+            const errorEl = document.getElementById('bookingSuccessError');
+
+            if (!sessionId) {
+                // No session_id — show generic success
+                if (loadingEl) loadingEl.style.display = 'none';
+                if (errorEl) errorEl.style.display = 'block';
+                return;
+            }
+
+            try {
+                // Look up the booking by Stripe session ID
+                const resp = await fetch(`/api/booking/by-session/${sessionId}`);
+                const data = await resp.json();
+
+                if (!data.success || !data.booking) {
+                    throw new Error('Booking not found');
+                }
+
+                const b = data.booking;
+                const accommodationNames = {
+                    'dome-pinot': 'Dome Pinot',
+                    'dome-rose': 'Dome Rosé',
+                    'lakeside-cottage': 'Lakeside Cottage'
+                };
+
+                document.getElementById('successBookingRef').textContent = b.id.slice(0, 8).toUpperCase();
+                document.getElementById('successAccommodation').textContent = accommodationNames[b.accommodation] || b.accommodation;
+                document.getElementById('successCheckin').textContent = new Date(b.check_in).toLocaleDateString('en-NZ', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                document.getElementById('successCheckout').textContent = new Date(b.check_out).toLocaleDateString('en-NZ', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                document.getElementById('successTotal').textContent = `$${b.total_price} NZD`;
+
+                if (loadingEl) loadingEl.style.display = 'none';
+                if (contentEl) contentEl.style.display = 'block';
+            } catch (err) {
+                console.error('Failed to load booking details:', err);
+                if (loadingEl) loadingEl.style.display = 'none';
+                if (errorEl) errorEl.style.display = 'block';
+            }
+        }
+
         window.scrollToTop = function() {
             document.documentElement.scrollTop = 0;
             document.body.scrollTop = 0;
@@ -7158,8 +7086,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Initialize page navigation when DOM is loaded
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialize the home page as active
-            showPage('home');
+            // Route based on current URL path
+            const path = location.pathname;
+            const pathMap = {};
+            Object.entries(PAGE_META).forEach(([page, meta]) => {
+                pathMap[meta.path] = page;
+            });
+            const initialPage = pathMap[path] || 'home';
+            showPage(initialPage);
+
+            // Handle booking-success: verify payment via API
+            if (initialPage === 'bookingSuccess') {
+                handleBookingSuccess();
+            }
+
             // Initialize back to top button
             initBackToTopButton();
             // Initialize parallax scrolling

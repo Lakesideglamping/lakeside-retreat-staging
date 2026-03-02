@@ -638,6 +638,49 @@ function createBookingRoutes(deps) {
         });
     });
 
+    // Look up booking by Stripe session ID (for success page after redirect)
+    router.get('/api/booking/by-session/:sessionId', async (req, res) => {
+        try {
+            const sessionId = req.params.sessionId;
+
+            if (!sessionId || sessionId.length < 10) {
+                return res.status(400).json({ success: false, error: 'Invalid session ID' });
+            }
+
+            const booking = await new Promise((resolve, reject) => {
+                db().get(
+                    'SELECT id, accommodation, check_in, check_out, guests, status, payment_status, total_price, guest_name FROM bookings WHERE stripe_session_id = ?',
+                    [sessionId],
+                    (err, row) => {
+                        if (err) reject(err);
+                        else resolve(row);
+                    }
+                );
+            });
+
+            if (!booking) {
+                return res.status(404).json({ success: false, error: 'Booking not found for this session' });
+            }
+
+            res.json({
+                success: true,
+                booking: {
+                    id: booking.id,
+                    accommodation: booking.accommodation,
+                    check_in: booking.check_in,
+                    check_out: booking.check_out,
+                    guests: booking.guests,
+                    status: booking.status,
+                    payment_status: booking.payment_status,
+                    total_price: booking.total_price
+                }
+            });
+        } catch (error) {
+            logger.error('Session lookup error:', { error: error?.message });
+            res.status(500).json({ success: false, error: 'Failed to look up booking' });
+        }
+    });
+
     // Verify booking payment status (for confirmation page)
     router.get('/api/booking/:id/payment-status', async (req, res) => {
         try {
