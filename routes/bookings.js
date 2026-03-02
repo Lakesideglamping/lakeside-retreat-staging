@@ -355,7 +355,8 @@ function createBookingRoutes(deps) {
                         sanitizedData.check_in, sanitizedData.check_out
                     ]);
 
-                    if (row.conflicts > 0) {
+                    // PostgreSQL COUNT(*) returns bigint as string; Number() handles both
+                    if (Number(row?.conflicts ?? 0) > 0) {
                         throw { isAvailabilityConflict: true };
                     }
 

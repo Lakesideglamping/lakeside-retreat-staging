@@ -679,7 +679,11 @@ async function checkAvailability(accommodation, checkIn, checkOut) {
                 if (err) {
                     reject(err);
                 } else {
-                    resolve(row.conflicts === 0);
+                    // PostgreSQL COUNT(*) returns bigint as string ('0'), not number (0)
+                    // Use Number() to handle both SQLite (number) and PostgreSQL (string)
+                    const conflicts = Number(row?.conflicts ?? 0);
+                    logger.info(`🔍 Local DB conflict check for ${accommodation}: ${conflicts} conflicts found`);
+                    resolve(conflicts === 0);
                 }
             });
         });
