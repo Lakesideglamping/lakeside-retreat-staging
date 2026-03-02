@@ -2575,6 +2575,10 @@
                             <span>Extra Guest Charge:</span>
                             <span id="extraGuestCharge">$0</span>
                         </div>
+                        <div class="price-row" id="petFeeRow" style="display: none;">
+                            <span>Pet Fee (flat per stay):</span>
+                            <span id="petFee">$0</span>
+                        </div>
                         <div class="price-row">
                             <span>Cleaning Fee:</span>
                             <span id="cleaningFee">$75</span>
@@ -2644,7 +2648,7 @@
                                     <span style="font-size: 1.2rem;">🐾</span>
                                     <h5 style="margin: 0; color: #047857; font-size: 1rem;">Pet-Friendly Option</h5>
                                 </div>
-                                <p style="margin: 0 0 1rem 0; color: #047857; font-size: 0.9rem;">Lakeside Cottage welcomes well-behaved pets with prior approval.</p>
+                                <p style="margin: 0 0 1rem 0; color: #047857; font-size: 0.9rem;">Lakeside Cottage welcomes well-behaved pets with prior approval. A flat $50 pet fee per stay applies.</p>
                                 
                                 <div class="booking-form-group">
                                     <label class="booking-form-label" for="petDetails">Pet Details (Optional)</label>
@@ -2732,6 +2736,10 @@
                         <div class="price-row" id="finalExtraGuestRow" style="display: none;">
                             <span>Extra Guest Charge:</span>
                             <span id="finalExtraGuestFee">$0</span>
+                        </div>
+                        <div class="price-row" id="finalPetFeeRow" style="display: none;">
+                            <span>Pet Fee (flat per stay):</span>
+                            <span id="finalPetFee">$0</span>
                         </div>
                         <div class="price-row price-total">
                             <span>Total Amount (GST Incl.):</span>
@@ -5319,7 +5327,7 @@ Local activities and adventures:
                         </div>
                         <div class="faq-answer" style="padding: 0; max-height: 0; overflow: hidden; transition: all 0.3s ease;">
                             <div style="padding: 1.5rem; border-top: 1px solid #f0f0f0; color: var(--text); line-height: 1.6;">
-                                The Lakeside Cottage is pet-friendly! Your furry friends are welcome with prior arrangement. The geodesic domes are not suitable for pets.
+                                The Lakeside Cottage is pet-friendly with prior approval (max 2 pets, $50 flat fee per stay). Please let us know breed and size when booking. The domes are not suitable for pets. All pets must be well-behaved and supervised at all times.
                             </div>
                         </div>
                     </div>
@@ -5720,6 +5728,13 @@ document.addEventListener('DOMContentLoaded', () => {
         "acceptedAnswer": {
           "@type": "Answer",
           "text": "Lake Dunstan offers kayaking, paddleboarding, fishing, and scenic walks right from our doorstep. The lake is perfect for photography, bird watching, and water sports. The Cromwell Gorge walks provide stunning views and heritage sites."
+        }
+      },{
+        "@type": "Question",
+        "name": "Can I bring my pet?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The Lakeside Cottage is pet-friendly with prior approval ($50 flat fee per stay). The domes are not suitable for pets."
         }
       }]
     }
@@ -6684,12 +6699,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
             
+            // Pet fee: $50 flat per stay (cottage only, if pets > 0)
+            let petFee = 0;
+            if (selectedAccommodation === 'lakeside-cottage' && bookingData.pets > 0) {
+                petFee = 50;
+            }
+
             const cleaningFee = 75;
             const serviceFee = Math.round(subtotal * 0.03); // 3% service fee
             const securityBond = 300; // $300 refundable security bond
 
             // Calculate total (all prices already include GST)
-            const total = subtotal + cleaningFee + serviceFee;
+            const total = subtotal + petFee + cleaningFee + serviceFee;
             const totalCharge = total + securityBond;
             // GST is already included in all prices (15% of total)
             const gst = Math.round(total * 0.13); // GST portion is 15/115 = 13% of GST-inclusive price
@@ -6698,6 +6719,7 @@ document.addEventListener('DOMContentLoaded', () => {
             bookingData.nightlyRate = nightlyRate;
             bookingData.subtotal = subtotal;
             bookingData.extraGuestCharge = extraGuestCharge;
+            bookingData.petFee = petFee;
 
             bookingData.cleaningFee = cleaningFee;
             bookingData.serviceFee = serviceFee;
@@ -6722,6 +6744,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 extraGuestChargeElement.textContent = '$0';
             }
 
+            // Show/hide pet fee for cottage
+            const petFeeRow = document.getElementById('petFeeRow');
+            const petFeeElement = document.getElementById('petFee');
+            if (petFee > 0) {
+                petFeeRow.style.display = 'flex';
+                petFeeElement.textContent = `${petFee} NZD`;
+            } else {
+                petFeeRow.style.display = 'none';
+            }
 
             document.getElementById('cleaningFee').textContent = `${cleaningFee} NZD`;
             document.getElementById('serviceFee').textContent = `${serviceFee} NZD`;
@@ -6987,7 +7018,15 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 finalExtraGuestRow.style.display = 'none';
             }
-            
+
+            const finalPetFeeRow = document.getElementById('finalPetFeeRow');
+            if (bookingData.petFee && bookingData.petFee > 0) {
+                finalPetFeeRow.style.display = 'flex';
+                document.getElementById('finalPetFee').textContent = `$${bookingData.petFee}`;
+            } else {
+                finalPetFeeRow.style.display = 'none';
+            }
+
             document.getElementById('finalGST').textContent = `$${bookingData.gst}`;
             document.getElementById('finalTotalAmount').textContent = `$${bookingData.total}`;
             document.getElementById('finalSecurityBond').textContent = `$${bookingData.securityBond}`;
@@ -7488,7 +7527,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <p>Guests are responsible for the accommodation during their stay. Any damage or excessive cleaning required will be charged to the guest's account. Smoking is not permitted inside any accommodation.</p>
                         
                         <h3>5. Pet Policy</h3>
-                        <p>Pets are welcome in Lakeside Cottage only, subject to prior approval. Pets must be well-behaved and not left unattended.</p>
+                        <p>Pets are welcome in Lakeside Cottage only, subject to prior approval. A flat $50 pet fee per stay applies. Maximum 2 pets. Pets must be well-behaved and not left unattended.</p>
                         
                         <h3>6. Solar System</h3>
                         <p>Our accommodation is powered by a commercial-grade solar system. While we maintain 99.9% uptime, we cannot guarantee uninterrupted power supply. No refunds will be given for power-related issues.</p>

@@ -318,8 +318,12 @@ function createBookingRoutes(deps) {
                 if (accommodationConfig.extraGuestFee && sanitizedData.guests > 2) {
                     expectedExtraGuestFee = (sanitizedData.guests - 2) * accommodationConfig.extraGuestFee * nights;
                 }
+                // Pet fee: $50 flat per stay (cottage only, if pets present)
+                const pets = parseInt(req.body.pets) || 0;
+                const expectedPetFee = (accommodationConfig.petFee && pets > 0) ? accommodationConfig.petFee : 0;
+
                 const cleaningFee = 75;
-                const expectedTotal = expectedAccommodationCost + expectedExtraGuestFee + cleaningFee;
+                const expectedTotal = expectedAccommodationCost + expectedExtraGuestFee + expectedPetFee + cleaningFee;
                 const minExpected = expectedTotal * 0.9;
                 const maxExpected = expectedTotal * 1.1;
                 if (sanitizedData.total_price < minExpected || sanitizedData.total_price > maxExpected) {
@@ -480,7 +484,10 @@ function createBookingRoutes(deps) {
                 if (accommodationConfig?.extraGuestFee && booking.guests > 2) {
                     extraGuestFee = (booking.guests - 2) * accommodationConfig.extraGuestFee * nights;
                 }
-                const nightlyTotal = booking.total_price - cleaningFee - extraGuestFee;
+                // Pet fee from booking notes or detect from accommodation config
+                const hasPets = booking.notes && /pet/i.test(booking.notes);
+                const petFee = (accommodationConfig?.petFee && hasPets) ? accommodationConfig.petFee : 0;
+                const nightlyTotal = booking.total_price - cleaningFee - extraGuestFee - petFee;
 
                 const lineItems = [
                     {
@@ -516,6 +523,20 @@ function createBookingRoutes(deps) {
                                 description: `${booking.guests - 2} extra guest(s) × ${nights} nights (GST inclusive)`
                             },
                             unit_amount: Math.round(extraGuestFee * 100)
+                        },
+                        quantity: 1
+                    });
+                }
+
+                if (petFee > 0) {
+                    lineItems.push({
+                        price_data: {
+                            currency: 'nzd',
+                            product_data: {
+                                name: 'Pet Fee',
+                                description: 'Flat pet fee per stay (GST inclusive)'
+                            },
+                            unit_amount: Math.round(petFee * 100)
                         },
                         quantity: 1
                     });

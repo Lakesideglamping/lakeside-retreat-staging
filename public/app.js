@@ -979,12 +979,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
             
+            // Pet fee: $50 flat per stay (cottage only, if pets > 0)
+            let petFee = 0;
+            if (selectedAccommodation === 'lakeside-cottage' && bookingData.pets > 0) {
+                petFee = 50;
+            }
+
             const cleaningFee = 75;
             const serviceFee = Math.round(subtotal * 0.03); // 3% service fee
             const securityBond = 300; // $300 refundable security bond
 
             // Calculate total (all prices already include GST)
-            const total = subtotal + cleaningFee + serviceFee;
+            const total = subtotal + petFee + cleaningFee + serviceFee;
             const totalCharge = total + securityBond;
             // GST is already included in all prices (15% of total)
             const gst = Math.round(total * 0.13); // GST portion is 15/115 = 13% of GST-inclusive price
@@ -993,6 +999,7 @@ document.addEventListener('DOMContentLoaded', () => {
             bookingData.nightlyRate = nightlyRate;
             bookingData.subtotal = subtotal;
             bookingData.extraGuestCharge = extraGuestCharge;
+            bookingData.petFee = petFee;
             bookingData.cleaningFee = cleaningFee;
             bookingData.serviceFee = serviceFee;
             bookingData.securityBond = securityBond;
@@ -1015,7 +1022,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 extraGuestRow.style.display = 'none';
                 extraGuestChargeElement.textContent = '$0';
             }
-            
+
+            // Show/hide pet fee for cottage
+            const petFeeRow = document.getElementById('petFeeRow');
+            const petFeeElement = document.getElementById('petFee');
+            if (petFee > 0) {
+                petFeeRow.style.display = 'flex';
+                petFeeElement.textContent = `${petFee} NZD`;
+            } else {
+                petFeeRow.style.display = 'none';
+            }
+
             document.getElementById('cleaningFee').textContent = `${cleaningFee} NZD`;
             document.getElementById('serviceFee').textContent = `${serviceFee} NZD`;
             document.getElementById('gst').textContent = `${gst} NZD`;
@@ -1280,7 +1297,15 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 finalExtraGuestRow.style.display = 'none';
             }
-            
+
+            const finalPetFeeRow = document.getElementById('finalPetFeeRow');
+            if (bookingData.petFee && bookingData.petFee > 0) {
+                finalPetFeeRow.style.display = 'flex';
+                document.getElementById('finalPetFee').textContent = `$${bookingData.petFee}`;
+            } else {
+                finalPetFeeRow.style.display = 'none';
+            }
+
             document.getElementById('finalGST').textContent = `$${bookingData.gst}`;
             document.getElementById('finalTotalAmount').textContent = `$${bookingData.total}`;
             document.getElementById('finalSecurityBond').textContent = `$${bookingData.securityBond}`;
@@ -1735,7 +1760,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <p>Guests are responsible for the accommodation during their stay. Any damage or excessive cleaning required will be charged to the guest's account. Smoking is not permitted inside any accommodation.</p>
                         
                         <h3>5. Pet Policy</h3>
-                        <p>Pets are welcome in Lakeside Cottage only, subject to prior approval. Pets must be well-behaved and not left unattended.</p>
+                        <p>Pets are welcome in Lakeside Cottage only, subject to prior approval. A flat $50 pet fee per stay applies. Pets must be well-behaved and not left unattended.</p>
                         
                         <h3>6. Power Supply</h3>
                         <p>Our accommodation is powered by a sustainable energy system. While we maintain 99.9% uptime, we cannot guarantee uninterrupted power supply. No refunds will be given for power-related issues.</p>

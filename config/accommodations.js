@@ -47,6 +47,7 @@ const accommodations = [
         childrenAllowed: true,
         adultsOnly: false,
         extraGuestFee: 100,
+        petFee: 50,
         amenities: ['2 bedrooms', 'Full kitchen', 'Lake views', 'Pet friendly'],
         images: ['lakesidecottageexterior.jpeg', 'lakesidecottageinterior.jpeg']
     }
