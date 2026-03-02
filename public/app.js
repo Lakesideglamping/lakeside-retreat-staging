@@ -897,6 +897,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Console statement removed for production
 
+            // Clear any previous "not available" error on step 1
+            clearDateValidationError();
+
             // Show loading state
             const availabilityResult = document.getElementById('availabilityResult');
             if (window.SecureFrontend) {
@@ -945,6 +948,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('pricingBreakdown').style.display = 'none';
                 document.getElementById('guestDetailsSection').style.display = 'none';
                 document.getElementById('instantPaymentSection').style.display = 'none';
+
+                // Show error on step 1 so user can see it (availabilityResult is in hidden step 2)
+                showDateValidationError('These dates are not available. Please select different dates.');
             }
         }
 
