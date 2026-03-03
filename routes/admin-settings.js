@@ -14,6 +14,7 @@ const express = require('express');
 const router = express.Router();
 const path = require('path');
 const { verifyAdmin, sanitizeInput, verifyCsrf } = require('../middleware/auth');
+const { logger } = require('../logger');
 
 /**
  * @param {Object} deps
@@ -28,7 +29,7 @@ router.get('/api/admin/seasonal-rates', verifyAdmin, (req, res) => {
     const sql = 'SELECT * FROM seasonal_rates ORDER BY start_date ASC';
     db().all(sql, [], (err, rows) => {
         if (err) {
-            console.error('Error fetching seasonal rates:', err);
+            logger.error('Error fetching seasonal rates', { error: err.message });
             return res.status(500).json({ success: false, error: 'Failed to fetch seasonal rates' });
         }
         res.json({ success: true, rates: rows || [] });
@@ -73,7 +74,7 @@ router.post('/api/admin/seasonal-rates', verifyAdmin, verifyCsrf, (req, res) => 
         is_active !== false ? 1 : 0
     ], function(err) {
         if (err) {
-            console.error('Error creating seasonal rate:', err);
+            logger.error('Error creating seasonal rate', { error: err.message });
             return res.status(500).json({ success: false, error: 'Failed to create seasonal rate' });
         }
         res.json({
@@ -125,7 +126,7 @@ router.put('/api/admin/seasonal-rates/:id', verifyAdmin, verifyCsrf, (req, res) 
         id
     ], function(err) {
         if (err) {
-            console.error('Error updating seasonal rate:', err);
+            logger.error('Error updating seasonal rate', { error: err.message });
             return res.status(500).json({ success: false, error: 'Failed to update seasonal rate' });
         }
         if (this.changes === 0) {
@@ -140,7 +141,7 @@ router.delete('/api/admin/seasonal-rates/:id', verifyAdmin, verifyCsrf, (req, re
     
     db().run('DELETE FROM seasonal_rates WHERE id = ?', [id], function(err) {
         if (err) {
-            console.error('Error deleting seasonal rate:', err);
+            logger.error('Error deleting seasonal rate', { error: err.message });
             return res.status(500).json({ success: false, error: 'Failed to delete seasonal rate' });
         }
         if (this.changes === 0) {
@@ -156,7 +157,7 @@ router.get('/api/admin/gallery', verifyAdmin, (req, res) => {
     
     fs.readdir(imagesDir, (err, files) => {
         if (err) {
-            console.error('Error reading images directory:', err);
+            logger.error('Error reading images directory', { error: err.message });
             return res.status(500).json({ success: false, error: 'Failed to read images' });
         }
         
@@ -167,7 +168,7 @@ router.get('/api/admin/gallery', verifyAdmin, (req, res) => {
         const sql = 'SELECT * FROM gallery_images ORDER BY display_order ASC';
         db().all(sql, [], (err, dbImages) => {
             if (err) {
-                console.error('Error fetching gallery metadata:', err);
+                logger.error('Error fetching gallery metadata', { error: err.message });
             }
             
             const dbImageMap = new Map((dbImages || []).map(img => [img.filename, img]));
@@ -204,7 +205,7 @@ router.put('/api/admin/gallery/:filename', verifyAdmin, verifyCsrf, (req, res) =
     const checkSql = 'SELECT id FROM gallery_images WHERE filename = ?';
     db().get(checkSql, [filename], (err, existing) => {
         if (err) {
-            console.error('Error checking gallery image:', err);
+            logger.error('Error checking gallery image', { error: err.message });
             return res.status(500).json({ success: false, error: 'Database error' });
         }
         
@@ -224,7 +225,7 @@ router.put('/api/admin/gallery/:filename', verifyAdmin, verifyCsrf, (req, res) =
                 filename
             ], function(err) {
                 if (err) {
-                    console.error('Error updating gallery image:', err);
+                    logger.error('Error updating gallery image', { error: err.message });
                     return res.status(500).json({ success: false, error: 'Failed to update image' });
                 }
                 res.json({ success: true, message: 'Image updated' });
@@ -244,7 +245,7 @@ router.put('/api/admin/gallery/:filename', verifyAdmin, verifyCsrf, (req, res) =
                 display_order || 0
             ], function(err) {
                 if (err) {
-                    console.error('Error inserting gallery image:', err);
+                    logger.error('Error inserting gallery image', { error: err.message });
                     return res.status(500).json({ success: false, error: 'Failed to save image metadata' });
                 }
                 res.json({ success: true, message: 'Image metadata saved', id: this.lastID });
@@ -275,7 +276,7 @@ router.get('/api/admin/reviews', verifyAdmin, (req, res) => {
     
     db().all(sql, params, (err, rows) => {
         if (err) {
-            console.error('Error fetching reviews:', err);
+            logger.error('Error fetching reviews', { error: err.message });
             return res.status(500).json({ success: false, error: 'Failed to fetch reviews' });
         }
         
@@ -315,7 +316,7 @@ router.post('/api/admin/reviews', verifyAdmin, verifyCsrf, (req, res) => {
         property || null
     ], function(err) {
         if (err) {
-            console.error('Error creating review:', err);
+            logger.error('Error creating review', { error: err.message });
             return res.status(500).json({ success: false, error: 'Failed to create review' });
         }
         res.json({ success: true, id: this.lastID, message: 'Review created' });
@@ -351,7 +352,7 @@ router.put('/api/admin/reviews/:id', verifyAdmin, verifyCsrf, (req, res) => {
     
     db().run(sql, params, function(err) {
         if (err) {
-            console.error('Error updating review:', err);
+            logger.error('Error updating review', { error: err.message });
             return res.status(500).json({ success: false, error: 'Failed to update review' });
         }
         if (this.changes === 0) {
@@ -366,7 +367,7 @@ router.delete('/api/admin/reviews/:id', verifyAdmin, verifyCsrf, (req, res) => {
     
     db().run('DELETE FROM reviews WHERE id = ?', [id], function(err) {
         if (err) {
-            console.error('Error deleting review:', err);
+            logger.error('Error deleting review', { error: err.message });
             return res.status(500).json({ success: false, error: 'Failed to delete review' });
         }
         if (this.changes === 0) {
@@ -382,7 +383,7 @@ router.get('/api/admin/pricing', verifyAdmin, (req, res) => {
     const sql = "SELECT * FROM system_settings WHERE setting_key LIKE 'pricing_%'";
     db().all(sql, [], (err, rows) => {
         if (err) {
-            console.error('Error fetching pricing:', err);
+            logger.error('Error fetching pricing', { error: err.message });
             return res.status(500).json({ success: false, error: 'Failed to fetch pricing' });
         }
         
@@ -419,7 +420,7 @@ router.post('/api/admin/pricing', verifyAdmin, verifyCsrf, (req, res) => {
     // Ensure the table exists before attempting to save
     ensureSystemSettingsTable((tableErr) => {
         if (tableErr) {
-            console.error('Failed to ensure system_settings table:', tableErr);
+            logger.error('Failed to ensure system_settings table', { error: tableErr.message });
             return res.status(500).json({ success: false, error: 'Database initialization failed: ' + tableErr.message });
         }
         
@@ -435,7 +436,7 @@ router.post('/api/admin/pricing', verifyAdmin, verifyCsrf, (req, res) => {
         
         db().run(sql, [settingKey, pricingData], function(err) {
             if (err) {
-                console.error('Error saving pricing:', err);
+                logger.error('Error saving pricing', { error: err.message });
                 return res.status(500).json({ success: false, error: 'Failed to save pricing: ' + err.message });
             }
             res.json({ success: true, message: 'Pricing saved successfully' });
@@ -447,7 +448,7 @@ router.get('/api/admin/settings', verifyAdmin, (req, res) => {
     const sql = 'SELECT * FROM system_settings';
     db().all(sql, [], (err, rows) => {
         if (err) {
-            console.error('Error fetching settings:', err);
+            logger.error('Error fetching settings', { error: err.message });
             return res.status(500).json({ success: false, error: 'Failed to fetch settings' });
         }
         
@@ -545,7 +546,7 @@ router.get('/api/admin/backups', verifyAdmin, (req, res) => {
     
     fs.readdir(backupDir, (err, files) => {
         if (err) {
-            console.error('Error reading backups directory:', err);
+            logger.error('Error reading backups directory', { error: err.message });
             return res.status(500).json({ success: false, error: 'Failed to read backups' });
         }
         
@@ -591,7 +592,7 @@ router.post('/api/admin/backups', verifyAdmin, verifyCsrf, async (req, res) => {
             system: result.system
         });
     } catch (error) {
-        console.error('Error creating backup:', error);
+        logger.error('Error creating backup', { error: error.message });
         res.status(500).json({ success: false, error: 'Failed to create backup' });
     }
 });
@@ -627,7 +628,7 @@ router.delete('/api/admin/backups/:filename', verifyAdmin, verifyCsrf, (req, res
     
     fs.unlink(backupPath, (err) => {
         if (err) {
-            console.error('Error deleting backup:', err);
+            logger.error('Error deleting backup', { error: err.message });
             return res.status(500).json({ success: false, error: 'Failed to delete backup' });
         }
         res.json({ success: true, message: 'Backup deleted' });
@@ -667,10 +668,10 @@ router.post('/api/admin/backups/restore', verifyAdmin, verifyCsrf, async (req, r
             try {
                 if (fs.existsSync(dbPath)) {
                     fs.copyFileSync(dbPath, safetyBackupPath);
-                    console.log('Pre-restore safety backup created:', safetyBackupPath);
+                    logger.info('Pre-restore safety backup created', { path: safetyBackupPath });
                 }
             } catch (safetyErr) {
-                console.error('Failed to create pre-restore backup:', safetyErr.message);
+                logger.error('Failed to create pre-restore backup', { error: safetyErr.message });
                 return res.status(500).json({ success: false, error: 'Cannot create safety backup before restore — aborting to protect data' });
             }
 
@@ -684,7 +685,7 @@ router.post('/api/admin/backups/restore', verifyAdmin, verifyCsrf, async (req, r
             res.status(400).json({ success: false, error: 'Unsupported backup format' });
         }
     } catch (error) {
-        console.error('Backup restore error:', error);
+        logger.error('Backup restore error', { error: error.message });
         res.status(500).json({ success: false, error: 'Failed to restore backup: ' + error.message });
     }
 });

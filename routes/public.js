@@ -21,6 +21,7 @@ const path = require('path');
 const accommodationsConfig = require('../config/accommodations');
 const database = require('../database');
 const { sanitizeInput, escapeHtml } = require('../middleware/auth');
+const { logger } = require('../logger');
 
 // ==========================================
 // RATE LIMITERS
@@ -72,7 +73,7 @@ function createPublicRoutes(deps) {
                     accommodations: accommodationsConfig.getAll()
                 });
             } catch (error) {
-                console.error('❌ Accommodations endpoint error:', error);
+                logger.error('Accommodations endpoint error', { error: error.message });
                 res.status(500).json({
                     success: false,
                     error: 'Failed to load accommodations'
@@ -132,9 +133,9 @@ function createPublicRoutes(deps) {
 
             try {
                 await emailTransporter.sendMail(mailOptions);
-                console.log('✅ Contact form email sent from:', sanitizedData.email);
+                logger.info('Contact form email sent', { from: sanitizedData.email });
             } catch (emailError) {
-                console.error('❌ Failed to send contact email:', emailError);
+                logger.error('Failed to send contact email', { error: emailError.message });
             }
 
             const sql = `
@@ -143,9 +144,9 @@ function createPublicRoutes(deps) {
             `;
             db().run(sql, [sanitizedData.name, sanitizedData.email, sanitizedData.message], function(err) {
                 if (err) {
-                    console.error('❌ Failed to store contact message:', err);
+                    logger.error('Failed to store contact message', { error: err.message });
                 } else {
-                    console.log('✅ Contact message stored with ID:', this.lastID);
+                    logger.info('Contact message stored', { id: this.lastID });
                 }
             });
 
@@ -155,7 +156,7 @@ function createPublicRoutes(deps) {
             });
 
         } catch (error) {
-            console.error('❌ Contact form processing error:', error);
+            logger.error('Contact form processing error', { error: error.message });
             res.status(500).json({
                 success: false,
                 error: 'Failed to send message. Please try again.'
@@ -258,7 +259,7 @@ function createPublicRoutes(deps) {
             });
 
         } catch (error) {
-            console.error('Pricing calculation error:', error);
+            logger.error('Pricing calculation error', { error: error.message });
             res.status(500).json({
                 success: false,
                 error: 'Failed to calculate pricing'
@@ -272,7 +273,7 @@ function createPublicRoutes(deps) {
         const sql = "SELECT * FROM system_settings WHERE setting_key LIKE 'pricing_%'";
         db().all(sql, [], (err, rows) => {
             if (err) {
-                console.error('Error fetching public pricing:', err);
+                logger.error('Error fetching public pricing', { error: err.message });
                 return res.status(500).json({ success: false, error: 'Failed to fetch pricing' });
             }
 
@@ -289,7 +290,7 @@ function createPublicRoutes(deps) {
                     const key = row.setting_key.replace('pricing_', '');
                     pricing[key] = JSON.parse(row.setting_value);
                 } catch (e) {
-                    console.error('Error parsing pricing:', e);
+                    logger.error('Error parsing pricing', { error: e.message });
                 }
             });
 
@@ -319,7 +320,7 @@ function createPublicRoutes(deps) {
                 suggestions: response.suggestions || []
             });
         } catch (error) {
-            console.error('Chatbot error:', error);
+            logger.error('Chatbot error', { error: error.message });
             res.status(500).json({
                 error: 'Sorry, I encountered an error. Please try again.'
             });
@@ -334,7 +335,7 @@ function createPublicRoutes(deps) {
             }
             res.json({ success: true });
         } catch (error) {
-            console.error('Clear session error:', error);
+            logger.error('Clear session error', { error: error.message });
             res.status(500).json({ error: 'Failed to clear session' });
         }
     });
@@ -362,7 +363,7 @@ function createPublicRoutes(deps) {
 
             db().all(sql, [accommodation, startDate, endDateStr], (err, bookings) => {
                 if (err) {
-                    console.error('Calendar query error:', err);
+                    logger.error('Calendar query error', { error: err.message });
                     return res.status(500).json({ success: false, error: 'Failed to load calendar' });
                 }
 
@@ -384,7 +385,7 @@ function createPublicRoutes(deps) {
                 });
             });
         } catch (error) {
-            console.error('Calendar error:', error);
+            logger.error('Calendar error', { error: error.message });
             res.status(500).json({ success: false, error: 'Calendar error' });
         }
     });
@@ -410,7 +411,7 @@ function createPublicRoutes(deps) {
 
             db().all(sql, [accommodation, today.toISOString().split('T')[0]], (err, bookings) => {
                 if (err) {
-                    console.error('Weekends query error:', err);
+                    logger.error('Weekends query error', { error: err.message });
                     return res.status(500).json({ success: false, error: 'Failed to check availability' });
                 }
 
@@ -452,7 +453,7 @@ function createPublicRoutes(deps) {
                 });
             });
         } catch (error) {
-            console.error('Weekends error:', error);
+            logger.error('Weekends error', { error: error.message });
             res.status(500).json({ success: false, error: 'Availability error' });
         }
     });

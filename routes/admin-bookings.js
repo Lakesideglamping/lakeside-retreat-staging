@@ -28,6 +28,7 @@ const { body, validationResult } = require('express-validator');
 const { v4: uuidv4 } = require('uuid');
 
 const { verifyAdmin, sendError, sanitizeInput, ERROR_CODES, verifyCsrf } = require('../middleware/auth');
+const { logger } = require('../logger');
 
 // Rate limiter for CSV export: 5 requests per 1 minute per IP
 const csvExportLimit = rateLimit({
@@ -58,14 +59,14 @@ function createAdminBookingRoutes(deps) {
      */
     function auditLog(adminUser, action, details) {
         const timestamp = new Date().toISOString();
-        console.log(`[AUDIT] ${timestamp} | ${adminUser} | ${action} | ${JSON.stringify(details)}`);
+        logger.info(`[AUDIT] ${timestamp} | ${adminUser} | ${action} | ${JSON.stringify(details)}`);
         // Persist to database
         try {
             db().run(
                 'INSERT INTO audit_logs (admin_user, action, details, created_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)',
                 [adminUser, action, JSON.stringify(details)],
                 (err) => {
-                    if (err) console.error('Failed to persist audit log:', err.message);
+                    if (err) logger.error('Failed to persist audit log', { error: err.message });
                 }
             );
         } catch (e) {
@@ -371,7 +372,7 @@ router.put('/api/admin/booking/:id', verifyAdmin, verifyCsrf, [
 
     db().run(sql, params, function(err) {
         if (err) {
-            console.error('Error updating booking:', err);
+            logger.error('Error updating booking', { error: err.message });
             return sendError(res, 500, ERROR_CODES.DATABASE_ERROR, 'Database error');
         }
 
@@ -446,7 +447,7 @@ router.put('/api/admin/booking/:id/status', verifyAdmin, verifyCsrf, [
                 try {
                     await stripe.refunds.create({ payment_intent: booking.stripe_payment_id });
                 } catch (stripeErr) {
-                    console.error('Auto-refund failed:', stripeErr.message);
+                    logger.error('Auto-refund failed', { error: stripeErr.message });
                 }
             }
 
@@ -454,7 +455,7 @@ router.put('/api/admin/booking/:id/status', verifyAdmin, verifyCsrf, [
                 try {
                     await cancelUplistingBooking(booking.uplisting_id);
                 } catch (upErr) {
-                    console.error('Uplisting cancel failed:', upErr.message);
+                    logger.error('Uplisting cancel failed', { error: upErr.message });
                 }
             }
 
@@ -463,7 +464,7 @@ router.put('/api/admin/booking/:id/status', verifyAdmin, verifyCsrf, [
                 try {
                     await emailNotifications.sendCancellationConfirmation(booking);
                 } catch (emailErr) {
-                    console.error('Cancellation email failed:', emailErr.message);
+                    logger.error('Cancellation email failed', { error: emailErr.message });
                 }
             }
         }
@@ -473,7 +474,7 @@ router.put('/api/admin/booking/:id/status', verifyAdmin, verifyCsrf, [
             message: 'Booking status updated'
         });
     } catch (err) {
-        console.error('Status update error:', err);
+        logger.error('Status update error', { error: err.message });
         return sendError(res, 500, ERROR_CODES.DATABASE_ERROR, 'Database error');
     }
 });
@@ -516,7 +517,7 @@ router.get('/api/admin/stats', verifyAdmin, (req, res) => {
     
     db().get(sql, (err, stats) => {
         if (err) {
-            console.error('Stats query error:', err);
+            logger.error('Stats query error', { error: err.message });
             return res.status(500).json({ success: false, error: 'Failed to load stats' });
         }
         
@@ -538,7 +539,7 @@ router.get('/api/admin/uplisting-dashboard', verifyAdmin, async (req, res) => {
         const uplistingData = await getUplistingDashboardData();
         res.json(uplistingData);
     } catch (error) {
-        console.error('❌ Error fetching Uplisting dashboard data:', error);
+        logger.error('Error fetching Uplisting dashboard data', { error: error.message });
         res.status(500).json({
             success: false,
             error: 'Failed to fetch Uplisting data'
@@ -600,7 +601,7 @@ router.get('/api/admin/stripe-payment/:sessionId', verifyAdmin, async (req, res)
         });
         
     } catch (error) {
-        console.error('❌ Error fetching Stripe details:', error);
+        logger.error('Error fetching Stripe details', { error: error.message });
         res.status(500).json({
             success: false,
             error: error.message
@@ -657,7 +658,7 @@ router.get('/api/admin/uplisting-booking/:bookingId', verifyAdmin, async (req, r
         });
         
     } catch (error) {
-        console.error('❌ Error fetching Uplisting details:', error);
+        logger.error('Error fetching Uplisting details', { error: error.message });
         res.status(500).json({
             success: false,
             error: error.message
@@ -710,7 +711,7 @@ router.post('/api/admin/refund/:bookingId', verifyAdmin, verifyCsrf, adminDestru
                         [newStatus, 'refunded', bookingId],
                         (updateErr) => {
                             if (updateErr) {
-                                console.error('❌ Failed to update booking after refund:', updateErr);
+                                logger.error('Failed to update booking after refund', { error: updateErr.message });
                             }
                         }
                     );
@@ -733,7 +734,7 @@ router.post('/api/admin/refund/:bookingId', verifyAdmin, verifyCsrf, adminDestru
                     });
                     
                 } catch (refundError) {
-                    console.error('❌ Refund failed:', refundError);
+                    logger.error('Refund failed', { error: refundError.message });
                     res.status(500).json({
                         success: false,
                         error: refundError.message
@@ -743,7 +744,7 @@ router.post('/api/admin/refund/:bookingId', verifyAdmin, verifyCsrf, adminDestru
         );
         
     } catch (error) {
-        console.error('❌ Refund error:', error);
+        logger.error('Refund error', { error: error.message });
         res.status(500).json({
             success: false,
             error: error.message
@@ -803,7 +804,7 @@ router.post('/api/admin/retry-sync/:bookingId', verifyAdmin, verifyCsrf, async (
         );
         
     } catch (error) {
-        console.error('❌ Retry sync error:', error);
+        logger.error('Retry sync error', { error: error.message });
         res.status(500).json({
             success: false,
             error: error.message
@@ -923,7 +924,7 @@ router.post('/api/admin/claim-deposit/:bookingId', verifyAdmin, verifyCsrf, admi
             });
         });
         
-        console.log(`Security deposit claimed: $${amount} from booking ${bookingId}`);
+        logger.info(`Security deposit claimed: $${amount} from booking ${bookingId}`);
         auditLog(req.admin?.username || 'unknown', 'claim_deposit', { bookingId, amount, reason });
         
         // Send notification email to admin
@@ -949,7 +950,7 @@ router.post('/api/admin/claim-deposit/:bookingId', verifyAdmin, verifyCsrf, admi
         });
         
     } catch (error) {
-        console.error('❌ Security deposit claim error:', error);
+        logger.error('Security deposit claim error', { error: error.message });
         return sendError(res, 500, ERROR_CODES.PAYMENT_ERROR, 'Failed to claim security deposit');
     }
 });
@@ -1001,7 +1002,7 @@ router.post('/api/admin/release-deposit/:bookingId', verifyAdmin, verifyCsrf, ad
             });
         });
         
-        console.log(`Security deposit manually released for booking ${bookingId}`);
+        logger.info(`Security deposit manually released for booking ${bookingId}`);
         auditLog(req.admin?.username || 'unknown', 'release_deposit', { bookingId, amount: booking.security_deposit_amount });
         
         // Send notification email
@@ -1024,7 +1025,7 @@ router.post('/api/admin/release-deposit/:bookingId', verifyAdmin, verifyCsrf, ad
         });
         
     } catch (error) {
-        console.error('❌ Security deposit release error:', error);
+        logger.error('Security deposit release error', { error: error.message });
         return sendError(res, 500, ERROR_CODES.PAYMENT_ERROR, 'Failed to release security deposit');
     }
 });
@@ -1075,7 +1076,7 @@ router.post('/api/admin/bookings', verifyAdmin, verifyCsrf, async (req, res) => 
             sanitizeInput(notes || '')
         ], async function(err) {
             if (err) {
-                console.error('Error creating manual booking:', err);
+                logger.error('Error creating manual booking', { error: err.message });
                 return res.status(500).json({ success: false, error: 'Failed to create booking' });
             }
 
@@ -1085,7 +1086,7 @@ router.post('/api/admin/bookings', verifyAdmin, verifyCsrf, async (req, res) => 
                     const newBooking = { id: bookingId, guest_name, guest_email, guest_phone: guest_phone || '', accommodation, check_in, check_out, guests: guests || 2, total_price: total_price || 0, notes: notes || '' };
                     await syncBookingToUplisting(newBooking);
                 } catch (syncErr) {
-                    console.error('Manual booking Uplisting sync failed:', syncErr.message);
+                    logger.error('Manual booking Uplisting sync failed', { error: syncErr.message });
                 }
             }
 
@@ -1108,7 +1109,7 @@ router.post('/api/admin/bookings', verifyAdmin, verifyCsrf, async (req, res) => 
             });
         });
     } catch (error) {
-        console.error('Error in manual booking creation:', error);
+        logger.error('Error in manual booking creation', { error: error.message });
         res.status(500).json({ success: false, error: 'Internal server error' });
     }
 });

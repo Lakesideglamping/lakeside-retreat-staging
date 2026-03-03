@@ -117,8 +117,16 @@ database.initializeDatabase()
         });
         if (uplisting.isConfigured) {
             logger.info('🏨 Uplisting service initialized');
+            // Periodic calendar reconciliation — re-sync every hour to prevent drift
+            setInterval(() => {
+                if (uplisting?.isConfigured) {
+                    uplisting.reconcileCalendars().catch(err =>
+                        logger.error('Calendar reconciliation failed', { error: err.message })
+                    );
+                }
+            }, 60 * 60 * 1000);
         }
-        
+
         // Initialize marketing automation after database is ready
         try {
             marketingAutomation = new MarketingAutomation(db, emailTransporter);
@@ -393,7 +401,7 @@ app.post('/api/uplisting/webhook', express.raw({type: 'application/json'}), asyn
             res.json(result);
         } else {
             logger.warn('⚠️ Uplisting service not initialized yet');
-            res.json({ received: true, warning: 'Service initializing' });
+            res.status(503).json({ error: 'Service initializing, please retry' });
         }
 
     } catch (error) {
@@ -492,7 +500,7 @@ app.use((req, res, next) => {
 // If the token is missing or invalid, redirect to the login page.
 const { parseCookies: parseAdminCookies, isTokenBlacklisted: isAdminTokenBlacklisted } = require('./middleware/auth');
 
-app.use((req, res, next) => {
+app.use(async (req, res, next) => {
     const requestPath = req.path.toLowerCase();
     // Only guard admin-*.html pages (not admin.html itself, not admin CSS/JS assets)
     if (requestPath.startsWith('/admin-') && requestPath.endsWith('.html')) {
@@ -504,7 +512,7 @@ app.use((req, res, next) => {
                 token = cookies['auth-token'];
             }
 
-            if (!token || isAdminTokenBlacklisted(token)) {
+            if (!token || await isAdminTokenBlacklisted(token)) {
                 return res.redirect('/admin.html');
             }
 
@@ -1539,15 +1547,16 @@ async function retryFailedWebhookEvents() {
  */
 async function markFailedEventResolved(failedEventId, note) {
     const noteSql = note
-        ? `, error_message = COALESCE(error_message, '') || ' [${note}]'`
+        ? `, error_message = COALESCE(error_message, '') || ?`
         : '';
+    const params = note ? [` [${note}]`, failedEventId] : [failedEventId];
     await new Promise((resolve, reject) => {
         db.run(
             `UPDATE failed_webhook_events
              SET resolved = ${database.isUsingPostgres() ? 'true' : '1'},
                  resolved_at = CURRENT_TIMESTAMP${noteSql}
              WHERE id = ?`,
-            [failedEventId],
+            params,
             function(err) { if (err) reject(err); else resolve(); }
         );
     });

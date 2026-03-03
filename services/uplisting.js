@@ -48,8 +48,11 @@ class UplistingService {
      */
     async fetchWithRetry(url, options, maxRetries = 3) {
         for (let attempt = 0; attempt <= maxRetries; attempt++) {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 15000); // 15s timeout
             try {
-                const response = await fetch(url, options);
+                const response = await fetch(url, { ...options, signal: controller.signal });
+                clearTimeout(timeout);
 
                 // Don't retry client errors (4xx) except 429
                 if (response.status >= 400 && response.status < 500 && response.status !== 429) {
@@ -65,6 +68,7 @@ class UplistingService {
                 console.warn(`⚠️ Uplisting API returned ${response.status}, retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries})`);
                 await new Promise(r => setTimeout(r, delay));
             } catch (err) {
+                clearTimeout(timeout);
                 if (attempt === maxRetries) throw err;
                 const delay = Math.min(1000 * Math.pow(2, attempt), 10000);
                 console.warn(`⚠️ Uplisting API network error, retrying in ${delay}ms: ${err.message}`);
@@ -269,7 +273,8 @@ class UplistingService {
 
         if (event === 'booking.created' || event === 'booking.updated') {
             // Extract booking channel (e.g. 'airbnb', 'booking_com') if provided by Uplisting
-            const channel = data.channel || data.source || data.platform || 'uplisting';
+            const rawChannel = data.channel || data.source || data.platform || 'uplisting';
+            const channel = sanitizeInput(String(rawChannel)).substring(0, 50);
 
             const bookingData = {
                 id: `uplisting-${data.id}`,

@@ -443,7 +443,7 @@ function createBookingRoutes(deps) {
                 }
                 logger.error('❌ Booking creation error:', { error: error?.message });
                 trackBookingFailure(error, req.requestId, 'unknown');
-                return sendError(res, 500, ERROR_CODES.INTERNAL_SERVER_ERROR, 'Failed to create booking', error.message);
+                return sendError(res, 500, ERROR_CODES.INTERNAL_SERVER_ERROR, 'Failed to create booking');
             }
         }
     );

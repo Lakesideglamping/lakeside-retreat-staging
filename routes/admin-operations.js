@@ -17,6 +17,7 @@
 const express = require('express');
 const router = express.Router();
 
+const { logger } = require('../logger');
 const { verifyAdmin, verifyCsrf, sendError, ERROR_CODES } = require('../middleware/auth');
 
 /**
@@ -338,7 +339,7 @@ router.post('/api/admin/chatbot/email-reply', verifyAdmin, verifyCsrf, async (re
         });
         
     } catch (error) {
-        console.error('Email reply generation error:', error);
+        logger.error('Email reply generation error', { error: error.message });
         res.status(500).json({ 
             success: false, 
             error: 'Failed to generate email reply' 
@@ -370,7 +371,7 @@ router.get('/api/admin/marketing/stats', verifyAdmin, async (req, res) => {
         const stats = await marketingAutomation.getMarketingStats();
         res.json({ success: true, stats });
     } catch (error) {
-        console.error('Error getting marketing stats:', error);
+        logger.error('Error getting marketing stats', { error: error.message });
         res.status(500).json({ success: false, error: 'Failed to get marketing stats' });
     }
 });
@@ -389,7 +390,7 @@ router.get('/api/admin/marketing/abandoned-checkouts', verifyAdmin, async (req, 
         const abandonedCheckouts = await marketingAutomation.getAbandonedCheckouts();
         res.json({ success: true, abandonedCheckouts });
     } catch (error) {
-        console.error('Error getting abandoned checkouts:', error);
+        logger.error('Error getting abandoned checkouts', { error: error.message });
         res.status(500).json({ success: false, error: 'Failed to get abandoned checkouts' });
     }
 });
@@ -410,7 +411,7 @@ router.post('/api/admin/marketing/send-reminder/:bookingId', verifyAdmin, verify
         const result = await marketingAutomation.sendManualReminder(bookingId);
         res.json({ success: true, ...result });
     } catch (error) {
-        console.error('Error sending reminder:', error);
+        logger.error('Error sending reminder', { error: error.message });
         res.status(500).json({ success: false, error: error.message || 'Failed to send reminder' });
     }
 });
@@ -429,7 +430,7 @@ router.post('/api/admin/marketing/run-abandoned-check', verifyAdmin, verifyCsrf,
         await marketingAutomation.processAbandonedCheckouts();
         res.json({ success: true, message: 'Abandoned checkout check completed' });
     } catch (error) {
-        console.error('Error running abandoned check:', error);
+        logger.error('Error running abandoned check', { error: error.message });
         res.status(500).json({ success: false, error: 'Failed to run abandoned check' });
     }
 });
@@ -450,7 +451,7 @@ router.get('/api/admin/marketing/review-requests', verifyAdmin, async (req, res)
         const reviewRequests = await marketingAutomation.getReviewRequests(status);
         res.json({ success: true, reviewRequests });
     } catch (error) {
-        console.error('Error getting review requests:', error);
+        logger.error('Error getting review requests', { error: error.message });
         res.status(500).json({ success: false, error: 'Failed to get review requests' });
     }
 });
@@ -471,7 +472,7 @@ router.post('/api/admin/marketing/send-review-request/:bookingId', verifyAdmin, 
         const result = await marketingAutomation.sendManualReviewRequest(bookingId);
         res.json({ success: true, ...result });
     } catch (error) {
-        console.error('Error sending review request:', error);
+        logger.error('Error sending review request', { error: error.message });
         res.status(500).json({ success: false, error: error.message || 'Failed to send review request' });
     }
 });
@@ -490,7 +491,7 @@ router.post('/api/admin/marketing/run-review-check', verifyAdmin, verifyCsrf, as
         await marketingAutomation.processReviewRequests();
         res.json({ success: true, message: 'Review request check completed' });
     } catch (error) {
-        console.error('Error running review check:', error);
+        logger.error('Error running review check', { error: error.message });
         res.status(500).json({ success: false, error: 'Failed to run review check' });
     }
 });
@@ -524,7 +525,7 @@ router.post('/api/admin/marketing/generate-social', verifyAdmin, verifyCsrf, asy
         });
         res.json({ success: true, content });
     } catch (error) {
-        console.error('Error generating social content:', error);
+        logger.error('Error generating social content', { error: error.message });
         res.status(500).json({ success: false, error: 'Failed to generate social content' });
     }
 });
@@ -545,7 +546,7 @@ router.get('/api/admin/marketing/social-drafts', verifyAdmin, async (req, res) =
         const drafts = await marketingAutomation.getSocialDrafts(status || 'draft');
         res.json({ success: true, drafts });
     } catch (error) {
-        console.error('Error getting social drafts:', error);
+        logger.error('Error getting social drafts', { error: error.message });
         res.status(500).json({ success: false, error: 'Failed to get social drafts' });
     }
 });
@@ -574,7 +575,7 @@ router.put('/api/admin/marketing/social-drafts/:draftId', verifyAdmin, verifyCsr
         await marketingAutomation.updateDraftStatus(draftId, status);
         res.json({ success: true, message: 'Draft status updated' });
     } catch (error) {
-        console.error('Error updating draft status:', error);
+        logger.error('Error updating draft status', { error: error.message });
         res.status(500).json({ success: false, error: 'Failed to update draft status' });
     }
 });

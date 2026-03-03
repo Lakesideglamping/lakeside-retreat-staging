@@ -1,5 +1,6 @@
 const { Pool } = require('pg');
 const sqlite3 = require('sqlite3').verbose();
+const { logger } = require('./logger');
 
 let db = null;
 let isPostgres = false;
@@ -11,7 +12,7 @@ function initializeDatabase() {
         if (databaseUrl) {
             // Use PostgreSQL
             isPostgres = true;
-            console.log('🐘 Connecting to PostgreSQL database...');
+            logger.info('🐘 Connecting to PostgreSQL database...');
             
             const poolConfig = {
                 connectionString: databaseUrl,
@@ -43,7 +44,7 @@ function initializeDatabase() {
             // Test connection
             db.query('SELECT NOW()')
                 .then(() => {
-                    console.log('✅ Connected to PostgreSQL database');
+                    logger.info('✅ Connected to PostgreSQL database');
                     // Create a wrapper that mimics SQLite API
                     const dbWrapper = createPostgresDbWrapper(db);
                     createTablesPostgres()
@@ -51,21 +52,21 @@ function initializeDatabase() {
                         .catch(reject);
                 })
                 .catch(err => {
-                    console.error('❌ PostgreSQL connection error:', err.message);
+                    logger.error('❌ PostgreSQL connection error', { error: err.message });
                     reject(err);
                 });
         } else {
             // Fall back to SQLite
             isPostgres = false;
-            console.log('📁 Using SQLite database (set DATABASE_URL for PostgreSQL)');
+            logger.info('📁 Using SQLite database (set DATABASE_URL for PostgreSQL)');
             
             const dbPath = process.env.SQLITE_PATH || './lakeside.db';
             db = new sqlite3.Database(dbPath, sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE, (err) => {
                 if (err) {
-                    console.error('❌ SQLite connection error:', err.message);
+                    logger.error('❌ SQLite connection error', { error: err.message });
                     reject(err);
                 } else {
-                    console.log('✅ Connected to SQLite database');
+                    logger.info('✅ Connected to SQLite database');
                     configureSqlite();
                     createTablesSqlite()
                         .then(() => resolve(db))
@@ -83,7 +84,7 @@ function configureSqlite() {
     db.run('PRAGMA temp_store=MEMORY;');
     db.run('PRAGMA busy_timeout=30000;');
     db.run('PRAGMA foreign_keys=ON;');
-    console.log('✅ SQLite optimizations applied');
+    logger.info('✅ SQLite optimizations applied');
 }
 
 function createTablesPostgres() {
@@ -127,7 +128,7 @@ function createTablesPostgres() {
                 END $$;
             `);
 
-            console.log('✅ Bookings table ready (PostgreSQL)');
+            logger.info('✅ Bookings table ready (PostgreSQL)');
 
             // Backfill any rows still marked 'unknown' (idempotent — no-op once all rows are tagged)
             await db.query(`UPDATE bookings SET booking_source = 'website' WHERE stripe_session_id IS NOT NULL AND booking_source = 'unknown'`);
@@ -140,7 +141,7 @@ function createTablesPostgres() {
             await db.query(`CREATE INDEX IF NOT EXISTS idx_bookings_status ON bookings(status)`);
             await db.query(`CREATE INDEX IF NOT EXISTS idx_bookings_created_at ON bookings(created_at)`);
             await db.query(`CREATE INDEX IF NOT EXISTS idx_bookings_booking_source ON bookings(booking_source)`);
-            console.log('✅ Bookings indexes ready (PostgreSQL)');
+            logger.info('✅ Bookings indexes ready (PostgreSQL)');
 
             // Create contact_messages table
             await db.query(`
@@ -152,7 +153,7 @@ function createTablesPostgres() {
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             `);
-            console.log('✅ Contact messages table ready (PostgreSQL)');
+            logger.info('✅ Contact messages table ready (PostgreSQL)');
             
             // Create seasonal_rates table
             await db.query(`
@@ -167,7 +168,7 @@ function createTablesPostgres() {
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             `);
-            console.log('✅ Seasonal rates table ready (PostgreSQL)');
+            logger.info('✅ Seasonal rates table ready (PostgreSQL)');
             
             // Create gallery_images table
             await db.query(`
@@ -184,7 +185,7 @@ function createTablesPostgres() {
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             `);
-            console.log('✅ Gallery images table ready (PostgreSQL)');
+            logger.info('✅ Gallery images table ready (PostgreSQL)');
             
             // Create reviews table
             await db.query(`
@@ -205,7 +206,7 @@ function createTablesPostgres() {
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             `);
-            console.log('✅ Reviews table ready (PostgreSQL)');
+            logger.info('✅ Reviews table ready (PostgreSQL)');
             
             // Create system_settings table
             await db.query(`
@@ -217,7 +218,7 @@ function createTablesPostgres() {
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             `);
-            console.log('✅ System settings table ready (PostgreSQL)');
+            logger.info('✅ System settings table ready (PostgreSQL)');
 
             // Create processed_webhook_events table for idempotency
             await db.query(`
@@ -226,7 +227,7 @@ function createTablesPostgres() {
                     processed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             `);
-            console.log('✅ Processed webhook events table ready (PostgreSQL)');
+            logger.info('✅ Processed webhook events table ready (PostgreSQL)');
 
             // Create failed_webhook_events table for payment recovery
             await db.query(`
@@ -256,7 +257,7 @@ function createTablesPostgres() {
             `);
 
             await db.query(`CREATE INDEX IF NOT EXISTS idx_failed_webhook_unresolved ON failed_webhook_events(resolved) WHERE resolved = false`);
-            console.log('✅ Failed webhook events table ready (PostgreSQL)');
+            logger.info('✅ Failed webhook events table ready (PostgreSQL)');
 
             // Create audit_logs table for admin action tracking
             await db.query(`
@@ -271,7 +272,7 @@ function createTablesPostgres() {
             `);
             await db.query(`CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at)`);
             await db.query(`CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action)`);
-            console.log('✅ Audit logs table ready (PostgreSQL)');
+            logger.info('✅ Audit logs table ready (PostgreSQL)');
 
             // Create abandoned_checkout_reminders table for marketing automation
             await db.query(`
@@ -286,11 +287,11 @@ function createTablesPostgres() {
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             `);
-            console.log('✅ Abandoned checkout reminders table ready (PostgreSQL)');
+            logger.info('✅ Abandoned checkout reminders table ready (PostgreSQL)');
 
             resolve();
         } catch (err) {
-            console.error('❌ Error creating PostgreSQL tables:', err.message);
+            logger.error('❌ Error creating PostgreSQL tables', { error: err.message });
             reject(err);
         }
     });
@@ -446,92 +447,92 @@ function createTablesSqlite() {
         db.serialize(() => {
             db.run(createBookingsTable, (err) => {
                 if (err) {
-                    console.error('❌ Error creating bookings table:', err.message);
+                    logger.error('❌ Error creating bookings table', { error: err.message });
                     reject(err);
                     return;
                 }
-                console.log('✅ Bookings table ready (SQLite)');
+                logger.info('✅ Bookings table ready (SQLite)');
             });
             
             db.run(createContactTable, (err) => {
                 if (err) {
-                    console.error('❌ Error creating contact table:', err.message);
+                    logger.error('❌ Error creating contact table', { error: err.message });
                     reject(err);
                     return;
                 }
-                console.log('✅ Contact messages table ready (SQLite)');
+                logger.info('✅ Contact messages table ready (SQLite)');
             });
             
             db.run(createSeasonalRatesTable, (err) => {
                 if (err) {
-                    console.error('❌ Error creating seasonal_rates table:', err.message);
+                    logger.error('❌ Error creating seasonal_rates table', { error: err.message });
                     reject(err);
                     return;
                 }
-                console.log('✅ Seasonal rates table ready (SQLite)');
+                logger.info('✅ Seasonal rates table ready (SQLite)');
             });
             
             db.run(createGalleryImagesTable, (err) => {
                 if (err) {
-                    console.error('❌ Error creating gallery_images table:', err.message);
+                    logger.error('❌ Error creating gallery_images table', { error: err.message });
                     reject(err);
                     return;
                 }
-                console.log('✅ Gallery images table ready (SQLite)');
+                logger.info('✅ Gallery images table ready (SQLite)');
             });
             
             db.run(createReviewsTable, (err) => {
                 if (err) {
-                    console.error('❌ Error creating reviews table:', err.message);
+                    logger.error('❌ Error creating reviews table', { error: err.message });
                     reject(err);
                     return;
                 }
-                console.log('✅ Reviews table ready (SQLite)');
+                logger.info('✅ Reviews table ready (SQLite)');
             });
             
             db.run(createSystemSettingsTable, (err) => {
                 if (err) {
-                    console.error('❌ Error creating system_settings table:', err.message);
+                    logger.error('❌ Error creating system_settings table', { error: err.message });
                     reject(err);
                     return;
                 }
-                console.log('✅ System settings table ready (SQLite)');
+                logger.info('✅ System settings table ready (SQLite)');
             });
 
             db.run(createProcessedWebhookEventsTable, (err) => {
                 if (err) {
-                    console.error('❌ Error creating processed_webhook_events table:', err.message);
+                    logger.error('❌ Error creating processed_webhook_events table', { error: err.message });
                     reject(err);
                     return;
                 }
-                console.log('✅ Processed webhook events table ready (SQLite)');
+                logger.info('✅ Processed webhook events table ready (SQLite)');
             });
 
             db.run(createFailedWebhookEventsTable, (err) => {
                 if (err) {
-                    console.error('❌ Error creating failed_webhook_events table:', err.message);
+                    logger.error('❌ Error creating failed_webhook_events table', { error: err.message });
                     reject(err);
                     return;
                 }
-                console.log('✅ Failed webhook events table ready (SQLite)');
+                logger.info('✅ Failed webhook events table ready (SQLite)');
             });
 
             db.run(createAuditLogsTable, (err) => {
                 if (err) {
-                    console.error('❌ Error creating audit_logs table:', err.message);
+                    logger.error('❌ Error creating audit_logs table', { error: err.message });
                     reject(err);
                     return;
                 }
-                console.log('✅ Audit logs table ready (SQLite)');
+                logger.info('✅ Audit logs table ready (SQLite)');
             });
 
             db.run(createAbandonedCheckoutRemindersTable, (err) => {
                 if (err) {
-                    console.error('❌ Error creating abandoned_checkout_reminders table:', err.message);
+                    logger.error('❌ Error creating abandoned_checkout_reminders table', { error: err.message });
                     reject(err);
                     return;
                 }
-                console.log('✅ Abandoned checkout reminders table ready (SQLite)');
+                logger.info('✅ Abandoned checkout reminders table ready (SQLite)');
             });
 
             // Backfill any rows still marked 'unknown' (idempotent — no-op once all rows are tagged)
@@ -559,7 +560,7 @@ function createTablesSqlite() {
             db.run(`CREATE INDEX IF NOT EXISTS idx_bookings_status ON bookings(status)`);
             db.run(`CREATE INDEX IF NOT EXISTS idx_bookings_created_at ON bookings(created_at)`);
             db.run(`CREATE INDEX IF NOT EXISTS idx_bookings_booking_source ON bookings(booking_source)`, () => {
-                console.log('✅ Bookings indexes ready (SQLite)');
+                logger.info('✅ Bookings indexes ready (SQLite)');
                 resolve();
             });
         });
@@ -761,7 +762,7 @@ function createPostgresDbWrapper(pool) {
                     }
                 })
                 .catch(err => {
-                    console.error('PostgreSQL run error:', err.message);
+                    logger.error('PostgreSQL run error', { error: err.message });
                     if (callback) callback(err);
                 });
         },
@@ -781,7 +782,7 @@ function createPostgresDbWrapper(pool) {
                     if (callback) callback(null, result.rows[0] || null);
                 })
                 .catch(err => {
-                    console.error('PostgreSQL get error:', err.message);
+                    logger.error('PostgreSQL get error', { error: err.message });
                     if (callback) callback(err, null);
                 });
         },
@@ -801,7 +802,7 @@ function createPostgresDbWrapper(pool) {
                     if (callback) callback(null, result.rows);
                 })
                 .catch(err => {
-                    console.error('PostgreSQL all error:', err.message);
+                    logger.error('PostgreSQL all error', { error: err.message });
                     if (callback) callback(err, []);
                 });
         },

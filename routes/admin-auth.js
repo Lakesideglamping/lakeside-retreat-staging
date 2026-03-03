@@ -20,6 +20,7 @@ const jwt = require('jsonwebtoken');
 const rateLimit = require('express-rate-limit');
 const crypto = require('crypto');
 
+const { logger } = require('../logger');
 const { verifyAdmin, sendError, ERROR_CODES, escapeHtml, blacklistToken, parseCookies } = require('../middleware/auth');
 
 // --- TOTP Helpers (RFC 6238 / RFC 4226) ---
@@ -287,7 +288,7 @@ function createAdminAuthRoutes(deps) {
             });
 
         } catch (error) {
-            console.error('Admin login error:', error);
+            logger.error('Admin login error', { error: error.message });
             return sendError(res, 500, ERROR_CODES.INTERNAL_SERVER_ERROR, 'Login failed');
         }
     });
@@ -309,7 +310,7 @@ function createAdminAuthRoutes(deps) {
     });
 
     // --- Verify token ---
-    router.get('/api/admin/verify', (req, res) => {
+    router.get('/api/admin/verify', async (req, res) => {
         try {
             // Check Authorization header first, then fall back to httpOnly cookie
             let token = req.headers.authorization?.split(' ')[1];
@@ -323,7 +324,16 @@ function createAdminAuthRoutes(deps) {
                 return sendError(res, 401, ERROR_CODES.AUTHENTICATION_REQUIRED, 'No token provided');
             }
 
-            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            // Check if token has been blacklisted (logged out)
+            const { isTokenBlacklisted } = require('../middleware/auth');
+            if (await isTokenBlacklisted(token)) {
+                return res.status(401).json({ error: 'Token revoked' });
+            }
+
+            const decoded = jwt.verify(token, process.env.JWT_SECRET, {
+                issuer: 'lakeside-retreat',
+                audience: 'admin-panel'
+            });
             res.json({ valid: true, user: decoded });
 
         } catch (error) {
@@ -369,7 +379,7 @@ function createAdminAuthRoutes(deps) {
             [encryptedSecret],
             (err) => {
                 if (err) {
-                    console.error('2FA setup error:', err);
+                    logger.error('2FA setup error', { error: err.message });
                     return res.status(500).json({ success: false, error: 'Failed to setup 2FA' });
                 }
                 // Return the base32-encoded secret so the user can add it to their authenticator app
@@ -421,7 +431,7 @@ function createAdminAuthRoutes(deps) {
                     res.status(400).json({ success: false, error: 'Invalid verification code. Ensure your authenticator app clock is synced.' });
                 }
             } catch (decryptErr) {
-                console.error('2FA verify decryption error:', decryptErr);
+                logger.error('2FA verify decryption error', { error: decryptErr.message });
                 return res.status(500).json({ success: false, error: 'Failed to verify 2FA. Secret may be corrupted; please re-run setup.' });
             }
         });
@@ -463,7 +473,7 @@ function createAdminAuthRoutes(deps) {
                 }
             );
         } catch (error) {
-            console.error('2FA disable error:', error);
+            logger.error('2FA disable error', { error: error.message });
             return res.status(500).json({ success: false, error: 'Failed to disable 2FA' });
         }
     });
@@ -477,8 +487,11 @@ function createAdminAuthRoutes(deps) {
                 return sendError(res, 400, ERROR_CODES.VALIDATION_ERROR, 'Current and new passwords required');
             }
 
-            if (newPassword.length < 8) {
-                return sendError(res, 400, ERROR_CODES.VALIDATION_ERROR, 'New password must be at least 8 characters');
+            if (newPassword.length < 12 ||
+                !/[A-Z]/.test(newPassword) ||
+                !/[a-z]/.test(newPassword) ||
+                !/[0-9]/.test(newPassword)) {
+                return sendError(res, 400, ERROR_CODES.VALIDATION_ERROR, 'Password must be at least 12 characters with uppercase, lowercase, and digits');
             }
 
             // Get current hash from DB first, falling back to env var
@@ -527,7 +540,7 @@ function createAdminAuthRoutes(deps) {
 
             res.json({ success: true, message: 'Password changed successfully' });
         } catch (error) {
-            console.error('Change password error:', error);
+            logger.error('Change password error', { error: error.message });
             return sendError(res, 500, ERROR_CODES.INTERNAL_SERVER_ERROR, 'Failed to change password');
         }
     });
@@ -536,7 +549,7 @@ function createAdminAuthRoutes(deps) {
     router.get('/api/admin/contact-messages', verifyAdmin, (req, res) => {
         db().all('SELECT * FROM contact_messages ORDER BY created_at DESC LIMIT 50', [], (err, rows) => {
             if (err) {
-                console.error('Error fetching contact messages:', err);
+                logger.error('Error fetching contact messages', { error: err.message });
                 return res.status(500).json({ success: false, error: 'Failed to fetch messages' });
             }
             res.json({ success: true, messages: rows || [] });
@@ -549,6 +562,10 @@ function createAdminAuthRoutes(deps) {
 
         if (!to || !subject || !body) {
             return res.status(400).json({ success: false, error: 'To, subject, and body required' });
+        }
+
+        if (subject.length > 200 || body.length > 10000) {
+            return res.status(400).json({ success: false, error: 'Subject or body too long' });
         }
 
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
@@ -564,7 +581,7 @@ function createAdminAuthRoutes(deps) {
 
         emailTransporter.sendMail(mailOptions, (err, _info) => {
             if (err) {
-                console.error('Email send error:', err);
+                logger.error('Email send error', { error: err.message });
                 return res.status(500).json({ success: false, error: 'Failed to send email' });
             }
             res.json({ success: true, message: 'Email sent successfully' });
