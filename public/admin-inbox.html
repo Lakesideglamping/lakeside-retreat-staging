@@ -503,7 +503,7 @@
                 <!-- Message List -->
                 <div class="message-list" id="messageList">
                     <div class="empty-state">
-                        <div class="icon">&#x1F4E7;</div>
+                        <div class="spinner" style="margin: 0 auto 1rem;"></div>
                         <p>Loading messages...</p>
                     </div>
                 </div>
@@ -820,10 +820,19 @@ The Lakeside Retreat Team`
             }
             
             if (filteredMessages.length === 0) {
+                const emptyMessages = {
+                    inbox: { icon: '&#x1F4ED;', text: 'Your inbox is empty', sub: 'New guest enquiries and messages will appear here.' },
+                    sent: { icon: '&#x1F4E4;', text: 'No sent messages yet', sub: 'Replies you send to guests will appear here.' },
+                    drafts: { icon: '&#x1F4DD;', text: 'No drafts saved', sub: 'Draft replies are saved automatically as you compose them.' },
+                    contact: { icon: '&#x1F4E9;', text: 'No contact form submissions', sub: 'Messages from the website contact form will appear here.' },
+                    booking: { icon: '&#x1F4C5;', text: 'No booking enquiries', sub: 'Booking-related messages from guests will appear here.' }
+                };
+                const msg = emptyMessages[currentFolder] || emptyMessages.inbox;
                 container.innerHTML = `
                     <div class="empty-state">
-                        <div class="icon">&#x1F4ED;</div>
-                        <p>No messages in this folder</p>
+                        <div class="icon">${msg.icon}</div>
+                        <p>${msg.text}</p>
+                        <p style="color:#999; font-size:0.875rem; margin-top:0.25rem;">${msg.sub}</p>
                     </div>
                 `;
                 return;

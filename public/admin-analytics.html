@@ -500,7 +500,7 @@
                 repeatChange: 0
             },
             revenueData: {
-                labels: ['No Data'],
+                labels: ['No bookings yet'],
                 datasets: [{
                     label: 'Revenue',
                     data: [0],
@@ -510,26 +510,26 @@
                 }]
             },
             occupancyData: {
-                labels: ['Loading Uplisting Data...'],
+                labels: ['Awaiting data'],
                 datasets: [{
                     label: 'Properties',
                     data: [0],
-                    backgroundColor: ['#2d5a5a']
+                    backgroundColor: ['#e0e0e0']
                 }]
             },
             propertyPerformance: [],
             bookingSources: {
-                labels: ['Uplisting Channel Manager'],
+                labels: ['Awaiting data'],
                 datasets: [{
                     data: [100],
-                    backgroundColor: ['#2d5a5a']
+                    backgroundColor: ['#e0e0e0']
                 }]
             },
             guestOrigins: {
-                labels: ['Awaiting Uplisting Data'],
+                labels: ['Awaiting data'],
                 datasets: [{
                     data: [100],
-                    backgroundColor: ['#2d5a5a']
+                    backgroundColor: ['#e0e0e0']
                 }]
             }
         };
@@ -657,9 +657,10 @@
             if (uplistingAnalyticsData.propertyPerformance.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="6" style="text-align: center; padding: 2rem; color: #666;">
-                            Connecting to Uplisting Channel Manager...<br>
-                            <small>Property data will appear here when connection is established</small>
+                        <td colspan="6" style="text-align: center; padding: 2rem; color: #999;">
+                            <div style="font-size: 2rem; margin-bottom: 0.5rem;">📊</div>
+                            No property data available yet<br>
+                            <small>Performance data appears here once bookings are recorded.</small>
                         </td>
                     </tr>
                 `;
