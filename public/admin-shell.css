@@ -566,7 +566,7 @@
    ============================================================ */
 
 /* --- Global Reset & Body --- */
-.admin-shell * {
+.admin-shell .admin-content * {
     margin: 0;
     padding: 0;
 }
