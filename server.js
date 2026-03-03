@@ -170,6 +170,8 @@ database.initializeDatabase()
             hashPrefix: process.env.ADMIN_PASSWORD_HASH?.substring(0, 7),
         });
         if (process.env.ADMIN_PASSWORD_HASH) {
+            // Trim whitespace that can sneak in when pasting into dashboard
+            process.env.ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH.trim();
             try {
                 await new Promise((resolve, reject) => {
                     db.run(
