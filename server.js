@@ -64,7 +64,7 @@ const createAdminBookingRoutes = require('./routes/admin-bookings');
 const createAdminOperationsRoutes = require('./routes/admin-operations');
 const createAdminSettingsRoutes = require('./routes/admin-settings');
 const { escapeHtml: escapeHtmlUtil,
-        executeDbOperation: executeDbOpUtil, verifyCsrf, generateCsrfToken } = require('./middleware/auth');
+        executeDbOperation: executeDbOpUtil, verifyCsrf, generateCsrfToken, initBlacklist } = require('./middleware/auth');
 const { errorMiddleware, setupProcessHandlers, setupGracefulShutdown } = require('./middleware/error-handler');
 const { adminActionLimiter, adminDestructiveLimiter } = require('./middleware/rate-limit');
 
@@ -101,6 +101,14 @@ database.initializeDatabase()
             }
         }
         
+        // Initialize JWT token blacklist table
+        try {
+            await initBlacklist();
+            logger.info('✅ Token blacklist initialized');
+        } catch (err) {
+            logger.warn('⚠️ Token blacklist DB init failed, using in-memory only:', { error: err.message });
+        }
+
         // Initialize Uplisting service
         uplisting = new UplistingService({
             apiKey: process.env.UPLISTING_API_KEY,

@@ -10,6 +10,23 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { log } = require('../monitoring-system');
 
+// Database module for token blacklist persistence (lazy-loaded)
+let database = null;
+let dbAvailable = false;
+
+function getDatabase() {
+    if (database === null) {
+        try {
+            database = require('../database');
+            dbAvailable = true;
+        } catch (err) {
+            log('WARN', 'Database module not available for token blacklist, using in-memory only', { error: err.message });
+            dbAvailable = false;
+        }
+    }
+    return dbAvailable ? database : null;
+}
+
 // ==========================================
 // ERROR RESPONSE SYSTEM
 // ==========================================
@@ -161,21 +178,142 @@ async function executeDbOperation(operation, db, params = [], retries = 3) {
 // ==========================================
 
 const tokenBlacklist = new Set();
+let blacklistTableReady = false;
+
+/**
+ * Hash a token using SHA-256 for secure storage.
+ * Raw tokens should never be stored in the database.
+ */
+function hashToken(token) {
+    return crypto.createHash('sha256').update(token).digest('hex');
+}
+
+/**
+ * Initialize the token_blacklist table in the database.
+ * Call this at server startup from server.js.
+ */
+async function initBlacklist() {
+    const db = getDatabase();
+    if (!db) {
+        log('WARN', 'Database not available, token blacklist will use in-memory only');
+        return;
+    }
+
+    try {
+        await db.run(`
+            CREATE TABLE IF NOT EXISTS token_blacklist (
+                token_hash TEXT PRIMARY KEY,
+                expires_at TIMESTAMP NOT NULL
+            )
+        `);
+        blacklistTableReady = true;
+        log('INFO', 'Token blacklist table initialized');
+
+        // Run initial cleanup of expired entries
+        await cleanupExpiredTokens();
+    } catch (err) {
+        log('ERROR', 'Failed to initialize token blacklist table', { error: err.message });
+        blacklistTableReady = false;
+    }
+}
+
+/**
+ * Remove expired entries from the token_blacklist table.
+ */
+async function cleanupExpiredTokens() {
+    const db = getDatabase();
+    if (!db || !blacklistTableReady) return;
+
+    try {
+        await db.run(
+            'DELETE FROM token_blacklist WHERE expires_at < CURRENT_TIMESTAMP'
+        );
+    } catch (err) {
+        log('WARN', 'Failed to cleanup expired blacklist tokens', { error: err.message });
+    }
+}
+
+// Periodically clean up expired tokens every 15 minutes
+setInterval(() => {
+    cleanupExpiredTokens().catch(() => {});
+}, 15 * 60 * 1000);
 
 /**
  * Add a token to the blacklist (e.g., on logout).
- * Auto-cleanup after 1 hour (JWT max lifetime).
+ * Persists to database for durability across restarts.
+ * Auto-cleanup of in-memory cache after 1 hour (JWT max lifetime).
  */
-function blacklistToken(token) {
+async function blacklistToken(token) {
+    // Always add to in-memory Set for fast lookups
     tokenBlacklist.add(token);
     setTimeout(() => tokenBlacklist.delete(token), 3600000);
+
+    // Persist to database if available
+    const db = getDatabase();
+    if (db && blacklistTableReady) {
+        try {
+            const tokenHash = hashToken(token);
+
+            // Try to decode the token to get the actual expiry
+            let expiresAt;
+            try {
+                const decoded = jwt.decode(token);
+                if (decoded?.exp) {
+                    expiresAt = new Date(decoded.exp * 1000).toISOString();
+                }
+            } catch (_) {
+                // Ignore decode errors
+            }
+
+            // Fall back to current time + 1 hour if no exp claim
+            if (!expiresAt) {
+                expiresAt = new Date(Date.now() + 3600000).toISOString();
+            }
+
+            await db.run(
+                'INSERT INTO token_blacklist (token_hash, expires_at) VALUES (?, ?) ON CONFLICT (token_hash) DO NOTHING',
+                [tokenHash, expiresAt]
+            );
+        } catch (err) {
+            log('WARN', 'Failed to persist blacklisted token to database', { error: err.message });
+            // In-memory blacklist still active, so logout is effective until restart
+        }
+    }
 }
 
 /**
  * Check if a token has been blacklisted (revoked).
+ * Checks in-memory Set first (fast), falls back to database.
  */
-function isTokenBlacklisted(token) {
-    return tokenBlacklist.has(token);
+async function isTokenBlacklisted(token) {
+    // Fast path: check in-memory cache first
+    if (tokenBlacklist.has(token)) {
+        return true;
+    }
+
+    // Slow path: check database if available
+    const db = getDatabase();
+    if (db && blacklistTableReady) {
+        try {
+            const tokenHash = hashToken(token);
+            const row = await db.get(
+                'SELECT token_hash FROM token_blacklist WHERE token_hash = ? AND expires_at > CURRENT_TIMESTAMP',
+                [tokenHash]
+            );
+
+            if (row) {
+                // Re-add to in-memory cache for future fast lookups
+                tokenBlacklist.add(token);
+                setTimeout(() => tokenBlacklist.delete(token), 3600000);
+                return true;
+            }
+        } catch (err) {
+            log('WARN', 'Failed to check token blacklist in database', { error: err.message });
+            // Fall through to return false - in-memory check already passed
+        }
+    }
+
+    return false;
 }
 
 // ==========================================
@@ -187,7 +325,7 @@ function isTokenBlacklisted(token) {
  * Checks Authorization header first, then falls back to httpOnly cookie.
  * Rejects blacklisted (logged-out) tokens.
  */
-function verifyAdmin(req, res, next) {
+async function verifyAdmin(req, res, next) {
     try {
         // Check Authorization header first (backward compat)
         let token = req.headers.authorization?.split(' ')[1];
@@ -203,7 +341,7 @@ function verifyAdmin(req, res, next) {
         }
 
         // Check if token has been revoked (logged out)
-        if (isTokenBlacklisted(token)) {
+        if (await isTokenBlacklisted(token)) {
             return sendError(res, 401, ERROR_CODES.INVALID_TOKEN, 'Token has been revoked');
         }
 
@@ -360,5 +498,6 @@ module.exports = {
     generateCsrfToken,
     parseCookies,
     blacklistToken,
-    isTokenBlacklisted
+    isTokenBlacklisted,
+    initBlacklist
 };

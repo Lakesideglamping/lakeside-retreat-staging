@@ -6,6 +6,42 @@
 const fs = require('fs');
 const path = require('path');
 
+// PII redaction helpers — mask sensitive data before logging
+function maskEmail(email) {
+    if (!email || typeof email !== 'string') return email;
+    const [local, domain] = email.split('@');
+    if (!domain) return '***';
+    return `${local[0]}***@${domain}`;
+}
+
+function maskPhone(phone) {
+    if (!phone || typeof phone !== 'string') return phone;
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length < 4) return '***';
+    return '***' + digits.slice(-4);
+}
+
+function redactPII(obj) {
+    if (!obj || typeof obj !== 'object') return obj;
+    const redacted = { ...obj };
+    const emailKeys = ['email', 'guest_email', 'guestEmail', 'customer_email'];
+    const phoneKeys = ['phone', 'guest_phone', 'guestPhone'];
+    const nameKeys = ['guest_name', 'guestName'];
+    for (const key of emailKeys) {
+        if (redacted[key]) redacted[key] = maskEmail(redacted[key]);
+    }
+    for (const key of phoneKeys) {
+        if (redacted[key]) redacted[key] = maskPhone(redacted[key]);
+    }
+    for (const key of nameKeys) {
+        if (redacted[key] && typeof redacted[key] === 'string') {
+            const parts = redacted[key].split(' ');
+            redacted[key] = parts[0] + (parts.length > 1 ? ' ***' : '');
+        }
+    }
+    return redacted;
+}
+
 // Log levels
 const LOG_LEVELS = {
     DEBUG: 0,
@@ -75,23 +111,26 @@ class MonitoringSystem {
     // Centralized logging function
     log(level, message, meta = {}) {
         if (LOG_LEVELS[level] < this.logLevel) return;
-        
+
+        // Redact PII before logging (email → j***@domain.com, phone → ***1234)
+        const safeMeta = redactPII(meta);
+
         const timestamp = new Date().toISOString();
         const logEntry = {
             timestamp,
             level,
             message,
-            ...meta,
-            ...(meta.requestId && { requestId: meta.requestId }),
-            ...(meta.userId && { userId: meta.userId }),
-            ...(meta.sessionId && { sessionId: meta.sessionId })
+            ...safeMeta,
+            ...(safeMeta.requestId && { requestId: safeMeta.requestId }),
+            ...(safeMeta.userId && { userId: safeMeta.userId }),
+            ...(safeMeta.sessionId && { sessionId: safeMeta.sessionId })
         };
         
         // Console output
         const color = this.getLogColor(level);
-        console.log(`${color}[${timestamp}] ${level}: ${message}${meta.requestId ? ` (${meta.requestId})` : ''}\x1b[0m`);
-        
-        // File output
+        console.log(`${color}[${timestamp}] ${level}: ${message}${safeMeta.requestId ? ` (${safeMeta.requestId})` : ''}\x1b[0m`);
+
+        // File output (PII-redacted)
         fs.appendFile(this.logFile, JSON.stringify(logEntry) + '\n', (err) => {
             if (err) console.error('Failed to write log:', err.message);
         });

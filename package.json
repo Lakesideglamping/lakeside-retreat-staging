@@ -13,7 +13,9 @@
     "test:watch": "jest --watch --forceExit --detectOpenHandles",
     "test:coverage": "jest --coverage --forceExit --detectOpenHandles",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+    "build:css": "npx clean-css-cli -o public/styles.min.css public/styles.css",
+    "build": "npm run build:css"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -35,7 +37,8 @@
     "eslint": "^8.57.1",
     "jest": "^29.7.0",
     "nodemon": "^3.1.0",
-    "prettier": "^3.2.0"
+    "prettier": "^3.2.0",
+    "clean-css-cli": "^5.6.3"
   },
   "engines": {
     "node": ">=18.0.0",

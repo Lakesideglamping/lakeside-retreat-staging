@@ -22,6 +22,27 @@ const accommodations = require('../config/accommodations');
 const database = require('../database');
 const { logger } = require('../logger');
 
+/**
+ * Retry wrapper for transient failures (e.g., Stripe network issues).
+ * Uses exponential backoff. Safe to use with idempotent operations.
+ * @param {Function} fn - Async function to retry
+ * @param {Object} options
+ * @param {number} options.retries - Max retry attempts (default 2)
+ * @param {number} options.delay - Base delay in ms (default 1000)
+ * @param {string[]} options.retryOn - Error types to retry on (empty = retry all)
+ */
+async function withRetry(fn, { retries = 2, delay = 1000, retryOn = [] } = {}) {
+    for (let attempt = 0; attempt <= retries; attempt++) {
+        try {
+            return await fn();
+        } catch (err) {
+            const isRetryable = retryOn.length === 0 || retryOn.some(type => err.type === type);
+            if (attempt === retries || !isRetryable) throw err;
+            await new Promise(r => setTimeout(r, delay * Math.pow(2, attempt)));
+        }
+    }
+}
+
 const bookingLimiter = rateLimit({
     windowMs: 5 * 60 * 1000,
     max: 3,
@@ -195,7 +216,7 @@ function createBookingRoutes(deps) {
                 }
                 return true;
             }),
-            body('accommodation').isIn(['dome-pinot', 'dome-rose', 'lakeside-cottage']),
+            body('accommodation').isIn(accommodations.getValidIds()),
             body('checkin').isISO8601().toDate(),
             body('checkout').isISO8601().toDate(),
             body('guests').isInt({ min: 1, max: 8 }),
@@ -591,9 +612,10 @@ function createBookingRoutes(deps) {
                 }
 
                 const idempotencyKey = `booking-${bookingId}`;
-                const session = await stripe.checkout.sessions.create(sessionConfig, {
-                    idempotencyKey
-                });
+                const session = await withRetry(
+                    () => stripe.checkout.sessions.create(sessionConfig, { idempotencyKey }),
+                    { retries: 2, delay: 1000, retryOn: ['StripeConnectionError', 'StripeAPIError'] }
+                );
 
                 // Store Stripe session ID on the booking. If this fails, the webhook
                 // can still match via metadata.bookingId, so we log but don't block.
