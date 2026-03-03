@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en-NZ">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <!-- Unique SEO for Lakeside Cottage -->
-    <title>Lakeside Cottage | Pet Friendly Holiday Home | Lake Dunstan, Cromwell | $295/night</title>
+    <title>Lakeside Cottage | Pet Friendly Accommodation Cromwell | Lake Dunstan | $295/night</title>
     <meta name="description" content="Lakeside Cottage — pet-friendly, self-contained holiday home on Lake Dunstan, Cromwell. 2 bedrooms, full kitchen, wood-fired hot tub, direct lake access. Family accommodation in Central Otago from $295/night.">
     <meta name="keywords" content="Lakeside Cottage, family accommodation Central Otago, Lake Dunstan cottage, pet-friendly accommodation Cromwell, family holiday Otago, lakefront cottage NZ, Central Otago family stay">
     <meta name="robots" content="index, follow">
@@ -506,6 +506,51 @@
             .footer-grid { grid-template-columns: 1fr; }
         }
     </style>
+
+    <!-- FAQPage Schema -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+            {
+                "@type": "Question",
+                "name": "Is the Lakeside Cottage pet friendly?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Yes! The Lakeside Cottage welcomes up to 2 pets with a flat $50 pet fee per stay. Dogs must be kept on lead in common areas. The cottage has a fenced section and direct lake access perfect for pet-friendly holidays in Central Otago."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "How many guests can stay at the Lakeside Cottage?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "The Lakeside Cottage accommodates up to 3 guests with 2 bedrooms and a full kitchen. The base rate of $295/night covers 2 guests, with an extra guest fee of $100/night for the third guest."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "Does the Lakeside Cottage have lake access?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Yes, the Lakeside Cottage has direct access to Lake Dunstan, perfect for swimming, kayaking, paddleboarding and fishing. The cottage sits right on the lakefront with stunning water views."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "Is the Lakeside Cottage suitable for families with children?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Yes, the Lakeside Cottage is our family-friendly option with 2 bedrooms, a full kitchen for self-catering, and a 2-night minimum stay. Unlike our geodesic domes which are adults-only, the cottage welcomes guests of all ages."
+                }
+            }
+        ]
+    }
+    </script>
+    <link rel="alternate" hreflang="en-nz" href="https://lakesideretreat.co.nz/lakeside-cottage">
+    <link rel="alternate" hreflang="en-au" href="https://lakesideretreat.co.nz/lakeside-cottage">
+    <link rel="alternate" hreflang="en" href="https://lakesideretreat.co.nz/lakeside-cottage">
 </head>
 <body>
     <a href="#main-content" class="skip-link">Skip to main content</a>
@@ -515,13 +560,13 @@
             <i class="fas fa-times"></i>
         </button>
         <a href="/">Home</a>
-        <a href="/stay.html">Stay</a>
-        <a href="/gallery.html">Gallery</a>
-        <a href="/guides.html">Guides</a>
-        <a href="/reviews.html">Reviews</a>
-        <a href="/our-story.html">Our Story</a>
-        <a href="/explore.html">Explore</a>
-        <a href="/contact.html">Contact</a>
+        <a href="/stay">Stay</a>
+        <a href="/gallery">Gallery</a>
+        <a href="/guides">Guides</a>
+        <a href="/reviews">Reviews</a>
+        <a href="/our-story">Our Story</a>
+        <a href="/explore">Explore</a>
+        <a href="/contact">Contact</a>
     </div>
 
     <!-- Hero Section -->
@@ -530,19 +575,19 @@
             <div class="nav-container">
                 <div class="nav-items-row">
                     <a href="/" class="nav-link">Home</a>
-                    <a href="/stay.html" class="nav-link active">Stay</a>
-                    <a href="/gallery.html" class="nav-link">Gallery</a>
-                    <a href="/guides.html" class="nav-link">Guides</a>
+                    <a href="/stay" class="nav-link active">Stay</a>
+                    <a href="/gallery" class="nav-link">Gallery</a>
+                    <a href="/guides" class="nav-link">Guides</a>
                     <a href="/" class="logo">
                         <picture>
                             <source srcset="images/logormbg.webp" type="image/webp">
                             <img src="images/logormbg.png" alt="Lakeside Retreat" class="logo-icon" loading="eager"/>
                         </picture>
                     </a>
-                    <a href="/reviews.html" class="nav-link">Reviews</a>
-                    <a href="/our-story.html" class="nav-link">Story</a>
-                    <a href="/explore.html" class="nav-link">Explore</a>
-                    <a href="/contact.html" class="nav-link">Contact</a>
+                    <a href="/reviews" class="nav-link">Reviews</a>
+                    <a href="/our-story" class="nav-link">Story</a>
+                    <a href="/explore" class="nav-link">Explore</a>
+                    <a href="/contact" class="nav-link">Contact</a>
                 </div>
                 <button class="mobile-menu-btn" onclick="document.getElementById('mobileNav').classList.add('active')" aria-label="Menu">
                     <i class="fas fa-bars"></i>
@@ -552,7 +597,7 @@
         <div class="container">
             <h1>Lakeside Cottage</h1>
             <p class="hero-subtitle">Spacious family accommodation with direct Lake Dunstan access</p>
-            <a href="/stay.html?accommodation=lakeside-cottage" class="btn btn-primary" aria-label="Book Lakeside Cottage now from $295 per night">Book Now - From $295/night</a>
+            <a href="/stay?accommodation=lakeside-cottage" class="btn btn-primary" aria-label="Book Lakeside Cottage now from $295 per night">Book Now - From $295/night</a>
             <a href="#gallery" class="btn btn-outline" aria-label="View Lakeside Cottage photo gallery">View Gallery</a>
         </div>
     </section>
@@ -562,7 +607,7 @@
         <ol style="display: flex; list-style: none; padding: 1rem 2rem; margin: 0; font-size: 0.9rem; gap: 0.5rem;">
             <li><a href="/" style="color: var(--brand-teal); text-decoration: none;">Home</a></li>
             <li style="color: #999;">›</li>
-            <li><a href="/stay.html" style="color: var(--brand-teal); text-decoration: none;">Stay</a></li>
+            <li><a href="/stay" style="color: var(--brand-teal); text-decoration: none;">Stay</a></li>
             <li style="color: #999;">›</li>
             <li style="color: #666;">Lakeside Cottage</li>
         </ol>
@@ -706,7 +751,7 @@
                         <span style="font-weight: 600;">Booking.com Award 2026</span>
                     </div>
                 </div>
-                <a href="/stay.html?accommodation=lakeside-cottage" class="btn btn-primary" style="width: 100%;" aria-label="Check availability for Lakeside Cottage">Check Availability</a>
+                <a href="/stay?accommodation=lakeside-cottage" class="btn btn-primary" style="width: 100%;" aria-label="Check availability for Lakeside Cottage">Check Availability</a>
             </div>
         </div>
     </section>
@@ -716,7 +761,7 @@
         <div class="container">
             <h2 class="section-title">Explore Our Other Accommodations</h2>
             <div class="accommodation-cards">
-                <a href="/dome-pinot.html" class="accommodation-card" style="text-decoration: none; color: inherit;">
+                <a href="/dome-pinot" class="accommodation-card" style="text-decoration: none; color: inherit;">
                     <picture>
                         <source srcset="/images/dome-pinot-hero.webp" type="image/webp">
                         <img src="/images/dome-pinot-hero.jpeg" alt="Dome Pinot luxury glamping" loading="lazy" decoding="async">
@@ -727,7 +772,7 @@
                         <p style="color: #753742; font-weight: 600; margin-top: 1rem;">From $530/night →</p>
                     </div>
                 </a>
-                <a href="/dome-rose.html" class="accommodation-card" style="text-decoration: none; color: inherit;">
+                <a href="/dome-rose" class="accommodation-card" style="text-decoration: none; color: inherit;">
                     <picture>
                         <source srcset="/images/dome-rose-spa1.webp" type="image/webp">
                         <img src="/images/dome-rose-spa1.jpeg" alt="Dome Rose romantic glamping" loading="lazy" decoding="async">
@@ -749,7 +794,7 @@
             <p style="max-width: 600px; margin: 0 auto 2rem; font-size: 1.1rem;">
                 Book direct for the best rates. Kayaks, BBQ, and lake access included. Just 45 minutes from Queenstown, 30 minutes from Wanaka.
             </p>
-            <a href="/stay.html?accommodation=lakeside-cottage" class="btn btn-primary" style="font-size: 1.1rem; padding: 1.2rem 3rem;" aria-label="Book Lakeside Cottage now from $295 per night">Book Lakeside Cottage Now</a>
+            <a href="/stay?accommodation=lakeside-cottage" class="btn btn-primary" style="font-size: 1.1rem; padding: 1.2rem 3rem;" aria-label="Book Lakeside Cottage now from $295 per night">Book Lakeside Cottage Now</a>
         </div>
     </section>
     
@@ -759,22 +804,24 @@
             <div class="footer-grid">
                 <div class="footer-section">
                     <h3>Stay With Us</h3>
-                    <a href="/dome-pinot.html">Dome Pinot</a>
-                    <a href="/dome-rose.html">Dome Ros&eacute;</a>
-                    <a href="/lakeside-cottage.html">Lakeside Cottage</a>
+                    <a href="/dome-pinot">Dome Pinot</a>
+                    <a href="/dome-rose">Dome Ros&eacute;</a>
+                    <a href="/lakeside-cottage">Lakeside Cottage</a>
                     <a href="/#booking">Check Availability</a>
                 </div>
                 <div class="footer-section">
                     <h3>Explore</h3>
-                    <a href="/explore.html">Things to Do</a>
-                    <a href="/guides.html">Local Guides</a>
-                    <a href="/gallery.html">Photo Gallery</a>
-                    <a href="/reviews.html">Guest Reviews</a>
+                    <a href="/explore">Things to Do</a>
+                    <a href="/guides">Local Guides</a>
+                    <a href="/central-otago-wine-trail">Wine Trail Guide</a>
+                    <a href="/cromwell-activities">Cromwell Activities</a>
+                    <a href="/gallery">Photo Gallery</a>
+                    <a href="/reviews">Guest Reviews</a>
                 </div>
                 <div class="footer-section">
                     <h3>About</h3>
-                    <a href="/our-story.html">Our Story</a>
-                    <a href="/contact.html">Contact Us</a>
+                    <a href="/our-story">Our Story</a>
+                    <a href="/contact">Contact Us</a>
                     <a href="/privacy-policy">Privacy Policy</a>
                     <a href="/terms">Terms &amp; Conditions</a>
                 </div>

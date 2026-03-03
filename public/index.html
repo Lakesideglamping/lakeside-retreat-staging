@@ -45,7 +45,7 @@
     form-action 'self';
     worker-src 'self';
     child-src 'self';">
-    <title>Luxury Glamping Lake Dunstan | Lakeside Retreat Cromwell</title>
+    <title>Glamping Central Otago | Lakeside Retreat Cromwell NZ</title>
     <script type="application/ld+json">
     {
         "@context": "https://schema.org",
@@ -84,7 +84,27 @@
             {"@type": "LocationFeatureSpecification", "name": "Cycle Trail Access", "value": true}
         ],
         "checkinTime": "15:00",
-        "checkoutTime": "10:00"
+        "checkoutTime": "10:00",
+        "hasMap": "https://www.google.com/maps?q=-45.038710,169.197693",
+        "areaServed": [
+            {"@type": "City", "name": "Cromwell"},
+            {"@type": "City", "name": "Alexandra"},
+            {"@type": "City", "name": "Clyde"},
+            {"@type": "City", "name": "Bannockburn"},
+            {"@type": "AdministrativeArea", "name": "Central Otago"}
+        ],
+        "paymentAccepted": "Credit Card, Debit Card, Bank Transfer",
+        "currenciesAccepted": "NZD",
+        "openingHoursSpecification": {
+            "@type": "OpeningHoursSpecification",
+            "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"],
+            "opens": "15:00",
+            "closes": "10:00"
+        },
+        "sameAs": [
+            "https://www.facebook.com/lakesideretreatnz",
+            "https://www.instagram.com/lakesideretreatnz"
+        ]
     }
     </script>
     
@@ -202,14 +222,14 @@
         <button class="close-mobile-menu" data-action="toggleMobileMenu" aria-label="Close menu">
             <i class="fas fa-times"></i>
         </button>
-        <a href="#" class="nav-link" data-page="home" data-toggle-menu="true">Home</a>
-        <a href="#" class="nav-link" data-page="stay" data-toggle-menu="true">Stay</a>
-        <a href="#" class="nav-link" data-page="gallery" data-toggle-menu="true">Gallery</a>
-        <a href="#" class="nav-link" data-page="blog" data-toggle-menu="true">Guides</a>
-        <a href="#" class="nav-link" data-page="reviews" data-toggle-menu="true">Reviews</a>
-        <a href="#" class="nav-link" data-page="story" data-toggle-menu="true">Our Story</a>
-        <a href="#" class="nav-link" data-page="explore" data-toggle-menu="true">Explore</a>
-        <a href="#" class="nav-link" data-page="contact" data-toggle-menu="true">Contact</a>
+        <a href="/" class="nav-link" data-page="home" data-toggle-menu="true">Home</a>
+        <a href="/stay" class="nav-link" data-page="stay" data-toggle-menu="true">Stay</a>
+        <a href="/gallery" class="nav-link" data-page="gallery" data-toggle-menu="true">Gallery</a>
+        <a href="/guides" class="nav-link" data-page="blog" data-toggle-menu="true">Guides</a>
+        <a href="/reviews" class="nav-link" data-page="reviews" data-toggle-menu="true">Reviews</a>
+        <a href="/our-story" class="nav-link" data-page="story" data-toggle-menu="true">Our Story</a>
+        <a href="/explore" class="nav-link" data-page="explore" data-toggle-menu="true">Explore</a>
+        <a href="/contact" class="nav-link" data-page="contact" data-toggle-menu="true">Contact</a>
     </div>
 
     <!-- Search Overlay -->
@@ -661,13 +681,13 @@
                         <!-- Complete centered navigation group -->
                         <div class="nav-items-row" style="display: flex; align-items: center; gap: 2rem;">
                             <!-- Left 4 menu items -->
-                            <a href="#" class="nav-link" data-page="home">Home</a>
-                            <a href="#" class="nav-link" data-page="stay">Stay</a>
-                            <a href="#" class="nav-link" data-page="gallery">Gallery</a>
-                            <a href="#" class="nav-link" data-page="blog">Guides</a>
+                            <a href="/" class="nav-link" data-page="home">Home</a>
+                            <a href="/stay" class="nav-link" data-page="stay">Stay</a>
+                            <a href="/gallery" class="nav-link" data-page="gallery">Gallery</a>
+                            <a href="/guides" class="nav-link" data-page="blog">Guides</a>
 
                             <!-- Center logo -->
-                            <a href="#" class="logo" data-page="home" aria-label="Go to home page" style="margin: 0 1rem;">
+                            <a href="/" class="logo" data-page="home" aria-label="Go to home page" style="margin: 0 1rem;">
                                 <picture>
   <source srcset="images/logormbg.webp" type="image/webp">
   <img src="images/logormbg.png" alt="Lakeside Retreat Logo" class="logo-icon" decoding="async"  loading="eager" />
@@ -675,10 +695,10 @@
                             </a>
 
                             <!-- Right 4 menu items -->
-                            <a href="#" class="nav-link" data-page="reviews">Reviews</a>
-                            <a href="#" class="nav-link" data-page="story">Story</a>
-                            <a href="#" class="nav-link" data-page="explore">Explore</a>
-                            <a href="#" class="nav-link" data-page="contact">Contact</a>
+                            <a href="/reviews" class="nav-link" data-page="reviews">Reviews</a>
+                            <a href="/our-story" class="nav-link" data-page="story">Story</a>
+                            <a href="/explore" class="nav-link" data-page="explore">Explore</a>
+                            <a href="/contact" class="nav-link" data-page="contact">Contact</a>
                         </div>
 
                         <button class="mobile-menu-btn" data-action="toggleMobileMenu" aria-label="Toggle mobile menu">
@@ -3091,14 +3111,14 @@
                             <div class="card-content">
                                 <h3 class="card-title">🚴 Cycle the Lake Dunstan Trail</h3>
                                 <p class="card-text">Step directly from our property onto the historic Cromwell-Clyde Trail. This flat, family-friendly route follows the lake shore with stunning mountain views.</p>
-                                <div style="color: var(--brand-teal); font-weight: 600; margin-top: 1rem;">300m from property • <a href="#" data-page="blog" style="color: var(--brand-teal); text-decoration: none;">→ Get cycling guide</a></div>
+                                <div style="color: var(--brand-teal); font-weight: 600; margin-top: 1rem;">300m from property • <a href="/cromwell-activities" style="color: var(--brand-teal); text-decoration: none;">→ Get cycling guide</a></div>
                             </div>
                         </div>
                         <div class="card" id="wine-section">
                             <div class="card-content">
                                 <h3 class="card-title">🍷 Wine Country Location</h3>
                                 <p class="card-text">You're in the heart of Central Otago wine country, famous for world-class Pinot Noir. Multiple award-winning cellar doors within 15 minutes of your accommodation.</p>
-                                <div style="color: var(--brand-teal); font-weight: 600; margin-top: 1rem;"><a href="#" data-page="blog" style="color: var(--brand-teal); text-decoration: none;">→ Get detailed winery guide</a></div>
+                                <div style="color: var(--brand-teal); font-weight: 600; margin-top: 1rem;"><a href="/central-otago-wine-trail" style="color: var(--brand-teal); text-decoration: none;">→ Get detailed winery guide</a></div>
                             </div>
                         </div>
                         <div class="card">
@@ -3154,7 +3174,7 @@
                             <div class="card-content">
                                 <h3 class="card-title">🏔️ Strategic Location</h3>
                                 <p class="card-text">Perfectly positioned between Queenstown (45min), Wanaka (35min), Alexandra (25min), and Clyde (20min). Experience the best of Central Otago's adventure destinations while staying in peaceful wine country.</p>
-                                <div style="color: var(--brand-teal); font-weight: 600; margin-top: 1rem;"><a href="#" data-page="blog" style="color: var(--brand-teal); text-decoration: none;">→ Get detailed day trip planners</a></div>
+                                <div style="color: var(--brand-teal); font-weight: 600; margin-top: 1rem;"><a href="/weekend-getaway-queenstown" style="color: var(--brand-teal); text-decoration: none;">→ Get detailed day trip planners</a></div>
                             </div>
                         </div>
                         <div class="card">
@@ -3443,26 +3463,28 @@
                 <!-- Stay With Us -->
                 <div class="footer-section">
                     <h3>Stay With Us</h3>
-                    <a href="#" data-page="dome-pinot">Dome Pinot</a>
-                    <a href="#" data-page="dome-rose">Dome Rosé</a>
-                    <a href="#" data-page="lakeside-cottage">Lakeside Cottage</a>
-                    <a href="#" data-page="home" data-scroll-to="booking">Check Availability</a>
+                    <a href="/dome-pinot" data-page="dome-pinot">Dome Pinot</a>
+                    <a href="/dome-rose" data-page="dome-rose">Dome Rosé</a>
+                    <a href="/lakeside-cottage" data-page="lakeside-cottage">Lakeside Cottage</a>
+                    <a href="/#booking" data-page="home" data-scroll-to="booking">Check Availability</a>
                 </div>
 
                 <!-- Explore -->
                 <div class="footer-section">
                     <h3>Explore</h3>
-                    <a href="#" data-page="explore">Things to Do</a>
-                    <a href="#" data-page="blog">Local Guides</a>
-                    <a href="#" data-page="gallery">Photo Gallery</a>
-                    <a href="#" data-page="reviews">Guest Reviews</a>
+                    <a href="/explore" data-page="explore">Things to Do</a>
+                    <a href="/guides" data-page="blog">Local Guides</a>
+                    <a href="/central-otago-wine-trail">Wine Trail Guide</a>
+                    <a href="/cromwell-activities">Cromwell Activities</a>
+                    <a href="/gallery" data-page="gallery">Photo Gallery</a>
+                    <a href="/reviews" data-page="reviews">Guest Reviews</a>
                 </div>
 
                 <!-- About -->
                 <div class="footer-section">
                     <h3>About</h3>
-                    <a href="#" data-page="story">Our Story</a>
-                    <a href="#" data-page="home" data-scroll-to="contact-section">Contact Us</a>
+                    <a href="/our-story" data-page="story">Our Story</a>
+                    <a href="/contact" data-page="home" data-scroll-to="contact-section">Contact Us</a>
                     <a href="/privacy-policy">Privacy Policy</a>
                     <a href="/terms">Terms & Conditions</a>
                 </div>

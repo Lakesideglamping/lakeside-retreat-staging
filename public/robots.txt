@@ -4,8 +4,9 @@
 User-agent: *
 Allow: /
 
-# Sitemap location
+# Sitemap locations
 Sitemap: https://lakesideretreat.co.nz/sitemap.xml
+Sitemap: https://lakesideretreat.co.nz/sitemap-images.xml
 
 # Crawl-delay for polite crawling
 Crawl-delay: 1

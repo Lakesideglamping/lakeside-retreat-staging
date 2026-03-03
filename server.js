@@ -1868,6 +1868,43 @@ app.get('/terms', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'terms.html'));
 });
 
+// SEO: Extensionless routes for all standalone pages
+app.get('/stay', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'stay.html'));
+});
+app.get('/gallery', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'gallery.html'));
+});
+app.get('/guides', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'guides.html'));
+});
+app.get('/reviews', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'reviews.html'));
+});
+app.get('/our-story', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'our-story.html'));
+});
+app.get('/explore', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'explore.html'));
+});
+app.get('/contact', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'contact.html'));
+});
+
+// SEO: Content pages for long-tail keyword targeting
+app.get('/central-otago-wine-trail', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'central-otago-wine-trail.html'));
+});
+app.get('/couples-retreat-central-otago', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'couples-retreat-central-otago.html'));
+});
+app.get('/weekend-getaway-queenstown', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'weekend-getaway-queenstown.html'));
+});
+app.get('/cromwell-activities', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'cromwell-activities.html'));
+});
+
 // ==========================================
 // GLOBAL ERROR HANDLER (must be after all routes, before SPA fallback)
 // ==========================================
