@@ -558,15 +558,32 @@
         // Authentication is handled by admin-shell.js via cookie verification
 
         let currentGeneratedContent = null;
+        let csrfToken = null;
+
+        // Fetch CSRF token on page load
+        async function fetchCsrfToken() {
+            try {
+                const res = await fetch('/api/admin/csrf-token', { credentials: 'same-origin' });
+                const data = await res.json();
+                csrfToken = data.csrfToken;
+            } catch (error) {
+                console.error('Failed to fetch CSRF token:', error);
+            }
+        }
 
         async function apiCall(endpoint, options = {}) {
+            // Include CSRF token for mutating requests
+            const headers = {
+                'Content-Type': 'application/json',
+                ...options.headers
+            };
+            if (options.method && options.method !== 'GET') {
+                headers['X-CSRF-Token'] = csrfToken;
+            }
             const response = await fetch(endpoint, {
                 ...options,
                 credentials: 'same-origin',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...options.headers
-                }
+                headers
             });
             return response.json();
         }
@@ -938,7 +955,8 @@
                 });
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
+            await fetchCsrfToken();
             loadStats();
             loadAbandonedCheckouts();
             

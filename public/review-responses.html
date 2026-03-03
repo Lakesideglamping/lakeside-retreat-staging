@@ -415,7 +415,11 @@
 
         function showAlert(message, type = 'success') {
             const alertBox = document.getElementById('alertBox');
-            alertBox.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+            const div = document.createElement('div');
+            div.className = `alert alert-${type}`;
+            div.textContent = message;
+            alertBox.innerHTML = '';
+            alertBox.appendChild(div);
             setTimeout(() => { alertBox.innerHTML = ''; }, 3000);
         }
 

@@ -658,18 +658,15 @@
                 
                 if (response.ok) {
                     const data = await response.json();
-                    recoveryCodes = data.recoveryCodes || generateDemoRecoveryCodes();
+                    recoveryCodes = data.recoveryCodes || [];
                     showRecoveryCodes();
                 } else {
-                    // Demo mode: accept any code
-                    recoveryCodes = generateDemoRecoveryCodes();
-                    showRecoveryCodes();
+                    const errorData = await response.json().catch(() => ({}));
+                    alert(errorData.error || 'Verification failed. Please check your code and try again.');
                 }
             } catch (error) {
                 console.error('Error verifying 2FA:', error);
-                // Demo mode
-                recoveryCodes = generateDemoRecoveryCodes();
-                showRecoveryCodes();
+                alert('Unable to verify code. Please check your connection and try again.');
             }
         }
 

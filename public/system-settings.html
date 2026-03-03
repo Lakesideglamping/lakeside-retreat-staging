@@ -414,7 +414,11 @@
 
         function showAlert(message, type = 'success') {
             const alertBox = document.getElementById('alertBox');
-            alertBox.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+            const div = document.createElement('div');
+            div.className = `alert alert-${type}`;
+            div.textContent = message;
+            alertBox.innerHTML = '';
+            alertBox.appendChild(div);
             setTimeout(() => { alertBox.innerHTML = ''; }, 3000);
         }
 
@@ -484,7 +488,7 @@
                 const csrfData = await csrfRes.json();
                 const response = await fetch('/api/admin/cache/clear', {
                     method: 'POST',
-                    headers: { 'X-CSRF-Token': csrfData.token },
+                    headers: { 'X-CSRF-Token': csrfData.csrfToken },
                     credentials: 'same-origin'
                 });
                 const data = await response.json();
@@ -506,7 +510,7 @@
                 const csrfData = await csrfRes.json();
                 const response = await fetch('/api/admin/cache/clear', {
                     method: 'POST',
-                    headers: { 'X-CSRF-Token': csrfData.token },
+                    headers: { 'X-CSRF-Token': csrfData.csrfToken },
                     credentials: 'same-origin'
                 });
                 const data = await response.json();

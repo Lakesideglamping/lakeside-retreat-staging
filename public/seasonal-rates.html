@@ -368,7 +368,11 @@
 
         function showAlert(message, type = 'success') {
             const alertBox = document.getElementById('alertBox');
-            alertBox.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+            const div = document.createElement('div');
+            div.className = `alert alert-${type}`;
+            div.textContent = message;
+            alertBox.innerHTML = '';
+            alertBox.appendChild(div);
             setTimeout(() => { alertBox.innerHTML = ''; }, 3000);
         }
 
@@ -408,7 +412,7 @@
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRF-Token': csrfData.token
+                        'X-CSRF-Token': csrfData.csrfToken
                     },
                     credentials: 'same-origin',
                     body: JSON.stringify({ name, multiplier: parseFloat(multiplier), start_date: startDate, end_date: endDate, is_active: rate.is_active })
@@ -438,7 +442,7 @@
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRF-Token': csrfData.token
+                        'X-CSRF-Token': csrfData.csrfToken
                     },
                     credentials: 'same-origin',
                     body: JSON.stringify({ name: rate.name, multiplier: rate.multiplier, start_date: rate.start_date, end_date: rate.end_date, is_active: !rate.is_active })

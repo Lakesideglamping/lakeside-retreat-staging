@@ -377,7 +377,7 @@
             const alert = document.createElement('div');
             alert.className = `admin-alert admin-alert-${type}`;
             alert.innerHTML = `
-                <span>${message}</span>
+                <span>${escapeHtml(message)}</span>
                 <button onclick="this.parentElement.remove()" style="float: right; background: none; border: none; cursor: pointer; font-size: 1.2rem;">&times;</button>
             `;
             

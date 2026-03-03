@@ -531,8 +531,15 @@ const { parseCookies: parseAdminCookies, isTokenBlacklisted: isAdminTokenBlackli
 
 app.use(async (req, res, next) => {
     const requestPath = req.path.toLowerCase();
-    // Only guard admin-*.html pages (not admin.html itself, not admin CSS/JS assets)
-    if (requestPath.startsWith('/admin-') && requestPath.endsWith('.html')) {
+    // Guard all admin pages — admin-*.html plus standalone admin sub-pages
+    const adminSubPages = [
+        '/add-booking.html', '/edit-booking.html', '/seasonal-rates.html',
+        '/system-settings.html', '/review-responses.html', '/backup-system.html',
+        '/gallery-management.html'
+    ];
+    const isAdminPage = (requestPath.startsWith('/admin-') && requestPath.endsWith('.html'))
+        || adminSubPages.includes(requestPath);
+    if (isAdminPage) {
         try {
             // Extract JWT from Authorization header or httpOnly cookie
             let token = req.headers.authorization?.split(' ')[1];
