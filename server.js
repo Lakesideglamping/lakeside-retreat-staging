@@ -161,6 +161,23 @@ database.initializeDatabase()
             }
         }
 
+        // Sync ADMIN_PASSWORD_HASH env var into database so env var always wins
+        if (process.env.ADMIN_PASSWORD_HASH) {
+            try {
+                await new Promise((resolve, reject) => {
+                    db.run(
+                        `INSERT INTO system_settings (setting_key, setting_value)
+                         VALUES ('admin_password_hash', ?)
+                         ON CONFLICT(setting_key) DO UPDATE SET setting_value = excluded.setting_value`,
+                        [process.env.ADMIN_PASSWORD_HASH],
+                        (err) => err ? reject(err) : resolve()
+                    );
+                });
+            } catch (err) {
+                logger.warn('⚠️ Could not sync admin password hash to DB:', { error: err.message });
+            }
+        }
+
         // Recover any pending deposit releases that were lost due to server restart
         recoverPendingDepositReleases();
 
