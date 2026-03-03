@@ -26,24 +26,22 @@
 
 /* Main Layout Container */
 .admin-shell {
-    display: flex;
     min-height: 100vh;
     width: 100%;
 }
 
-/* Sidebar Navigation */
+/* Sidebar Navigation - fixed position, always visible on desktop */
 .admin-sidebar {
     width: var(--admin-sidebar-width);
-    min-width: var(--admin-sidebar-width);
     background: linear-gradient(180deg, var(--admin-primary) 0%, var(--admin-primary-dark) 100%);
     color: white;
-    position: sticky;
+    position: fixed;
     top: 0;
+    left: 0;
     height: 100vh;
     overflow-y: auto;
     z-index: 1000;
     transition: transform 0.3s ease;
-    flex-shrink: 0;
 }
 
 .admin-sidebar-header {
@@ -156,11 +154,10 @@
     border-color: var(--admin-danger);
 }
 
-/* Main Content Area */
+/* Main Content Area - offset by sidebar width */
 .admin-main {
-    flex: 1;
     min-height: 100vh;
-    min-width: 0;
+    margin-left: var(--admin-sidebar-width);
     background: var(--admin-bg);
 }
 
@@ -246,9 +243,6 @@
 /* Responsive Styles */
 @media (max-width: 1024px) {
     .admin-sidebar {
-        position: fixed;
-        top: 0;
-        left: 0;
         transform: translateX(-100%);
     }
 
@@ -262,6 +256,10 @@
 
     .admin-menu-toggle {
         display: block;
+    }
+
+    .admin-main {
+        margin-left: 0;
     }
 
     .admin-content {
