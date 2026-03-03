@@ -231,102 +231,8 @@
             <p>Configure pricing multipliers for different seasons throughout the year</p>
         </div>
         
-        <div class="rates-grid">
-            <div class="rate-card summer">
-                <h3>Summer Peak</h3>
-                <div class="dates">December 15 - February 15</div>
-                <span class="status active">Active</span>
-                <table class="price-table">
-                    <tr>
-                        <td>Dome Pinot</td>
-                        <td>$350/night (+19%)</td>
-                    </tr>
-                    <tr>
-                        <td>Dome Rose</td>
-                        <td>$350/night (+19%)</td>
-                    </tr>
-                    <tr>
-                        <td>Lakeside Cottage</td>
-                        <td>$300/night (+22%)</td>
-                    </tr>
-                </table>
-                <div class="button-group">
-                    <button class="btn btn-primary" onclick="editSeason('summer')">Edit</button>
-                    <button class="btn btn-secondary" onclick="toggleSeason('summer')">Deactivate</button>
-                </div>
-            </div>
-            
-            <div class="rate-card autumn">
-                <h3>Autumn Wine Season</h3>
-                <div class="dates">March 1 - May 31</div>
-                <span class="status upcoming">Upcoming</span>
-                <table class="price-table">
-                    <tr>
-                        <td>Dome Pinot</td>
-                        <td>$325/night (+10%)</td>
-                    </tr>
-                    <tr>
-                        <td>Dome Rose</td>
-                        <td>$325/night (+10%)</td>
-                    </tr>
-                    <tr>
-                        <td>Lakeside Cottage</td>
-                        <td>$275/night (+12%)</td>
-                    </tr>
-                </table>
-                <div class="button-group">
-                    <button class="btn btn-primary" onclick="editSeason('autumn')">Edit</button>
-                    <button class="btn btn-secondary" onclick="toggleSeason('autumn')">Deactivate</button>
-                </div>
-            </div>
-            
-            <div class="rate-card winter">
-                <h3>Winter Special</h3>
-                <div class="dates">June 1 - August 31</div>
-                <span class="status inactive">Inactive</span>
-                <table class="price-table">
-                    <tr>
-                        <td>Dome Pinot</td>
-                        <td>$250/night (-15%)</td>
-                    </tr>
-                    <tr>
-                        <td>Dome Rose</td>
-                        <td>$250/night (-15%)</td>
-                    </tr>
-                    <tr>
-                        <td>Lakeside Cottage</td>
-                        <td>$200/night (-18%)</td>
-                    </tr>
-                </table>
-                <div class="button-group">
-                    <button class="btn btn-primary" onclick="editSeason('winter')">Edit</button>
-                    <button class="btn btn-success" onclick="toggleSeason('winter')">Activate</button>
-                </div>
-            </div>
-            
-            <div class="rate-card spring">
-                <h3>Spring Peak</h3>
-                <div class="dates">September 15 - November 30</div>
-                <span class="status upcoming">Upcoming</span>
-                <table class="price-table">
-                    <tr>
-                        <td>Dome Pinot</td>
-                        <td>$325/night (+10%)</td>
-                    </tr>
-                    <tr>
-                        <td>Dome Rose</td>
-                        <td>$325/night (+10%)</td>
-                    </tr>
-                    <tr>
-                        <td>Lakeside Cottage</td>
-                        <td>$275/night (+12%)</td>
-                    </tr>
-                </table>
-                <div class="button-group">
-                    <button class="btn btn-primary" onclick="editSeason('spring')">Edit</button>
-                    <button class="btn btn-secondary" onclick="toggleSeason('spring')">Deactivate</button>
-                </div>
-            </div>
+        <div class="rates-grid" id="ratesGrid">
+            <div style="text-align:center; padding:2rem; color:#666;">Loading seasonal rates...</div>
         </div>
         
         <div class="add-season-card">
@@ -376,17 +282,107 @@
             setTimeout(() => { alertBox.innerHTML = ''; }, 3000);
         }
 
+        // Base prices for calculating adjusted rates
+        const basePrices = { 'Dome Pinot': 530, 'Dome Rosé': 510, 'Lakeside Cottage': 295 };
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '';
+            const d = new Date(dateStr);
+            return d.toLocaleDateString('en-NZ', { month: 'short', day: 'numeric' });
+        }
+
+        function getSeasonStatus(rate) {
+            const now = new Date();
+            const start = new Date(rate.start_date);
+            const end = new Date(rate.end_date);
+            if (!rate.is_active) return { label: 'Inactive', cls: 'inactive' };
+            if (now >= start && now <= end) return { label: 'Active', cls: 'active' };
+            if (now < start) return { label: 'Upcoming', cls: 'upcoming' };
+            return { label: 'Expired', cls: 'inactive' };
+        }
+
+        function getSeasonColor(name) {
+            const n = (name || '').toLowerCase();
+            if (n.includes('summer') || n.includes('peak') || n.includes('holiday')) return 'summer';
+            if (n.includes('autumn') || n.includes('fall') || n.includes('harvest')) return 'autumn';
+            if (n.includes('winter') || n.includes('cozy')) return 'winter';
+            if (n.includes('spring')) return 'spring';
+            return 'summer';
+        }
+
+        function renderRates(rates) {
+            const grid = document.getElementById('ratesGrid');
+            if (!rates || rates.length === 0) {
+                grid.innerHTML = '<div style="text-align:center;padding:2rem;color:#666;">No seasonal rates configured. Add one below.</div>';
+                return;
+            }
+            grid.innerHTML = rates.map(rate => {
+                const status = getSeasonStatus(rate);
+                const color = getSeasonColor(rate.name);
+                const multiplier = parseFloat(rate.multiplier) || 1;
+                const pctChange = Math.round((multiplier - 1) * 100);
+                const pctLabel = pctChange >= 0 ? `+${pctChange}%` : `${pctChange}%`;
+                const priceRows = Object.entries(basePrices).map(([name, base]) => {
+                    const adjusted = Math.round(base * multiplier);
+                    return `<tr><td>${name}</td><td>$${adjusted}/night (${pctLabel})</td></tr>`;
+                }).join('');
+                const toggleLabel = rate.is_active ? 'Deactivate' : 'Activate';
+                const toggleBtn = rate.is_active
+                    ? `<button class="btn btn-secondary" onclick="toggleSeason(${rate.id})">Deactivate</button>`
+                    : `<button class="btn btn-success" onclick="toggleSeason(${rate.id})">Activate</button>`;
+                return `
+                    <div class="rate-card ${color}">
+                        <h3>${escapeHtml(rate.name)}</h3>
+                        <div class="dates">${formatDate(rate.start_date)} – ${formatDate(rate.end_date)}</div>
+                        <span class="status ${status.cls}">${status.label}</span>
+                        <div style="margin:0.5rem 0;font-size:0.9rem;color:#666;">Multiplier: <strong>${multiplier}x</strong></div>
+                        <table class="price-table">${priceRows}</table>
+                        <div class="button-group">
+                            <button class="btn btn-primary" onclick="editSeason(${rate.id})">Edit</button>
+                            ${toggleBtn}
+                            <button class="btn btn-danger" onclick="deleteSeason(${rate.id})">Delete</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
         async function loadSeasonalRates() {
             try {
                 const response = await fetch('/api/admin/seasonal-rates', {
                     credentials: 'same-origin'
                 });
                 const data = await response.json();
-                if (data.success && data.rates.length > 0) {
-                    console.log('Loaded seasonal rates:', data.rates);
+                if (data.success) {
+                    renderRates(data.rates || []);
+                } else {
+                    document.getElementById('ratesGrid').innerHTML = '<div style="text-align:center;padding:2rem;color:#dc3545;">Failed to load rates</div>';
                 }
             } catch (error) {
                 console.error('Error loading seasonal rates:', error);
+                document.getElementById('ratesGrid').innerHTML = '<div style="text-align:center;padding:2rem;color:#dc3545;">Error loading rates</div>';
+            }
+        }
+
+        async function deleteSeason(id) {
+            if (!confirm('Are you sure you want to delete this seasonal rate?')) return;
+            try {
+                const csrfRes = await fetch('/api/csrf-token', { credentials: 'same-origin' });
+                const csrfData = await csrfRes.json();
+                const response = await fetch('/api/admin/seasonal-rates/' + id, {
+                    method: 'DELETE',
+                    headers: { 'X-CSRF-Token': csrfData.csrfToken },
+                    credentials: 'same-origin'
+                });
+                const data = await response.json();
+                if (data.success) {
+                    showAlert('Season deleted successfully');
+                    loadSeasonalRates();
+                } else {
+                    showAlert(data.error || 'Failed to delete', 'error');
+                }
+            } catch (err) {
+                showAlert('Error: ' + err.message, 'error');
             }
         }
 
@@ -394,8 +390,8 @@
             try {
                 const ratesRes = await fetch('/api/admin/seasonal-rates', { credentials: 'same-origin' });
                 const ratesData = await ratesRes.json();
-                const rate = ratesData.rates.find(r => r.id === id);
-                if (!rate) { adminShell.showAlert('Rate not found', 'error'); return; }
+                const rate = ratesData.rates.find(r => r.id == id);
+                if (!rate) { showAlert('Rate not found', 'error'); return; }
 
                 const name = prompt('Season name:', rate.name);
                 if (!name) return;
@@ -419,13 +415,13 @@
                 });
                 const data = await response.json();
                 if (data.success) {
-                    adminShell.showAlert('Season updated successfully', 'success');
+                    showAlert('Season updated successfully');
                     loadSeasonalRates();
                 } else {
-                    adminShell.showAlert('Failed to update: ' + (data.error || 'Unknown error'), 'error');
+                    showAlert('Failed to update: ' + (data.error || 'Unknown error'), 'error');
                 }
             } catch (err) {
-                adminShell.showAlert('Error: ' + err.message, 'error');
+                showAlert('Error: ' + err.message, 'error');
             }
         }
 
@@ -433,8 +429,8 @@
             try {
                 const ratesRes = await fetch('/api/admin/seasonal-rates', { credentials: 'same-origin' });
                 const ratesData = await ratesRes.json();
-                const rate = ratesData.rates.find(r => r.id === id);
-                if (!rate) { adminShell.showAlert('Rate not found', 'error'); return; }
+                const rate = ratesData.rates.find(r => r.id == id);
+                if (!rate) { showAlert('Rate not found', 'error'); return; }
 
                 const csrfRes = await fetch('/api/csrf-token', { credentials: 'same-origin' });
                 const csrfData = await csrfRes.json();
@@ -449,13 +445,13 @@
                 });
                 const data = await response.json();
                 if (data.success) {
-                    adminShell.showAlert('Season ' + (rate.is_active ? 'deactivated' : 'activated'), 'success');
+                    showAlert('Season ' + (rate.is_active ? 'deactivated' : 'activated'));
                     loadSeasonalRates();
                 } else {
-                    adminShell.showAlert('Failed to toggle: ' + (data.error || 'Unknown error'), 'error');
+                    showAlert('Failed to toggle: ' + (data.error || 'Unknown error'), 'error');
                 }
             } catch (err) {
-                adminShell.showAlert('Error: ' + err.message, 'error');
+                showAlert('Error: ' + err.message, 'error');
             }
         }
 
@@ -472,16 +468,19 @@
             }
             
             try {
+                const csrfRes = await fetch('/api/csrf-token', { credentials: 'same-origin' });
+                const csrfData = await csrfRes.json();
                 const response = await fetch('/api/admin/seasonal-rates', {
                     method: 'POST',
                     credentials: 'same-origin',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfData.csrfToken },
                     body: JSON.stringify({ name, start_date: startDate, end_date: endDate, multiplier, is_active: true })
                 });
                 const data = await response.json();
                 if (data.success) {
                     showAlert(`Season "${name}" added successfully!`);
                     this.reset();
+                    loadSeasonalRates();
                 } else {
                     showAlert(data.error || 'Failed to add season', 'error');
                 }

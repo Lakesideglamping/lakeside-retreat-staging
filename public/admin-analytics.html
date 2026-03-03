@@ -682,15 +682,53 @@
             }).join('');
         }
 
-        // Load Occupancy Calendar
-        function loadOccupancyCalendar() {
+        // Load Occupancy Calendar using real booking data
+        async function loadOccupancyCalendar() {
             const calendar = document.getElementById('occupancyCalendar');
-            const daysInMonth = 31;
-            const firstDay = 3; // Wednesday
-            
+            calendar.innerHTML = '';
+
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = now.getMonth(); // 0-indexed
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const firstDay = new Date(year, month, 1).getDay(); // 0=Sun
+
+            // Fetch real bookings to calculate occupancy
+            let bookings = [];
+            try {
+                const res = await fetch('/api/admin/bookings?limit=200', { credentials: 'same-origin' });
+                const data = await res.json();
+                if (data.success && data.bookings) {
+                    bookings = data.bookings;
+                } else if (data.success && Array.isArray(data)) {
+                    bookings = data;
+                }
+            } catch (e) {
+                console.error('Failed to fetch bookings for calendar:', e);
+            }
+
+            // Build a map: day number → set of booked accommodations
+            const dayOccupancy = {};
+            for (let d = 1; d <= daysInMonth; d++) dayOccupancy[d] = new Set();
+
+            bookings.forEach(b => {
+                const checkIn = new Date(b.check_in);
+                const checkOut = new Date(b.check_out);
+                const status = (b.status || '').toLowerCase();
+                if (status === 'cancelled') return;
+
+                for (let d = 1; d <= daysInMonth; d++) {
+                    const dayDate = new Date(year, month, d);
+                    if (dayDate >= checkIn && dayDate < checkOut) {
+                        dayOccupancy[d].add(b.accommodation || 'unknown');
+                    }
+                }
+            });
+
+            const totalProperties = 3; // Dome Pinot, Dome Rosé, Lakeside Cottage
+
             // Add day headers
-            const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-            dayHeaders.forEach(day => {
+            ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].forEach(day => {
                 const header = document.createElement('div');
                 header.style.textAlign = 'center';
                 header.style.fontWeight = 'bold';
@@ -698,37 +736,30 @@
                 header.textContent = day;
                 calendar.appendChild(header);
             });
-            
+
             // Add empty cells for days before month starts
             for (let i = 0; i < firstDay; i++) {
                 const emptyDay = document.createElement('div');
                 emptyDay.className = 'calendar-day empty';
                 calendar.appendChild(emptyDay);
             }
-            
-            // Add days of month
+
+            // Add days of month with real occupancy
             for (let day = 1; day <= daysInMonth; day++) {
-                const dayElement = document.createElement('div');
-                
-                // Random occupancy for demo
-                const booked = Math.random();
+                const bookedCount = dayOccupancy[day].size;
                 let className = 'available';
-                let bookedCount = 0;
-                
-                if (booked > 0.7) {
+                if (bookedCount >= totalProperties) {
                     className = 'booked';
-                    bookedCount = 3;
-                } else if (booked > 0.4) {
+                } else if (bookedCount > 0) {
                     className = 'partial';
-                    bookedCount = Math.floor(Math.random() * 2) + 1;
                 }
-                
+
+                const dayElement = document.createElement('div');
                 dayElement.className = `calendar-day ${className}`;
                 dayElement.innerHTML = `
                     <div class="calendar-day-number">${day}</div>
-                    <div class="calendar-day-count">${bookedCount}/3</div>
+                    <div class="calendar-day-count">${bookedCount}/${totalProperties}</div>
                 `;
-                
                 calendar.appendChild(dayElement);
             }
         }

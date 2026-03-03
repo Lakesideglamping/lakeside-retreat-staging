@@ -865,6 +865,40 @@
             }
         }
 
+        async function viewDraft(draftId) {
+            try {
+                const data = await apiCall('/api/admin/marketing/social-drafts');
+                if (data.success && data.drafts) {
+                    const draft = data.drafts.find(d => d.id === draftId);
+                    if (draft) {
+                        const modal = document.createElement('div');
+                        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;';
+                        modal.innerHTML = `
+                            <div style="background:white;border-radius:12px;padding:2rem;max-width:600px;width:90%;max-height:80vh;overflow-y:auto;">
+                                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                                    <h3 style="color:#2d5a5a;">Draft Preview</h3>
+                                    <button onclick="this.closest('div[style*=fixed]').remove()" style="background:none;border:none;font-size:1.5rem;cursor:pointer;">&times;</button>
+                                </div>
+                                <p><strong>Platform:</strong> ${escapeHtml(draft.platform)}</p>
+                                <p><strong>Status:</strong> ${escapeHtml(draft.status)}</p>
+                                <p><strong>Created:</strong> ${new Date(draft.created_at).toLocaleString()}</p>
+                                <hr style="margin:1rem 0;">
+                                <p><strong>Caption:</strong></p>
+                                <p style="white-space:pre-wrap;background:#f8f9fa;padding:1rem;border-radius:4px;">${escapeHtml(draft.generated_caption)}</p>
+                                ${draft.hashtags ? `<p style="margin-top:0.5rem;color:#17a2b8;">${escapeHtml(draft.hashtags)}</p>` : ''}
+                            </div>
+                        `;
+                        modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+                        document.body.appendChild(modal);
+                    } else {
+                        showAlert('Draft not found', 'error');
+                    }
+                }
+            } catch (error) {
+                showAlert('Failed to load draft', 'error');
+            }
+        }
+
         async function markPosted(draftId) {
             try {
                 const data = await apiCall(`/api/admin/marketing/social-drafts/${draftId}`, {

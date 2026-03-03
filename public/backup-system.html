@@ -347,11 +347,11 @@
             <h3>Backup Status</h3>
             <div class="status-grid">
                 <div class="status-item success">
-                    <div class="number">12</div>
+                    <div class="number" id="totalBackups">—</div>
                     <div class="label">Total Backups</div>
                 </div>
                 <div class="status-item">
-                    <div class="number">2.4 GB</div>
+                    <div class="number" id="storageUsed">—</div>
                     <div class="label">Storage Used</div>
                 </div>
                 <div class="status-item success">
@@ -363,12 +363,10 @@
                     <div class="label">Days Retained</div>
                 </div>
             </div>
-            <div class="last-backup">
+            <div class="last-backup" id="lastBackupInfo">
                 <span class="icon">&#10003;</span>
                 <div>
-                    <strong>Last Backup:</strong> January 5, 2026 at 2:00 AM (Automatic)
-                    <br>
-                    <small>Full system backup completed successfully - 245 MB</small>
+                    <strong>Last Backup:</strong> <span id="lastBackupDate">Loading...</span>
                 </div>
             </div>
         </div>
@@ -386,106 +384,8 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td>
-                            <strong>Jan 5, 2026 02:00 AM</strong>
-                            <br><small>Automatic</small>
-                        </td>
-                        <td><span class="backup-type type-full">Full</span></td>
-                        <td>245 MB</td>
-                        <td>
-                            <div class="backup-status">
-                                <span class="status-dot success"></span>
-                                Completed
-                            </div>
-                        </td>
-                        <td>
-                            <div class="action-buttons">
-                                <button class="btn btn-secondary btn-sm" onclick="downloadBackup(1)">Download</button>
-                                <button class="btn btn-success btn-sm" onclick="restoreBackup(1)">Restore</button>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <strong>Jan 4, 2026 02:00 AM</strong>
-                            <br><small>Automatic</small>
-                        </td>
-                        <td><span class="backup-type type-full">Full</span></td>
-                        <td>243 MB</td>
-                        <td>
-                            <div class="backup-status">
-                                <span class="status-dot success"></span>
-                                Completed
-                            </div>
-                        </td>
-                        <td>
-                            <div class="action-buttons">
-                                <button class="btn btn-secondary btn-sm" onclick="downloadBackup(2)">Download</button>
-                                <button class="btn btn-success btn-sm" onclick="restoreBackup(2)">Restore</button>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <strong>Jan 3, 2026 02:00 AM</strong>
-                            <br><small>Automatic</small>
-                        </td>
-                        <td><span class="backup-type type-database">Database</span></td>
-                        <td>12 MB</td>
-                        <td>
-                            <div class="backup-status">
-                                <span class="status-dot success"></span>
-                                Completed
-                            </div>
-                        </td>
-                        <td>
-                            <div class="action-buttons">
-                                <button class="btn btn-secondary btn-sm" onclick="downloadBackup(3)">Download</button>
-                                <button class="btn btn-success btn-sm" onclick="restoreBackup(3)">Restore</button>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <strong>Jan 2, 2026 02:00 AM</strong>
-                            <br><small>Automatic</small>
-                        </td>
-                        <td><span class="backup-type type-full">Full</span></td>
-                        <td>241 MB</td>
-                        <td>
-                            <div class="backup-status">
-                                <span class="status-dot success"></span>
-                                Completed
-                            </div>
-                        </td>
-                        <td>
-                            <div class="action-buttons">
-                                <button class="btn btn-secondary btn-sm" onclick="downloadBackup(4)">Download</button>
-                                <button class="btn btn-success btn-sm" onclick="restoreBackup(4)">Restore</button>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <strong>Jan 1, 2026 03:15 PM</strong>
-                            <br><small>Manual</small>
-                        </td>
-                        <td><span class="backup-type type-incremental">Incremental</span></td>
-                        <td>45 MB</td>
-                        <td>
-                            <div class="backup-status">
-                                <span class="status-dot success"></span>
-                                Completed
-                            </div>
-                        </td>
-                        <td>
-                            <div class="action-buttons">
-                                <button class="btn btn-secondary btn-sm" onclick="downloadBackup(5)">Download</button>
-                                <button class="btn btn-success btn-sm" onclick="restoreBackup(5)">Restore</button>
-                            </div>
-                        </td>
-                    </tr>
+                    <tr><td colspan="5" style="text-align:center;padding:2rem;color:#666;">Loading backups...</td></tr>
+                <!-- Rendered dynamically by loadBackups() -->
                 </tbody>
             </table>
         </div>
@@ -569,10 +469,16 @@
                 });
                 const data = await response.json();
                 if (data.success) {
-                    renderBackups(data.backups);
+                    renderBackups(data.backups || []);
                     if (data.stats) {
-                        document.querySelectorAll('.status-item .number')[0].textContent = data.stats.total;
-                        document.querySelectorAll('.status-item .number')[1].textContent = data.stats.storage_used_mb + ' MB';
+                        document.getElementById('totalBackups').textContent = data.stats.total || 0;
+                        document.getElementById('storageUsed').textContent = (data.stats.storage_used_mb || 0) + ' MB';
+                    }
+                    // Update last backup info
+                    if (data.backups && data.backups.length > 0) {
+                        const latest = data.backups[0];
+                        document.getElementById('lastBackupDate').textContent =
+                            new Date(latest.created_at).toLocaleString() + ' — ' + (latest.size > 1024 ? (latest.size / 1024).toFixed(1) + ' MB' : latest.size + ' KB');
                     }
                 }
             } catch (error) {
@@ -586,25 +492,32 @@
                 tbody.innerHTML = '<tr><td colspan="5">No backups found</td></tr>';
                 return;
             }
-            tbody.innerHTML = backups.slice(0, 10).map(backup => `
+            tbody.innerHTML = backups.slice(0, 10).map(backup => {
+                const sizeStr = backup.size > 1024 ? (backup.size / 1024).toFixed(1) + ' MB' : backup.size + ' KB';
+                const fname = escapeHtml(backup.filename);
+                return `
                 <tr>
-                    <td><strong>${new Date(backup.created_at).toLocaleString()}</strong><br><small>Automatic</small></td>
-                    <td><span class="backup-type type-${escapeHtml(backup.type)}">${escapeHtml(backup.type)}</span></td>
-                    <td>${backup.size} KB</td>
+                    <td><strong>${new Date(backup.created_at).toLocaleString()}</strong><br><small>${escapeHtml(backup.type || 'Automatic')}</small></td>
+                    <td><span class="backup-type type-${escapeHtml(backup.type || 'full')}">${escapeHtml(backup.type || 'full')}</span></td>
+                    <td>${sizeStr}</td>
                     <td><div class="backup-status"><span class="status-dot success"></span>Completed</div></td>
                     <td><div class="action-buttons">
-                        <button class="btn btn-secondary btn-sm" onclick="downloadBackup('${escapeHtml(backup.filename)}')">Download</button>
+                        <button class="btn btn-secondary btn-sm" onclick="downloadBackup('${fname}')">Download</button>
+                        <button class="btn btn-success btn-sm" onclick="restoreBackup('${fname}')">Restore</button>
                     </div></td>
-                </tr>
-            `).join('');
+                </tr>`;
+            }).join('');
         }
 
         async function createBackup() {
             showAlert('Creating backup... This may take a few minutes.', 'info');
             try {
+                const csrfRes = await fetch('/api/csrf-token', { credentials: 'same-origin' });
+                const csrfData = await csrfRes.json();
                 const response = await fetch('/api/admin/backups', {
                     method: 'POST',
-                    credentials: 'same-origin'
+                    credentials: 'same-origin',
+                    headers: { 'X-CSRF-Token': csrfData.csrfToken }
                 });
                 const data = await response.json();
                 if (data.success) {

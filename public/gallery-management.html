@@ -239,24 +239,25 @@
         <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
             <h3>Drop images here or click to upload</h3>
             <p>Supports JPG, PNG, WebP (max 10MB each)</p>
+            <p style="color:#856404;font-size:0.85rem;margin-top:0.5rem;">⚠️ Upload requires server configuration — add images via SFTP for now</p>
             <input type="file" id="fileInput" multiple accept="image/*">
         </div>
         
         <div class="stats-bar">
             <div class="stat-item">
-                <div class="number">24</div>
+                <div class="stat-value number">—</div>
                 <div class="label">Total Images</div>
             </div>
             <div class="stat-item">
-                <div class="number">3</div>
+                <div class="number" id="heroCount">—</div>
                 <div class="label">Hero Images</div>
             </div>
             <div class="stat-item">
-                <div class="number">8</div>
+                <div class="number" id="featuredCount">—</div>
                 <div class="label">Featured</div>
             </div>
             <div class="stat-item">
-                <div class="number">156 MB</div>
+                <div class="number" id="storageUsed">—</div>
                 <div class="label">Storage Used</div>
             </div>
         </div>
@@ -270,81 +271,8 @@
         </div>
         
         <div class="gallery-grid">
-            <div class="gallery-item">
-                <span class="badge badge-hero">Hero</span>
-                <img src="/images/dome-pinot-hero.jpeg" alt="Dome Pinot Exterior" onerror="this.src='https://placehold.co/400x300/2d5a5a/white?text=Dome+Pinot'">
-                <div class="gallery-item-info">
-                    <h4>Dome Pinot - Exterior View</h4>
-                    <p>Dome Pinot | 1.2 MB</p>
-                </div>
-                <div class="gallery-item-actions">
-                    <button class="btn btn-secondary btn-sm" onclick="editImage(1)">Edit</button>
-                    <button class="btn btn-danger btn-sm" onclick="deleteImage(1)">Delete</button>
-                </div>
-            </div>
+            <div style="grid-column:1/-1;text-align:center;padding:2rem;color:#666;">Loading gallery images...</div>
             
-            <div class="gallery-item">
-                <span class="badge badge-featured">Featured</span>
-                <img src="/images/dome-pinot-interior.jpg" alt="Dome Pinot Interior" onerror="this.src='https://placehold.co/400x300/2d5a5a/white?text=Interior'">
-                <div class="gallery-item-info">
-                    <h4>Dome Pinot - Interior</h4>
-                    <p>Dome Pinot | 980 KB</p>
-                </div>
-                <div class="gallery-item-actions">
-                    <button class="btn btn-secondary btn-sm" onclick="editImage(2)">Edit</button>
-                    <button class="btn btn-danger btn-sm" onclick="deleteImage(2)">Delete</button>
-                </div>
-            </div>
-            
-            <div class="gallery-item">
-                <span class="badge badge-hero">Hero</span>
-                <img src="/images/dome-rose.jpeg" alt="Dome Rose Exterior" onerror="this.src='https://placehold.co/400x300/c44569/white?text=Dome+Rose'">
-                <div class="gallery-item-info">
-                    <h4>Dome Rose - Exterior View</h4>
-                    <p>Dome Rose | 1.1 MB</p>
-                </div>
-                <div class="gallery-item-actions">
-                    <button class="btn btn-secondary btn-sm" onclick="editImage(3)">Edit</button>
-                    <button class="btn btn-danger btn-sm" onclick="deleteImage(3)">Delete</button>
-                </div>
-            </div>
-            
-            <div class="gallery-item">
-                <img src="/images/cottage.jpg" alt="Lakeside Cottage" onerror="this.src='https://placehold.co/400x300/546e7a/white?text=Cottage'">
-                <div class="gallery-item-info">
-                    <h4>Lakeside Cottage - Exterior</h4>
-                    <p>Lakeside Cottage | 1.4 MB</p>
-                </div>
-                <div class="gallery-item-actions">
-                    <button class="btn btn-secondary btn-sm" onclick="editImage(4)">Edit</button>
-                    <button class="btn btn-danger btn-sm" onclick="deleteImage(4)">Delete</button>
-                </div>
-            </div>
-            
-            <div class="gallery-item">
-                <span class="badge badge-featured">Featured</span>
-                <img src="/images/lakeview.jpeg" alt="Lake View" onerror="this.src='https://placehold.co/400x300/1e88e5/white?text=Lake+View'">
-                <div class="gallery-item-info">
-                    <h4>Lake Dunstan View</h4>
-                    <p>Grounds & Views | 2.1 MB</p>
-                </div>
-                <div class="gallery-item-actions">
-                    <button class="btn btn-secondary btn-sm" onclick="editImage(5)">Edit</button>
-                    <button class="btn btn-danger btn-sm" onclick="deleteImage(5)">Delete</button>
-                </div>
-            </div>
-            
-            <div class="gallery-item">
-                <img src="/images/vineyard.jpeg" alt="Vineyard" onerror="this.src='https://placehold.co/400x300/7cb342/white?text=Vineyard'">
-                <div class="gallery-item-info">
-                    <h4>Vineyard Surroundings</h4>
-                    <p>Grounds & Views | 1.8 MB</p>
-                </div>
-                <div class="gallery-item-actions">
-                    <button class="btn btn-secondary btn-sm" onclick="editImage(6)">Edit</button>
-                    <button class="btn btn-danger btn-sm" onclick="deleteImage(6)">Delete</button>
-                </div>
-            </div>
         </div>
     </div>
 
@@ -371,12 +299,23 @@
                 });
                 const data = await response.json();
                 if (data.success) {
-                    galleryImages = data.images;
+                    galleryImages = data.images || [];
                     renderGallery(galleryImages);
-                    document.querySelector('.stat-value').textContent = data.total;
+                    // Update stats from real data
+                    document.querySelector('.stat-value').textContent = data.total || galleryImages.length;
+                    const heroCount = galleryImages.filter(img => img.is_hero).length;
+                    const featuredCount = galleryImages.filter(img => img.is_featured).length;
+                    document.getElementById('heroCount').textContent = heroCount;
+                    document.getElementById('featuredCount').textContent = featuredCount;
+                    if (data.storage_used_mb !== undefined) {
+                        document.getElementById('storageUsed').textContent = data.storage_used_mb + ' MB';
+                    }
+                } else {
+                    document.querySelector('.gallery-grid').innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:2rem;color:#dc3545;">Failed to load gallery</div>';
                 }
             } catch (error) {
                 console.error('Error loading gallery:', error);
+                document.querySelector('.gallery-grid').innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:2rem;color:#dc3545;">Error loading gallery</div>';
             }
         }
 
