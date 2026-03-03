@@ -94,7 +94,7 @@ router.get('/api/admin/bookings', verifyAdmin, (req, res) => {
     `;
 
     const params = [];
-    const conditions = [];
+    const conditions = ['deleted_at IS NULL'];
 
     if (req.query.source) {
         conditions.push('booking_source = ?');
@@ -479,26 +479,30 @@ router.put('/api/admin/booking/:id/status', verifyAdmin, verifyCsrf, [
     }
 });
 
-// Delete booking (admin only)
+// Soft-delete booking (admin only) — sets deleted_at instead of removing the row
 router.delete('/api/admin/booking/:id', verifyAdmin, verifyCsrf, adminDestructiveLimiter, (req, res) => {
     const bookingId = req.params.id;
-    
-    db().run('DELETE FROM bookings WHERE id = ?', [bookingId], function(err) {
-        if (err) {
-            return sendError(res, 500, ERROR_CODES.DATABASE_ERROR, 'Database error');
-        }
-        
-        if (this.changes === 0) {
-            return sendError(res, 404, ERROR_CODES.BOOKING_NOT_FOUND, 'Booking not found');
-        }
 
-        auditLog(req.admin?.username || 'unknown', 'delete_booking', { bookingId });
+    db().run(
+        'UPDATE bookings SET deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND deleted_at IS NULL',
+        [bookingId],
+        function(err) {
+            if (err) {
+                return sendError(res, 500, ERROR_CODES.DATABASE_ERROR, 'Database error');
+            }
 
-        res.json({
-            success: true,
-            message: 'Booking deleted'
-        });
-    });
+            if (this.changes === 0) {
+                return sendError(res, 404, ERROR_CODES.BOOKING_NOT_FOUND, 'Booking not found');
+            }
+
+            auditLog(req.admin?.username || 'unknown', 'delete_booking', { bookingId });
+
+            res.json({
+                success: true,
+                message: 'Booking deleted'
+            });
+        }
+    );
 });
 
 // Get booking statistics (admin only)
@@ -506,13 +510,14 @@ router.get('/api/admin/stats', verifyAdmin, (req, res) => {
     // Combined into a single query (was 5 separate queries)
     // See EFFICIENCY_REPORT.md - Issue #2
     const sql = `
-        SELECT 
+        SELECT
             COUNT(*) as total_bookings,
             COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_bookings,
             COUNT(CASE WHEN status = 'confirmed' THEN 1 END) as confirmed_bookings,
             COALESCE(SUM(CASE WHEN payment_status = 'completed' THEN total_price ELSE 0 END), 0) as total_revenue,
             COUNT(CASE WHEN DATE(created_at) = DATE('now') THEN 1 END) as today_bookings
         FROM bookings
+        WHERE deleted_at IS NULL
     `;
     
     db().get(sql, (err, stats) => {
@@ -604,7 +609,7 @@ router.get('/api/admin/stripe-payment/:sessionId', verifyAdmin, async (req, res)
         logger.error('Error fetching Stripe details', { error: error.message });
         res.status(500).json({
             success: false,
-            error: error.message
+            error: 'Failed to fetch payment details'
         });
     }
 });
@@ -661,7 +666,7 @@ router.get('/api/admin/uplisting-booking/:bookingId', verifyAdmin, async (req, r
         logger.error('Error fetching Uplisting details', { error: error.message });
         res.status(500).json({
             success: false,
-            error: error.message
+            error: 'Failed to fetch booking details from Uplisting'
         });
     }
 });
@@ -747,7 +752,7 @@ router.post('/api/admin/refund/:bookingId', verifyAdmin, verifyCsrf, adminDestru
         logger.error('Refund error', { error: error.message });
         res.status(500).json({
             success: false,
-            error: error.message
+            error: 'Failed to process refund'
         });
     }
 });
@@ -807,7 +812,7 @@ router.post('/api/admin/retry-sync/:bookingId', verifyAdmin, verifyCsrf, async (
         logger.error('Retry sync error', { error: error.message });
         res.status(500).json({
             success: false,
-            error: error.message
+            error: 'Failed to retry booking sync'
         });
     }
 });
@@ -825,12 +830,13 @@ router.get('/api/admin/booking-stats', verifyAdmin, (req, res) => {
             COUNT(CASE WHEN status = 'cancelled' THEN 1 END) as cancelled_bookings,
             COUNT(CASE WHEN uplisting_id IS NOT NULL THEN 1 END) as synced_bookings,
             SUM(CASE WHEN payment_status = 'completed' THEN total_price ELSE 0 END) as total_revenue
-        FROM bookings`,
+        FROM bookings WHERE deleted_at IS NULL`,
         (err, row) => {
             if (err) {
-                return res.status(500).json({ success: false, error: err.message });
+                logger.error('Booking stats overview error', { error: err.message });
+                return res.status(500).json({ success: false, error: 'Failed to load booking statistics' });
             }
-            
+
             stats.overview = row;
             
             // Get recent bookings with sync status
@@ -841,14 +847,16 @@ router.get('/api/admin/booking-stats', verifyAdmin, (req, res) => {
                     CASE WHEN stripe_session_id IS NOT NULL THEN 'Yes' ELSE 'No' END as stripe_connected,
                     CASE WHEN uplisting_id IS NOT NULL THEN 'Yes' ELSE 'No' END as uplisting_synced,
                     created_at
-                FROM bookings 
-                ORDER BY created_at DESC 
+                FROM bookings
+                WHERE deleted_at IS NULL
+                ORDER BY created_at DESC
                 LIMIT 10`,
                 (err, rows) => {
                     if (err) {
-                        return res.status(500).json({ success: false, error: err.message });
+                        logger.error('Booking stats recent error', { error: err.message });
+                        return res.status(500).json({ success: false, error: 'Failed to load recent bookings' });
                     }
-                    
+
                     stats.recent_bookings = rows;
                     
                     res.json({
@@ -1030,7 +1038,27 @@ router.post('/api/admin/release-deposit/:bookingId', verifyAdmin, verifyCsrf, ad
     }
 });
 
-router.post('/api/admin/bookings', verifyAdmin, verifyCsrf, async (req, res) => {
+router.post('/api/admin/bookings', verifyAdmin, verifyCsrf, [
+    body('guest_name').isLength({ min: 1, max: 200 }).trim().withMessage('Guest name is required (max 200 chars)'),
+    body('guest_email').isEmail().normalizeEmail().withMessage('Valid email is required'),
+    body('guest_phone').optional().isLength({ max: 50 }).trim(),
+    body('accommodation').isIn(['dome-pinot', 'dome-rose', 'lakeside-cottage']).withMessage('Valid accommodation is required'),
+    body('check_in').isISO8601().withMessage('Valid check-in date is required'),
+    body('check_out').isISO8601().withMessage('Valid check-out date is required'),
+    body('guests').optional().isInt({ min: 1, max: 10 }),
+    body('total_price').optional().isFloat({ min: 0 }),
+    body('payment_status').optional().isIn(['completed', 'pending', 'refunded']),
+    body('notes').optional().isLength({ max: 2000 }).trim()
+], async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({
+            success: false,
+            error: 'Validation failed',
+            details: errors.array().map(e => e.msg)
+        });
+    }
+
     try {
         const {
             guest_name,
@@ -1044,13 +1072,6 @@ router.post('/api/admin/bookings', verifyAdmin, verifyCsrf, async (req, res) => 
             payment_status,
             notes
         } = req.body;
-
-        if (!guest_name || !guest_email || !accommodation || !check_in || !check_out) {
-            return res.status(400).json({
-                success: false,
-                error: 'Missing required fields: guest_name, guest_email, accommodation, check_in, check_out'
-            });
-        }
 
         const bookingId = uuidv4();
         const sql = `

@@ -436,7 +436,7 @@
                 });
                 const data = await response.json();
                 if (data.success) {
-                    console.log('Loaded reviews:', data.reviews.length);
+                    // Reviews loaded successfully
                     if (data.stats) {
                         document.querySelectorAll('.stat-value')[0].textContent = data.stats.total;
                         document.querySelectorAll('.stat-value')[1].textContent = data.stats.average_rating;

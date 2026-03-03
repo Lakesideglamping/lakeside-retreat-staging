@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="/admin-shell.css?v=3">
     
     <!-- Chart.js for visualizations -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.js" integrity="sha384-hfkuqrKeWFmnTMWN31VWyoe8xgdTADD11kgxmdpx2uyE6j5Az5uZq6u6AKYYmAOw" crossorigin="anonymous"></script>
     
     <style>
         * {
@@ -767,14 +767,12 @@
         // Update functions
         function updateDateRange() {
             const range = document.getElementById('dateRange').value;
-            console.log('Date range changed to:', range);
             // Reload data based on new range
             fetchRealAnalytics(range);
         }
 
         function updateComparison() {
             const comparison = document.getElementById('compareWith').value;
-            console.log('Comparison changed to:', comparison);
             // Update comparison data
         }
 
@@ -786,28 +784,24 @@
             event.target.classList.add('active');
             
             // Update chart data based on view
-            console.log('Revenue view changed to:', view);
         }
 
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('Initializing Analytics Dashboard...');
-            
             // Load all components
             loadKPIs();
             
             // Ensure Chart.js is loaded before initializing
             if (typeof Chart !== 'undefined') {
                 initializeCharts();
-                console.log('Charts initialized');
             } else {
-                console.error('Chart.js not loaded! Trying fallback...');
                 // Try loading Chart.js again
                 const script = document.createElement('script');
-                script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+                script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.js';
+                script.integrity = 'sha384-hfkuqrKeWFmnTMWN31VWyoe8xgdTADD11kgxmdpx2uyE6j5Az5uZq6u6AKYYmAOw';
+                script.crossOrigin = 'anonymous';
                 script.onload = function() {
                     initializeCharts();
-                    console.log('Charts initialized after reload');
                 };
                 document.head.appendChild(script);
             }
@@ -837,7 +831,6 @@
                 let hasUplistingData = false;
                 if (uplistingResponse && uplistingResponse.ok) {
                     uplistingData = await uplistingResponse.json();
-                    console.log('Uplisting data:', uplistingData);
                     hasUplistingData = uplistingData && uplistingData.success;
                     
                     if (hasUplistingData) {
@@ -875,8 +868,6 @@
                 // Handle analytics data (prioritize real booking data over Uplisting placeholders)
                 if (analyticsResponse && analyticsResponse.ok) {
                     const result = await analyticsResponse.json();
-                    console.log('Real analytics data:', result);
-                    
                     // Update with real analytics data if available
                     if (result.data) {
                         // Update KPIs with real data
@@ -916,7 +907,7 @@
                 }
                 
             } catch (error) {
-                console.log('Using mock data - API not available:', error);
+                // API not available — dashboard will show default placeholder values
             }
         }
         

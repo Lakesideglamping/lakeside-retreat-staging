@@ -629,11 +629,11 @@
                             select.appendChild(option);
                         });
                         
-                        console.log(`✅ Loaded ${uplistingData.properties.length} Uplisting properties into filter`);
+                        // Uplisting properties loaded into filter
                     }
                 }
             } catch (error) {
-                console.log('Could not load Uplisting properties:', error);
+                // Uplisting properties unavailable — filter will use local data only
             }
         }
 
@@ -814,7 +814,7 @@
                     el.parentNode.insertBefore(refundRow, el.nextSibling);
                 }
             } catch (error) {
-                console.log('Could not load Stripe details:', error);
+                // Stripe details unavailable
                 const el = document.getElementById('stripeDetailsLoading');
                 if (el) {
                     el.innerHTML = '<span class="detail-label">Receipt</span><span class="detail-value" style="color:#999">Could not load Stripe details</span>';

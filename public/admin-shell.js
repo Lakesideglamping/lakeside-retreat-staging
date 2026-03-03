@@ -52,7 +52,8 @@
                 items: [
                     { id: 'bookings', label: 'Bookings', icon: '📅', href: '/admin-bookings.html' },
                     { id: 'calendar', label: 'Calendar', icon: '🗓️', href: '/admin-calendar.html' },
-                    { id: 'pricing', label: 'Pricing', icon: '💰', href: '/admin-pricing.html' }
+                    { id: 'pricing', label: 'Pricing', icon: '💰', href: '/admin-pricing.html' },
+                    { id: 'seasonal-rates', label: 'Seasonal Rates', icon: '📆', href: '/seasonal-rates.html' }
                 ]
             },
             {
@@ -67,6 +68,7 @@
                 title: 'Content',
                 items: [
                     { id: 'content', label: 'Website', icon: '📝', href: '/admin-content.html' },
+                    { id: 'gallery', label: 'Gallery', icon: '🖼️', href: '/gallery-management.html' },
                     { id: 'inbox', label: 'Inbox', icon: '📬', href: '/admin-inbox.html' }
                 ]
             },
@@ -74,7 +76,9 @@
                 title: 'System',
                 items: [
                     { id: 'notifications', label: 'Notifications', icon: '🔔', href: '/admin-notifications.html' },
-                    { id: 'security', label: 'Security', icon: '🔒', href: '/admin-security.html' }
+                    { id: 'security', label: 'Security', icon: '🔒', href: '/admin-security.html' },
+                    { id: 'settings', label: 'Settings', icon: '⚙️', href: '/system-settings.html' },
+                    { id: 'backups', label: 'Backups', icon: '💾', href: '/backup-system.html' }
                 ]
             }
         ]
@@ -89,13 +93,20 @@
             '/admin-bookings.html': 'bookings',
             '/admin-calendar.html': 'calendar',
             '/admin-pricing.html': 'pricing',
+            '/seasonal-rates.html': 'seasonal-rates',
             '/admin-marketing.html': 'marketing',
             '/admin-promotions.html': 'promotions',
             '/admin-reviews.html': 'reviews',
             '/admin-content.html': 'content',
+            '/gallery-management.html': 'gallery',
             '/admin-inbox.html': 'inbox',
             '/admin-notifications.html': 'notifications',
-            '/admin-security.html': 'security'
+            '/admin-security.html': 'security',
+            '/system-settings.html': 'settings',
+            '/backup-system.html': 'backups',
+            '/add-booking.html': 'bookings',
+            '/edit-booking.html': 'bookings',
+            '/review-responses.html': 'reviews'
         };
         return pageMap[path] || 'dashboard';
     }
@@ -108,13 +119,17 @@
             'bookings': 'Booking Management',
             'calendar': 'Calendar View',
             'pricing': 'Pricing & Rates',
+            'seasonal-rates': 'Seasonal Rates',
             'marketing': 'Marketing Automation',
             'promotions': 'Promotional Codes',
             'reviews': 'Reviews & Feedback',
             'content': 'Content Management',
+            'gallery': 'Gallery Management',
             'inbox': 'Admin Inbox',
             'notifications': 'Notifications',
-            'security': 'Security Settings'
+            'security': 'Security Settings',
+            'settings': 'System Settings',
+            'backups': 'Backup System'
         };
         return titles[pageId] || 'Admin';
     }
@@ -403,13 +418,17 @@
                     '/admin-bookings.html': 'bookings',
                     '/admin-calendar.html': 'calendar',
                     '/admin-pricing.html': 'pricing',
+                    '/seasonal-rates.html': 'seasonal-rates',
                     '/admin-marketing.html': 'marketing',
                     '/admin-promotions.html': 'promotions',
                     '/admin-reviews.html': 'reviews',
                     '/admin-content.html': 'content',
+                    '/gallery-management.html': 'gallery',
                     '/admin-inbox.html': 'inbox',
                     '/admin-notifications.html': 'notifications',
-                    '/admin-security.html': 'security'
+                    '/admin-security.html': 'security',
+                    '/system-settings.html': 'settings',
+                    '/backup-system.html': 'backups'
                 };
                 const linkPageId = pageMap[href];
                 if (linkPageId === currentPageId) {
