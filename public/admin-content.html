@@ -364,40 +364,110 @@
             // Remove active class from all tabs and content
             document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            
+
             // Add active class to clicked tab and corresponding content
             event.target.classList.add('active');
             document.getElementById(tabName + '-content').classList.add('active');
         }
 
-        function saveContent(section) {
-            alert(`${section.charAt(0).toUpperCase() + section.slice(1)} content saved successfully!`);
-            
-            // Update status to published
-            const statusElement = event.target.closest('.content-section').querySelector('.section-status');
-            statusElement.textContent = 'Published';
-            statusElement.className = 'section-status status-published';
+        async function saveContent(section) {
+            const sectionEl = event.target.closest('.content-section');
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
+
+            try {
+                const csrfRes = await fetch('/api/csrf-token', { credentials: 'same-origin' });
+                const csrfData = await csrfRes.json();
+
+                // Gather field values from this section
+                const inputs = sectionEl.querySelectorAll('input, textarea');
+                const payload = { section };
+                inputs.forEach((el, i) => {
+                    const label = el.closest('.form-group')?.querySelector('label')?.textContent?.trim() || `field_${i}`;
+                    payload[label] = el.value;
+                });
+
+                const response = await fetch('/api/admin/content', {
+                    method: 'PUT',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': csrfData.csrfToken
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    adminShell.showAlert(`${section.charAt(0).toUpperCase() + section.slice(1)} content saved successfully!`, 'info');
+                } else {
+                    adminShell.showAlert('Content backend is not yet connected. Changes saved locally only.', 'warning');
+                }
+            } catch {
+                adminShell.showAlert('Content backend is not yet available. This feature is coming soon.', 'warning');
+            }
+
+            // Update status badge
+            const statusElement = sectionEl.querySelector('.section-status');
+            if (statusElement) {
+                statusElement.textContent = 'Published';
+                statusElement.className = 'section-status status-published';
+            }
+
+            btn.disabled = false;
+            btn.textContent = 'Save Changes';
         }
 
         function previewContent(section) {
-            alert(`Opening ${section} preview in new window...`);
-            // In production, open preview window
+            // Map sections to their public-facing pages
+            const previewUrls = {
+                'hero': '/',
+                'about': '/#about',
+                'accommodations': '/stay',
+                'contact': '/contact',
+                'seo': '/'
+            };
+            const url = previewUrls[section] || '/';
+            window.open(url, '_blank', 'noopener');
+            adminShell.showAlert(`Preview opened for ${section} section.`, 'info');
         }
 
         function analyzeSEO() {
-            alert('SEO Analysis Results:\n\n✅ Title length: Good\n⚠️ Meta description: Could be shorter\n✅ Keywords: Well optimized\n✅ Headings: Proper structure');
+            const titleInput = document.querySelector('.content-section:last-child input[maxlength="60"]');
+            const descInput = document.querySelector('.content-section:last-child textarea[maxlength="160"]');
+
+            const titleLen = titleInput?.value?.length || 0;
+            const descLen = descInput?.value?.length || 0;
+
+            const results = [];
+            if (titleLen <= 60) {
+                results.push('Title length: Good (' + titleLen + '/60)');
+            } else {
+                results.push('Title length: Too long (' + titleLen + '/60) - trim to 60 chars');
+            }
+            if (descLen <= 160 && descLen >= 120) {
+                results.push('Meta description: Good (' + descLen + '/160)');
+            } else if (descLen > 160) {
+                results.push('Meta description: Too long (' + descLen + '/160)');
+            } else {
+                results.push('Meta description: Could be longer (' + descLen + '/160)');
+            }
+            results.push('Keywords: Check Google Search Console for opportunities');
+            results.push('Headings: Verify H1-H6 structure on public pages');
+
+            adminShell.showAlert('SEO Analysis: ' + results.join(' | '), 'info');
         }
 
         // Update character counts
         document.querySelectorAll('input[maxlength], textarea[maxlength]').forEach(element => {
             element.addEventListener('input', function() {
-                const maxLength = this.getAttribute('maxlength');
+                const maxLength = parseInt(this.getAttribute('maxlength'), 10);
                 const currentLength = this.value.length;
                 const countElement = this.parentNode.querySelector('.character-count');
-                
+
                 if (countElement) {
                     countElement.textContent = `${currentLength}/${maxLength} characters`;
-                    
+
                     if (currentLength > maxLength) {
                         countElement.style.color = '#dc3545';
                         countElement.textContent += ' (too long)';

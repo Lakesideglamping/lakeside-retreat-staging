@@ -703,47 +703,125 @@
             window.location.href = `/admin-bookings.html?view=${bookingId}`;
         }
 
-        function retryPayment(bookingId) {
-            alert(`Retry payment for booking #${bookingId} - Feature coming soon!`);
+        async function getCSRF() {
+            const r = await fetch('/api/csrf-token', { credentials: 'same-origin' });
+            const d = await r.json();
+            return d.csrfToken;
+        }
+
+        async function retryPayment(bookingId) {
+            if (!confirm('Retry payment processing for this booking?')) return;
+            try {
+                const csrf = await getCSRF();
+                const response = await fetch(`/api/admin/retry-sync/${bookingId}`, {
+                    method: 'POST', credentials: 'same-origin',
+                    headers: { 'X-CSRF-Token': csrf }
+                });
+                const data = await response.json();
+                if (response.ok && data.success) {
+                    adminShell.showAlert('Payment retry initiated', 'success');
+                    loadNotifications();
+                } else {
+                    adminShell.showAlert(data.error?.message || 'Failed to retry payment', 'danger');
+                }
+            } catch (error) {
+                adminShell.showAlert('Error retrying payment', 'danger');
+            }
         }
 
         async function retrySync(bookingId) {
             try {
+                const csrf = await getCSRF();
                 const response = await fetch(`/api/admin/retry-sync/${bookingId}`, {
-                    method: 'POST',
-                    credentials: 'same-origin'
+                    method: 'POST', credentials: 'same-origin',
+                    headers: { 'X-CSRF-Token': csrf }
                 });
-                
-                if (response.ok) {
-                    alert('Sync retry initiated successfully!');
+                const data = await response.json();
+                if (response.ok && data.success) {
+                    adminShell.showAlert('Booking synced to Uplisting successfully!', 'success');
                     loadNotifications();
                 } else {
-                    alert('Failed to retry sync. Please try again.');
+                    adminShell.showAlert(data.error?.message || data.message || 'Failed to retry sync', 'danger');
                 }
             } catch (error) {
-                console.error('Error retrying sync:', error);
-                alert('Error retrying sync. Please try again.');
+                adminShell.showAlert('Error retrying sync. Please try again.', 'danger');
             }
         }
 
-        function sendReminder(checkoutId) {
-            alert(`Send reminder for checkout #${checkoutId} - Feature coming soon!`);
+        async function sendReminder(bookingId) {
+            if (!confirm('Send abandoned checkout reminder email to this guest?')) return;
+            try {
+                const csrf = await getCSRF();
+                const response = await fetch(`/api/admin/marketing/send-reminder/${bookingId}`, {
+                    method: 'POST', credentials: 'same-origin',
+                    headers: { 'X-CSRF-Token': csrf }
+                });
+                const data = await response.json();
+                if (response.ok && data.success) {
+                    adminShell.showAlert('Reminder email sent!', 'success');
+                    loadNotifications();
+                } else {
+                    adminShell.showAlert(data.error?.message || 'Failed to send reminder', 'danger');
+                }
+            } catch (error) {
+                adminShell.showAlert('Error sending reminder', 'danger');
+            }
         }
 
         function viewAbandonedCheckout(checkoutId) {
             window.location.href = `/admin-marketing.html#abandoned`;
         }
 
-        function sendPaymentLink(bookingId) {
-            alert(`Send payment link for booking #${bookingId} - Feature coming soon!`);
+        async function sendPaymentLink(bookingId) {
+            // Open compose email with payment link template
+            window.location.href = `/admin-inbox.html?compose=true&bookingId=${bookingId}&template=payment`;
         }
 
-        function sendWelcome(bookingId) {
-            alert(`Send welcome message for booking #${bookingId} - Feature coming soon!`);
+        async function sendWelcome(bookingId) {
+            if (!confirm('Send welcome / check-in instructions email to this guest?')) return;
+            try {
+                const booking = await fetch(`/api/admin/booking/${bookingId}`, { credentials: 'same-origin' }).then(r => r.json());
+                if (!booking.success) { adminShell.showAlert('Could not load booking', 'danger'); return; }
+                const b = booking.booking;
+                const csrf = await getCSRF();
+                const response = await fetch('/api/admin/send-email', {
+                    method: 'POST', credentials: 'same-origin',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
+                    body: JSON.stringify({
+                        to: b.guest_email,
+                        subject: `Welcome to Lakeside Retreat - Check-in Instructions`,
+                        body: `Hi ${b.guest_name},\n\nWelcome! We're looking forward to hosting you.\n\nYour check-in date: ${new Date(b.check_in).toLocaleDateString('en-NZ')}\nAccommodation: ${b.accommodation}\n\nCheck-in time is from 3:00 PM. Please let us know your estimated arrival time.\n\nAddress: 113 Kingan Road, Mount Pisa, Cromwell 9383\n\nIf you have any questions, reply to this email or call +64 21 368 682.\n\nWarm regards,\nLakeside Retreat Team`
+                    })
+                });
+                const data = await response.json();
+                if (response.ok && data.success) {
+                    adminShell.showAlert(`Welcome email sent to ${b.guest_email}!`, 'success');
+                } else {
+                    adminShell.showAlert(data.error?.message || 'Failed to send email', 'danger');
+                }
+            } catch (error) {
+                adminShell.showAlert('Error sending welcome email', 'danger');
+            }
         }
 
-        function requestReview(bookingId) {
-            alert(`Request review for booking #${bookingId} - Feature coming soon!`);
+        async function requestReview(bookingId) {
+            if (!confirm('Send review request email to this guest?')) return;
+            try {
+                const csrf = await getCSRF();
+                const response = await fetch(`/api/admin/marketing/send-review-request/${bookingId}`, {
+                    method: 'POST', credentials: 'same-origin',
+                    headers: { 'X-CSRF-Token': csrf }
+                });
+                const data = await response.json();
+                if (response.ok && data.success) {
+                    adminShell.showAlert('Review request sent!', 'success');
+                    loadNotifications();
+                } else {
+                    adminShell.showAlert(data.error?.message || 'Failed to send review request', 'danger');
+                }
+            } catch (error) {
+                adminShell.showAlert('Error sending review request', 'danger');
+            }
         }
 
         function logout() {

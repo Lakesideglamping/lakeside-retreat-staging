@@ -156,7 +156,7 @@
             max-height: 300px;
             overflow-y: auto;
         }
-        
+
         .activity-item {
             padding: 0.75rem;
             border-bottom: 1px solid #eee;
@@ -164,10 +164,100 @@
             justify-content: space-between;
             align-items: center;
         }
-        
+
         .activity-time {
             color: #999;
             font-size: 0.9rem;
+        }
+
+        /* Revenue Chart Styles */
+        .revenue-chart-card {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+
+        .revenue-chart-card h3 {
+            color: #2d5a5a;
+            margin-bottom: 1.5rem;
+            font-size: 1.25rem;
+        }
+
+        .chart-bars {
+            display: flex;
+            align-items: flex-end;
+            gap: 0.5rem;
+            height: 180px;
+            padding: 0 0.5rem;
+            border-bottom: 2px solid #eee;
+        }
+
+        .chart-bar-group {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100%;
+            justify-content: flex-end;
+        }
+
+        .chart-bar {
+            width: 100%;
+            max-width: 60px;
+            background: linear-gradient(180deg, #2d5a5a 0%, #4a8a8a 100%);
+            border-radius: 4px 4px 0 0;
+            min-height: 4px;
+            transition: height 0.6s ease;
+            position: relative;
+        }
+
+        .chart-bar:hover {
+            background: linear-gradient(180deg, #1e4040 0%, #2d5a5a 100%);
+        }
+
+        .chart-bar-amount {
+            font-size: 0.7rem;
+            color: #666;
+            margin-bottom: 0.25rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .chart-bar-label {
+            font-size: 0.75rem;
+            color: #999;
+            margin-top: 0.5rem;
+            text-align: center;
+        }
+
+        .chart-summary {
+            display: flex;
+            gap: 2rem;
+            margin-top: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .chart-summary-item {
+            flex: 1;
+            min-width: 120px;
+            text-align: center;
+            padding: 0.75rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .chart-summary-value {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: #2d5a5a;
+        }
+
+        .chart-summary-label {
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 0.25rem;
         }
     </style>
 </head>
@@ -195,6 +285,17 @@
             </div>
         </div>
         
+        <!-- Revenue Overview Chart -->
+        <div class="revenue-chart-card" id="revenueChartCard" style="display:none">
+            <h3>💰 Revenue Overview (Last 6 Months)</h3>
+            <div class="chart-bars" id="revenueChartBars">
+                <!-- Populated by JS -->
+            </div>
+            <div class="chart-summary" id="revenueChartSummary">
+                <!-- Populated by JS -->
+            </div>
+        </div>
+
         <!-- Admin Sections -->
         <div class="admin-sections">
             <!-- Analytics Dashboard -->
@@ -314,93 +415,176 @@
             try {
                 // Fetch real booking stats from API and Uplisting data
                 const [statsResponse, bookingStatsResponse, uplistingResponse] = await Promise.all([
-                    fetch('/api/admin/stats', {
-                        credentials: 'same-origin'
-                    }),
-                    fetch('/api/admin/booking-stats', {
-                        credentials: 'same-origin'
-                    }),
-                    fetch('/api/admin/uplisting-dashboard', {
-                        credentials: 'same-origin'
-                    })
+                    fetch('/api/admin/stats', { credentials: 'same-origin' }),
+                    fetch('/api/admin/booking-stats', { credentials: 'same-origin' }),
+                    fetch('/api/admin/uplisting-dashboard', { credentials: 'same-origin' })
                 ]);
 
                 if (statsResponse.ok && bookingStatsResponse.ok) {
                     const stats = await statsResponse.json();
                     const bookingStats = await bookingStatsResponse.json();
-                    
+
                     // Get Uplisting data if available
                     let uplistingData = null;
-                    if (uplistingResponse && uplistingResponse.ok) {
+                    if (uplistingResponse?.ok) {
                         uplistingData = await uplistingResponse.json();
                     }
-                    
-                    // Check if we have actual booking data (local or Uplisting)
+
                     const hasLocalBookings = stats.total_bookings > 0;
-                    const hasUplistingData = uplistingData && uplistingData.success;
-                    
-                    // Update dashboard with Uplisting-enhanced data
-                    if (hasUplistingData) {
-                        // Show Uplisting integration status
-                        document.getElementById('totalBookings').textContent = 
-                            `${stats.total_bookings} (Uplisting: ${uplistingData.total_properties} properties)`;
-                        
-                        // Show connection status in revenue field for now
-                        document.getElementById('monthlyRevenue').textContent = 
-                            hasLocalBookings ? `$${(stats.total_revenue || 0).toLocaleString()}` : 'Uplisting Connected';
-                        
-                        document.getElementById('occupancyRate').textContent = 'Connected to Uplisting';
-                        document.getElementById('avgRating').textContent = `${uplistingData.total_properties} Properties`;
-                        
-                        // Update recent activity with Uplisting info
-                        const activityDiv = document.getElementById('recentActivity');
-                        activityDiv.innerHTML = `
-                            <div class="activity-item">
-                                <span>✅ Connected to Uplisting channel manager</span>
-                                <span class="activity-time">Properties: ${uplistingData.total_properties}</span>
-                            </div>
-                            <div class="activity-item">
-                                <span>🏠 Properties found: ${uplistingData.properties.map(p => escapeHtml(p.name)).join(', ')}</span>
-                                <span class="activity-time">Ready for live data</span>
-                            </div>
-                        `;
-                        
+                    const hasUplistingData = uplistingData?.success;
+
+                    // --- Stat cards ---
+                    document.getElementById('totalBookings').textContent = stats.total_bookings || '0';
+
+                    document.getElementById('monthlyRevenue').textContent =
+                        hasLocalBookings ? `$${(stats.total_revenue || 0).toLocaleString()}` : '$0';
+
+                    if (hasLocalBookings && bookingStats.overview?.total_bookings > 0) {
+                        const occupancyRate = Math.round(
+                            (bookingStats.overview.paid_bookings / bookingStats.overview.total_bookings) * 100
+                        );
+                        document.getElementById('occupancyRate').textContent = `${occupancyRate}%`;
                     } else {
-                        // Fallback to local data only
-                        document.getElementById('totalBookings').textContent = stats.total_bookings || '0';
-                        
-                        if (hasLocalBookings) {
-                            document.getElementById('monthlyRevenue').textContent = `$${(stats.total_revenue || 0).toLocaleString()}`;
-                        } else {
-                            document.getElementById('monthlyRevenue').textContent = '$0';
-                        }
-                        
-                        if (hasLocalBookings && bookingStats.overview && bookingStats.overview.total_bookings > 0) {
-                            const occupancyRate = Math.round((bookingStats.overview.paid_bookings / bookingStats.overview.total_bookings) * 100);
-                            document.getElementById('occupancyRate').textContent = `${occupancyRate}%`;
-                        } else {
-                            document.getElementById('occupancyRate').textContent = 'No data';
-                        }
-                        
-                        if (hasLocalBookings) {
-                            document.getElementById('avgRating').textContent = 'No reviews yet';
-                        } else {
-                            document.getElementById('avgRating').textContent = 'No data';
-                        }
+                        document.getElementById('occupancyRate').textContent =
+                            hasUplistingData ? 'Uplisting Connected' : 'No data';
                     }
+
+                    document.getElementById('avgRating').textContent =
+                        hasUplistingData ? `${uplistingData.total_properties} Properties` :
+                        hasLocalBookings ? 'No reviews yet' : 'No data';
+
+                    // --- Revenue chart ---
+                    buildRevenueChart(bookingStats);
+
+                    // --- Recent activity ---
+                    buildRecentActivity(stats, uplistingData);
+
                 } else {
-                    // Fallback if API fails
                     throw new Error('Failed to fetch dashboard data');
                 }
-                
+
             } catch (error) {
                 console.error('Failed to load dashboard data:', error);
-                // Show error state
                 document.getElementById('totalBookings').textContent = 'Error';
                 document.getElementById('monthlyRevenue').textContent = 'Error';
                 document.getElementById('occupancyRate').textContent = 'Error';
                 document.getElementById('avgRating').textContent = 'Error';
             }
+        }
+
+        function buildRevenueChart(bookingStats) {
+            const chartCard = document.getElementById('revenueChartCard');
+            const barsEl = document.getElementById('revenueChartBars');
+            const summaryEl = document.getElementById('revenueChartSummary');
+
+            // Build monthly data from booking stats
+            const monthlyData = [];
+            const now = new Date();
+            for (let i = 5; i >= 0; i--) {
+                const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                const label = d.toLocaleDateString('en-NZ', { month: 'short' });
+                monthlyData.push({ key, label, revenue: 0, bookings: 0 });
+            }
+
+            // Try to fill in from booking stats monthly_revenue if available
+            if (bookingStats.monthly_revenue) {
+                bookingStats.monthly_revenue.forEach(item => {
+                    const match = monthlyData.find(m => m.key === item.month);
+                    if (match) {
+                        match.revenue = item.revenue || 0;
+                        match.bookings = item.bookings || 0;
+                    }
+                });
+            }
+
+            const maxRevenue = Math.max(...monthlyData.map(m => m.revenue), 1);
+            const totalRevenue = monthlyData.reduce((sum, m) => sum + m.revenue, 0);
+            const totalBookings = monthlyData.reduce((sum, m) => sum + m.bookings, 0);
+
+            // Only show chart if there's meaningful data
+            if (totalRevenue > 0 || totalBookings > 0) {
+                chartCard.style.display = '';
+
+                barsEl.innerHTML = monthlyData.map(m => {
+                    const heightPct = maxRevenue > 0 ? Math.max((m.revenue / maxRevenue) * 100, 2) : 2;
+                    const amount = m.revenue > 0 ? `$${m.revenue.toLocaleString()}` : '';
+                    return `
+                        <div class="chart-bar-group">
+                            <span class="chart-bar-amount">${amount}</span>
+                            <div class="chart-bar" style="height: ${heightPct}%" title="${m.label}: $${m.revenue.toLocaleString()} (${m.bookings} bookings)"></div>
+                            <span class="chart-bar-label">${m.label}</span>
+                        </div>
+                    `;
+                }).join('');
+
+                const avgMonthly = Math.round(totalRevenue / 6);
+                summaryEl.innerHTML = `
+                    <div class="chart-summary-item">
+                        <div class="chart-summary-value">$${totalRevenue.toLocaleString()}</div>
+                        <div class="chart-summary-label">6-Month Total</div>
+                    </div>
+                    <div class="chart-summary-item">
+                        <div class="chart-summary-value">$${avgMonthly.toLocaleString()}</div>
+                        <div class="chart-summary-label">Monthly Average</div>
+                    </div>
+                    <div class="chart-summary-item">
+                        <div class="chart-summary-value">${totalBookings}</div>
+                        <div class="chart-summary-label">Total Bookings</div>
+                    </div>
+                `;
+            }
+        }
+
+        function buildRecentActivity(stats, uplistingData) {
+            const activityDiv = document.getElementById('recentActivity');
+            const items = [];
+
+            if (uplistingData?.success) {
+                items.push({
+                    text: `Connected to Uplisting (${uplistingData.total_properties} properties)`,
+                    icon: '✅',
+                    time: 'Live'
+                });
+                uplistingData.properties?.forEach(p => {
+                    items.push({
+                        text: escapeHtml(p.name),
+                        icon: '🏠',
+                        time: 'Active'
+                    });
+                });
+            }
+
+            if (stats.total_bookings > 0) {
+                items.push({
+                    text: `${stats.total_bookings} total bookings in system`,
+                    icon: '📅',
+                    time: 'All time'
+                });
+            }
+
+            if (stats.total_revenue > 0) {
+                items.push({
+                    text: `$${(stats.total_revenue || 0).toLocaleString()} total revenue`,
+                    icon: '💰',
+                    time: 'All time'
+                });
+            }
+
+            if (items.length === 0) {
+                items.push({
+                    text: 'No recent activity',
+                    icon: '📊',
+                    time: 'System ready for bookings'
+                });
+            }
+
+            activityDiv.innerHTML = items.map(item => `
+                <div class="activity-item">
+                    <span>${item.icon} ${item.text}</span>
+                    <span class="activity-time">${item.time}</span>
+                </div>
+            `).join('');
         }
 
         // Load data when page loads

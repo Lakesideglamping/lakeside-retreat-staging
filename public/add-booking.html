@@ -12,60 +12,86 @@
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: #f5f5f5;
             min-height: 100vh;
         }
-        
+
         .container {
             max-width: 800px;
             margin: 2rem auto;
             padding: 0 2rem;
         }
-        
+
+        .breadcrumb {
+            margin-bottom: 1.5rem;
+        }
+
+        .breadcrumb a {
+            color: #2d5a5a;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+
+        .breadcrumb span {
+            color: #999;
+            font-size: 0.9rem;
+            margin: 0 0.5rem;
+        }
+
+        .breadcrumb .current {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
         .form-card {
             background: white;
             border-radius: 12px;
             padding: 2rem;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
-        
+
         .form-card h2 {
             color: #2d5a5a;
             margin-bottom: 1.5rem;
             font-size: 1.5rem;
         }
-        
+
         .form-section {
             margin-bottom: 2rem;
             padding-bottom: 1.5rem;
             border-bottom: 1px solid #eee;
         }
-        
+
         .form-section:last-child {
             border-bottom: none;
             margin-bottom: 0;
         }
-        
+
         .form-section h3 {
             color: #666;
             margin-bottom: 1rem;
             font-size: 1.1rem;
         }
-        
+
         .form-group {
             margin-bottom: 1rem;
         }
-        
+
         .form-group label {
             display: block;
             margin-bottom: 0.5rem;
             font-weight: 500;
             color: #333;
         }
-        
+
         .form-group input,
         .form-group select,
         .form-group textarea {
@@ -74,21 +100,40 @@
             border: 1px solid #ddd;
             border-radius: 4px;
             font-size: 1rem;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
-        
+
         .form-group input:focus,
         .form-group select:focus,
         .form-group textarea:focus {
             outline: none;
             border-color: #2d5a5a;
+            box-shadow: 0 0 0 3px rgba(45, 90, 90, 0.1);
         }
-        
+
+        .form-group .field-error {
+            color: #dc3545;
+            font-size: 0.85rem;
+            margin-top: 0.25rem;
+            display: none;
+        }
+
+        .form-group.has-error input,
+        .form-group.has-error select,
+        .form-group.has-error textarea {
+            border-color: #dc3545;
+        }
+
+        .form-group.has-error .field-error {
+            display: block;
+        }
+
         .form-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 1rem;
         }
-        
+
         .btn {
             padding: 0.75rem 1.5rem;
             border: none;
@@ -96,164 +141,163 @@
             cursor: pointer;
             font-weight: 600;
             font-size: 1rem;
+            transition: background 0.2s ease;
         }
-        
+
         .btn-primary {
             background: #2d5a5a;
             color: white;
         }
-        
+
         .btn-primary:hover {
             background: #1e4040;
         }
-        
+
         .btn-secondary {
             background: #6c757d;
             color: white;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
         }
-        
+
         .btn-secondary:hover {
             background: #5a6268;
         }
-        
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
         .button-group {
             display: flex;
             gap: 1rem;
             margin-top: 1.5rem;
         }
-        
-        .price-display {
-            background: #f8f9fa;
-            padding: 1rem;
-            border-radius: 8px;
-            margin-top: 1rem;
-        }
-        
-        .price-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 0.5rem;
-        }
-        
-        .price-row.total {
-            font-weight: bold;
-            border-top: 1px solid #ddd;
-            padding-top: 0.5rem;
-            margin-top: 0.5rem;
-        }
-        
+
         .alert {
             padding: 1rem;
             border-radius: 4px;
             margin-bottom: 1rem;
         }
-        
+
         .alert-success {
             background: #d4edda;
             color: #155724;
             border: 1px solid #c3e6cb;
         }
-        
+
         .alert-error {
             background: #f8d7da;
             color: #721c24;
             border: 1px solid #f5c6cb;
         }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 1rem;
+                margin: 1rem auto;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            .button-group .btn,
+            .button-group a.btn-secondary {
+                width: 100%;
+                text-align: center;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
+        <div class="breadcrumb">
+            <a href="/admin-bookings.html">Back to Bookings</a>
+            <span>/</span>
+            <span class="current">Add New Booking</span>
+        </div>
+
         <div id="alertBox"></div>
-        
+
         <div class="form-card">
             <h2>Add New Booking</h2>
-            
-            <form id="bookingForm">
+
+            <form id="addBookingForm" novalidate>
                 <div class="form-section">
                     <h3>Guest Information</h3>
                     <div class="form-group">
                         <label for="guestName">Guest Name *</label>
                         <input type="text" id="guestName" required placeholder="Full name">
+                        <div class="field-error">Guest name is required.</div>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
                             <label for="guestEmail">Email *</label>
                             <input type="email" id="guestEmail" required placeholder="email@example.com">
+                            <div class="field-error">A valid email address is required.</div>
                         </div>
                         <div class="form-group">
                             <label for="guestPhone">Phone</label>
-                            <input type="tel" id="guestPhone" placeholder="+64 XXX XXX XXXX">
+                            <input type="text" id="guestPhone" placeholder="+64 XXX XXX XXXX">
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="form-section">
                     <h3>Booking Details</h3>
                     <div class="form-group">
                         <label for="accommodation">Accommodation *</label>
                         <select id="accommodation" required>
                             <option value="">Select accommodation...</option>
-                            <option value="dome-pinot">Dome Pinot - $530/night</option>
-                            <option value="dome-rose">Dome Rosé - $510/night</option>
-                            <option value="lakeside-cottage">Lakeside Cottage - $295/night</option>
+                            <option value="dome-pinot">Dome Pinot</option>
+                            <option value="dome-rose">Dome Ros&eacute;</option>
+                            <option value="lakeside-cottage">Lakeside Cottage</option>
                         </select>
+                        <div class="field-error">Please select an accommodation.</div>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
                             <label for="checkIn">Check-in Date *</label>
                             <input type="date" id="checkIn" required>
+                            <div class="field-error">Check-in date is required.</div>
                         </div>
                         <div class="form-group">
                             <label for="checkOut">Check-out Date *</label>
                             <input type="date" id="checkOut" required>
+                            <div class="field-error">Check-out date must be after check-in date.</div>
                         </div>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="guests">Number of Guests *</label>
-                            <select id="guests" required>
-                                <option value="1">1 Guest</option>
-                                <option value="2" selected>2 Guests</option>
-                                <option value="3">3 Guests</option>
-                                <option value="4">4 Guests</option>
-                            </select>
+                            <label for="numGuests">Number of Guests</label>
+                            <input type="number" id="numGuests" min="1" max="10" value="2">
                         </div>
                         <div class="form-group">
-                            <label for="status">Booking Status</label>
-                            <select id="status">
-                                <option value="confirmed">Confirmed</option>
-                                <option value="pending">Pending</option>
-                            </select>
+                            <label for="totalPrice">Total Price ($) *</label>
+                            <input type="number" id="totalPrice" step="0.01" min="0" required placeholder="0.00">
+                            <div class="field-error">Total price is required.</div>
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="form-section">
                     <h3>Payment</h3>
                     <div class="form-group">
                         <label for="paymentStatus">Payment Status</label>
                         <select id="paymentStatus">
-                            <option value="completed">Paid</option>
+                            <option value="completed">Completed</option>
                             <option value="pending">Pending</option>
                         </select>
                     </div>
-                    
-                    <div class="price-display" id="priceDisplay">
-                        <div class="price-row">
-                            <span>Accommodation (0 nights)</span>
-                            <span id="accommodationPrice">$0</span>
-                        </div>
-                        <div class="price-row">
-                            <span>Cleaning Fee</span>
-                            <span>$50</span>
-                        </div>
-                        <div class="price-row total">
-                            <span>Total</span>
-                            <span id="totalPrice">$50</span>
-                        </div>
-                    </div>
                 </div>
-                
+
                 <div class="form-section">
                     <h3>Notes</h3>
                     <div class="form-group">
@@ -261,9 +305,9 @@
                         <textarea id="notes" rows="3" placeholder="Any special requests or notes..."></textarea>
                     </div>
                 </div>
-                
+
                 <div class="button-group">
-                    <button type="submit" class="btn btn-primary">Create Booking</button>
+                    <button type="submit" class="btn btn-primary" id="submitBtn">Create Booking</button>
                     <a href="/admin-bookings.html" class="btn btn-secondary">Cancel</a>
                 </div>
             </form>
@@ -272,86 +316,160 @@
 
     <script src="/admin-shell.js?v=2"></script>
     <script>
-        // Authentication is handled by admin-shell.js via cookie verification
-
-        // Set minimum date to today
+        // Set minimum check-in date to today
         const today = new Date().toISOString().split('T')[0];
-        document.getElementById('checkIn').min = today;
-        document.getElementById('checkOut').min = today;
+        document.getElementById('checkIn').setAttribute('min', today);
 
-        // Price calculation
-        const prices = {
-            'dome-pinot': 530,
-            'dome-rose': 510,
-            'lakeside-cottage': 295
-        };
-
-        function calculatePrice() {
-            const accommodation = document.getElementById('accommodation').value;
-            const checkIn = document.getElementById('checkIn').value;
-            const checkOut = document.getElementById('checkOut').value;
-            
-            if (accommodation && checkIn && checkOut) {
-                const nights = Math.ceil((new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24));
-                if (nights > 0) {
-                    const nightlyRate = prices[accommodation] || 0;
-                    const accommodationTotal = nights * nightlyRate;
-                    const cleaningFee = 50;
-                    const total = accommodationTotal + cleaningFee;
-                    
-                    document.getElementById('accommodationPrice').textContent = `$${accommodationTotal}`;
-                    document.querySelector('.price-row span').textContent = `Accommodation (${nights} night${nights > 1 ? 's' : ''})`;
-                    document.getElementById('totalPrice').textContent = `$${total}`;
-                }
+        // When check-in changes, update check-out minimum
+        document.getElementById('checkIn').addEventListener('change', function () {
+            const checkOutInput = document.getElementById('checkOut');
+            checkOutInput.min = this.value;
+            // If current check-out is before or equal to new check-in, clear it
+            if (checkOutInput.value && checkOutInput.value <= this.value) {
+                checkOutInput.value = '';
             }
+        });
+
+        // Clear field error on user input
+        document.querySelectorAll('#addBookingForm input, #addBookingForm select, #addBookingForm textarea').forEach(function (el) {
+            el.addEventListener('input', function () {
+                this.closest('.form-group')?.classList.remove('has-error');
+            });
+            el.addEventListener('change', function () {
+                this.closest('.form-group')?.classList.remove('has-error');
+            });
+        });
+
+        // Client-side validation
+        function validateForm() {
+            let isValid = true;
+
+            // Reset all errors
+            document.querySelectorAll('.form-group.has-error').forEach(function (el) {
+                el.classList.remove('has-error');
+            });
+
+            const guestName = document.getElementById('guestName');
+            if (!guestName.value.trim()) {
+                guestName.closest('.form-group').classList.add('has-error');
+                isValid = false;
+            }
+
+            const guestEmail = document.getElementById('guestEmail');
+            const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!guestEmail.value.trim() || !emailPattern.test(guestEmail.value.trim())) {
+                guestEmail.closest('.form-group').classList.add('has-error');
+                isValid = false;
+            }
+
+            const accommodation = document.getElementById('accommodation');
+            if (!accommodation.value) {
+                accommodation.closest('.form-group').classList.add('has-error');
+                isValid = false;
+            }
+
+            const checkIn = document.getElementById('checkIn');
+            if (!checkIn.value) {
+                checkIn.closest('.form-group').classList.add('has-error');
+                isValid = false;
+            }
+
+            const checkOut = document.getElementById('checkOut');
+            if (!checkOut.value || (checkIn.value && checkOut.value <= checkIn.value)) {
+                checkOut.closest('.form-group').classList.add('has-error');
+                isValid = false;
+            }
+
+            const totalPrice = document.getElementById('totalPrice');
+            if (!totalPrice.value || parseFloat(totalPrice.value) < 0) {
+                totalPrice.closest('.form-group').classList.add('has-error');
+                isValid = false;
+            }
+
+            return isValid;
         }
 
-        document.getElementById('accommodation').addEventListener('change', calculatePrice);
-        document.getElementById('checkIn').addEventListener('change', function() {
-            document.getElementById('checkOut').min = this.value;
-            calculatePrice();
-        });
-        document.getElementById('checkOut').addEventListener('change', calculatePrice);
-
         // Form submission
-        document.getElementById('bookingForm').addEventListener('submit', async function(e) {
+        document.getElementById('addBookingForm').addEventListener('submit', async function (e) {
             e.preventDefault();
-            
+
+            if (!validateForm()) {
+                document.getElementById('alertBox').innerHTML = '<div class="alert alert-error">Please fix the highlighted errors before submitting.</div>';
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                return;
+            }
+
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Creating...';
+            document.getElementById('alertBox').innerHTML = '';
+
             const bookingData = {
-                guest_name: document.getElementById('guestName').value,
-                guest_email: document.getElementById('guestEmail').value,
-                guest_phone: document.getElementById('guestPhone').value,
+                guest_name: document.getElementById('guestName').value.trim(),
+                guest_email: document.getElementById('guestEmail').value.trim(),
+                guest_phone: document.getElementById('guestPhone').value.trim(),
                 accommodation: document.getElementById('accommodation').value,
                 check_in: document.getElementById('checkIn').value,
                 check_out: document.getElementById('checkOut').value,
-                guests: parseInt(document.getElementById('guests').value),
-                status: document.getElementById('status').value,
+                guests: parseInt(document.getElementById('numGuests').value) || 2,
+                total_price: parseFloat(document.getElementById('totalPrice').value),
                 payment_status: document.getElementById('paymentStatus').value,
-                notes: document.getElementById('notes').value
+                notes: document.getElementById('notes').value.trim()
             };
 
             try {
+                // Fetch CSRF token first
+                const csrfRes = await fetch('/api/csrf-token', { credentials: 'same-origin' });
+                if (!csrfRes.ok) {
+                    throw new Error('Failed to obtain CSRF token');
+                }
+                const csrfData = await csrfRes.json();
+
+                // Submit booking with CSRF token
                 const response = await fetch('/api/admin/bookings', {
                     method: 'POST',
                     credentials: 'same-origin',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': csrfData.csrfToken
                     },
                     body: JSON.stringify(bookingData)
                 });
 
-                if (response.ok) {
-                    document.getElementById('alertBox').innerHTML = '<div class="alert alert-success">Booking created successfully! Redirecting...</div>';
-                    setTimeout(() => {
-                        window.location.href = '/admin-bookings.html';
-                    }, 1500);
-                } else {
-                    throw new Error('Failed to create booking');
+                if (!response.ok) {
+                    const errorData = await response.json().catch(function () { return {}; });
+                    throw new Error(errorData.error || 'Failed to create booking');
                 }
+
+                const result = await response.json();
+                const bookingId = result.bookingId || result.id || 'N/A';
+
+                document.getElementById('alertBox').innerHTML =
+                    '<div class="alert alert-success">Booking created successfully (ID: ' + escapeHtml(String(bookingId)) + '). Redirecting to bookings...</div>';
+
+                setTimeout(function () {
+                    window.location.href = '/admin-bookings.html';
+                }, 2000);
+
             } catch (error) {
-                document.getElementById('alertBox').innerHTML = '<div class="alert alert-error">Error creating booking. Please try again.</div>';
+                document.getElementById('alertBox').innerHTML =
+                    '<div class="alert alert-error">Error creating booking: ' + escapeHtml(error.message) + '</div>';
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Create Booking';
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             }
         });
+
+        // escapeHtml is provided globally by admin-shell.js,
+        // but define a local fallback in case it loads after this script runs.
+        if (typeof escapeHtml === 'undefined') {
+            window.escapeHtml = function (text) {
+                if (!text) return '';
+                var div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            };
+        }
     </script>
 </body>
 </html>

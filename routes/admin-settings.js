@@ -453,7 +453,10 @@ router.get('/api/admin/settings', verifyAdmin, (req, res) => {
         }
         
         const settings = {};
+        const sensitiveKeys = ['admin_password_hash', 'admin_2fa_secret', 'jwt_secret', 'stripe_secret'];
         (rows || []).forEach(row => {
+            // Never expose sensitive keys in API response
+            if (sensitiveKeys.includes(row.setting_key)) return;
             let value = row.setting_value;
             if (row.setting_type === 'boolean') {
                 value = value === 'true' || value === '1';

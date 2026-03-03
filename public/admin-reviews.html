@@ -514,21 +514,14 @@
                 });
         }
 
-        function loadStats() {
+        function loadStats(stats) {
             try {
-                // Calculate stats from loaded reviews
-                const totalReviews = reviews.length;
-                const avgRating = reviews.length > 0 
-                    ? (reviews.reduce((sum, r) => sum + (r.rating || r.overall_rating || 0), 0) / reviews.length).toFixed(1)
+                document.getElementById('totalReviews').textContent = stats?.total ?? reviews.length;
+                document.getElementById('avgRating').textContent = stats?.average_rating != null
+                    ? Number(stats.average_rating).toFixed(1)
                     : '0.0';
-                const pendingCount = reviews.filter(r => r.status === 'pending').length;
-                const approvedCount = reviews.filter(r => r.status === 'approved').length;
-                
-                document.getElementById('totalReviews').textContent = totalReviews;
-                document.getElementById('avgRating').textContent = avgRating;
-                document.getElementById('pendingCount').textContent = pendingCount;
-                document.getElementById('approvedCount').textContent = approvedCount;
-                
+                document.getElementById('pendingCount').textContent = stats?.pending ?? 0;
+                document.getElementById('approvedCount').textContent = stats?.approved ?? 0;
             } catch (error) {
                 console.error('Error loading stats:', error);
             }
@@ -536,58 +529,24 @@
 
         async function loadReviews() {
             try {
-                // Use mock data since API endpoints aren't implemented yet
-                const mockReviews = [
-                    {
-                        id: 1,
-                        guest_name: 'Sarah Johnson',
-                        guest_email: 'sarah@example.com',
-                        accommodation: 'Dome Rosé',
-                        accommodation_type: 'rose-dome',
-                        rating: 5,
-                        overall_rating: 5,
-                        review_text: 'Amazing experience! The dome was beautiful and the views incredible.',
-                        status: 'approved',
-                        created_at: '2025-03-15T10:30:00Z',
-                        stay_date: '2025-03-10'
-                    },
-                    {
-                        id: 2,
-                        guest_name: 'Mike Wilson',
-                        guest_email: 'mike@example.com',
-                        accommodation: 'Dome Pinot',
-                        accommodation_type: 'pinot-dome',
-                        rating: 4,
-                        overall_rating: 4,
-                        review_text: 'Great stay, loved the sustainable features and location.',
-                        status: 'pending',
-                        created_at: '2025-03-14T14:20:00Z',
-                        stay_date: '2025-03-12'
-                    },
-                    {
-                        id: 3,
-                        guest_name: 'Emma & David',
-                        guest_email: 'emma@example.com',
-                        accommodation: 'Lakeside Cottage',
-                        accommodation_type: 'lakeside-cottage',
-                        rating: 5,
-                        overall_rating: 5,
-                        review_text: 'Perfect for our family! Kids loved the lake access and kayaks.',
-                        status: 'approved',
-                        created_at: '2025-03-13T09:15:00Z',
-                        stay_date: '2025-03-08'
-                    }
-                ];
-                
-                reviews = mockReviews;
+                const response = await fetch('/api/admin/reviews', { credentials: 'same-origin' });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+
+                if (!data.success) throw new Error(data.error || 'Failed to load reviews');
+
+                reviews = data.reviews ?? [];
+                // Normalise: ensure overall_rating falls back to rating
+                reviews.forEach(r => {
+                    if (r.overall_rating == null) r.overall_rating = r.rating ?? 0;
+                });
                 filteredReviews = reviews;
-                
+
                 renderReviews();
-                loadStats();
-                
+                loadStats(data.stats);
             } catch (error) {
                 console.error('Error loading reviews:', error);
-                document.getElementById('loading').innerHTML = 
+                document.getElementById('loading').innerHTML =
                     '<div style="color: var(--error);">Error loading reviews. Please refresh the page.</div>';
             }
         }
@@ -622,6 +581,11 @@
             if (filteredReviews.length === 0) {
                 container.innerHTML = '';
                 emptyState.style.display = 'block';
+                if (reviews.length === 0) {
+                    emptyState.innerHTML = '<h3>No reviews yet</h3><p>Reviews will appear here once guests submit them.</p>';
+                } else {
+                    emptyState.innerHTML = '<h3>No reviews found</h3><p>No reviews match your current filters.</p>';
+                }
                 return;
             }
             
@@ -756,70 +720,113 @@
 
         async function moderateReview(reviewId, status) {
             try {
-                const notes = document.getElementById(`notes_${reviewId}`).value;
-                
-                // Mock API call - update the local data
-                const reviewIndex = reviews.findIndex(r => r.id === reviewId);
-                if (reviewIndex !== -1) {
-                    reviews[reviewIndex].status = status;
-                    reviews[reviewIndex].admin_notes = notes;
-                    filteredReviews = reviews;
-                    renderReviews();
-                    loadStats();
-                    alert(`Review ${status} successfully!`);
+                const csrfRes = await fetch('/api/csrf-token', { credentials: 'same-origin' });
+                const csrfData = await csrfRes.json();
+
+                const response = await fetch(`/api/admin/reviews/${reviewId}`, {
+                    method: 'PUT',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': csrfData.csrfToken
+                    },
+                    body: JSON.stringify({ status })
+                });
+                const data = await response.json();
+
+                if (!response.ok || !data.success) {
+                    throw new Error(data.error || 'Failed to moderate review');
                 }
-                
+
+                await loadReviews();
             } catch (error) {
                 console.error('Error moderating review:', error);
-                alert('Error moderating review');
+                alert('Error moderating review: ' + error.message);
             }
         }
 
         async function toggleFeature(reviewId, featured) {
             try {
-                // Mock API call - update the local data
-                const reviewIndex = reviews.findIndex(r => r.id === reviewId);
-                if (reviewIndex !== -1) {
-                    reviews[reviewIndex].featured = featured;
-                    filteredReviews = reviews;
-                    renderReviews();
-                    alert(`Review ${featured ? 'featured' : 'unfeatured'} successfully!`);
+                const csrfRes = await fetch('/api/csrf-token', { credentials: 'same-origin' });
+                const csrfData = await csrfRes.json();
+
+                const response = await fetch(`/api/admin/reviews/${reviewId}`, {
+                    method: 'PUT',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': csrfData.csrfToken
+                    },
+                    body: JSON.stringify({ is_featured: featured })
+                });
+                const data = await response.json();
+
+                if (!response.ok || !data.success) {
+                    throw new Error(data.error || 'Failed to update feature status');
                 }
+
+                await loadReviews();
             } catch (error) {
                 console.error('Error featuring review:', error);
-                alert('Error updating feature status');
+                alert('Error updating feature status: ' + error.message);
             }
         }
 
         async function updateReply(reviewId) {
             try {
-                const reply = document.getElementById(`reply_${reviewId}`).value;
-                
-                // Mock API call - update the local data
-                const reviewIndex = reviews.findIndex(r => r.id === reviewId);
-                if (reviewIndex !== -1) {
-                    reviews[reviewIndex].admin_reply = reply;
-                    alert('Reply updated successfully!');
+                const replyText = document.getElementById(`reply_${reviewId}`).value;
+
+                const csrfRes = await fetch('/api/csrf-token', { credentials: 'same-origin' });
+                const csrfData = await csrfRes.json();
+
+                const response = await fetch(`/api/admin/reviews/${reviewId}`, {
+                    method: 'PUT',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': csrfData.csrfToken
+                    },
+                    body: JSON.stringify({ admin_response: replyText })
+                });
+                const data = await response.json();
+
+                if (!response.ok || !data.success) {
+                    throw new Error(data.error || 'Failed to update reply');
                 }
+
+                await loadReviews();
             } catch (error) {
                 console.error('Error updating reply:', error);
-                alert('Error updating reply');
+                alert('Error updating reply: ' + error.message);
             }
         }
 
         async function updateNotes(reviewId) {
             try {
-                const notes = document.getElementById(`notes_${reviewId}`).value;
-                
-                // Mock API call - update the local data
-                const reviewIndex = reviews.findIndex(r => r.id === reviewId);
-                if (reviewIndex !== -1) {
-                    reviews[reviewIndex].admin_notes = notes;
-                    alert('Notes updated successfully!');
+                const notesText = document.getElementById(`notes_${reviewId}`).value;
+
+                const csrfRes = await fetch('/api/csrf-token', { credentials: 'same-origin' });
+                const csrfData = await csrfRes.json();
+
+                const response = await fetch(`/api/admin/reviews/${reviewId}`, {
+                    method: 'PUT',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': csrfData.csrfToken
+                    },
+                    body: JSON.stringify({ admin_notes: notesText })
+                });
+                const data = await response.json();
+
+                if (!response.ok || !data.success) {
+                    throw new Error(data.error || 'Failed to update notes');
                 }
+
+                await loadReviews();
             } catch (error) {
                 console.error('Error updating notes:', error);
-                alert('Error updating notes');
+                alert('Error updating notes: ' + error.message);
             }
         }
 
@@ -869,36 +876,6 @@
             });
         }
 
-        // Temporary mock data for testing until admin endpoints are created
-        if (window.location.search.includes('demo')) {
-            reviews = [
-                {
-                    id: 1,
-                    guest_name: 'Sarah Johnson',
-                    guest_email: 'sarah@example.com',
-                    guest_location: 'Auckland, New Zealand',
-                    accommodation_type: 'pinot-dome',
-                    stay_dates: 'March 15-18, 2025',
-                    overall_rating: 5,
-                    cleanliness_rating: 5,
-                    location_rating: 5,
-                    value_rating: 4,
-                    communication_rating: 5,
-                    review_title: 'Absolutely magical weekend!',
-                    review_text: 'Our stay exceeded every expectation. The views were breathtaking and Sandy was incredibly helpful.',
-                    highlight_positive: 'The private spa and stunning lake views were unforgettable.',
-                    suggestions: null,
-                    status: 'pending',
-                    created_at: '2025-08-25T10:30:00Z',
-                    admin_notes: null,
-                    admin_reply: null,
-                    featured: false,
-                    review_photos: null
-                }
-            ];
-            filteredReviews = reviews;
-            renderReviews();
-        }
     </script>
     <script src="/admin-shell.js?v=2"></script>
 </body>

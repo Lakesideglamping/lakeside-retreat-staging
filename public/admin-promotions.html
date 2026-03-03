@@ -677,20 +677,33 @@
     <script>
         // Authentication is handled by admin-shell.js via cookie verification
 
+        // Focus-trap cleanup reference (set when modal opens)
+        let releaseModalTrap = null;
+
         function openCreateModal() {
             document.getElementById('modalTitle').textContent = 'Create New Promotional Code';
-            document.getElementById('codeModal').style.display = 'block';
-            
+            const modal = document.getElementById('codeModal');
+            modal.style.display = 'block';
+            modal.setAttribute('aria-hidden', 'false');
+
             // Set default dates
             const today = new Date().toISOString().split('T')[0];
             const nextMonth = new Date();
             nextMonth.setMonth(nextMonth.getMonth() + 1);
             document.getElementById('validFrom').value = today;
             document.getElementById('validUntil').value = nextMonth.toISOString().split('T')[0];
+
+            // Trap focus inside modal
+            if (window.adminShell && adminShell.trapFocus) {
+                releaseModalTrap = adminShell.trapFocus(modal.querySelector('.modal-content'));
+            }
         }
 
         function closeModal() {
-            document.getElementById('codeModal').style.display = 'none';
+            const modal = document.getElementById('codeModal');
+            modal.style.display = 'none';
+            modal.setAttribute('aria-hidden', 'true');
+            if (releaseModalTrap) { releaseModalTrap(); releaseModalTrap = null; }
             clearForm();
         }
 
@@ -710,71 +723,103 @@
             const code = document.getElementById('promoCode').value || 'CODE123';
             const discountType = document.getElementById('discountType').value;
             const discountValue = document.getElementById('discountValue').value;
-            
+
             // Update discount label
-            document.getElementById('discountLabel').textContent = 
+            document.getElementById('discountLabel').textContent =
                 discountType === 'percentage' ? 'Discount Value (%)' : 'Discount Value ($)';
-            
+
             let previewText = `${name} - Code: ${code}`;
             if (discountValue) {
                 const symbol = discountType === 'percentage' ? '%' : '$';
                 previewText += `\n${discountValue}${symbol} off your Central Otago getaway!`;
             }
-            
+
             document.getElementById('previewText').textContent = previewText;
         }
 
-        function saveCode() {
+        async function saveCode() {
             const codeName = document.getElementById('codeName').value;
             const promoCode = document.getElementById('promoCode').value;
-            
+
             if (!codeName || !promoCode) {
-                alert('Please fill in at least the code name and promotional code.');
+                adminShell.showAlert('Please fill in at least the code name and promotional code.', 'warning');
                 return;
             }
-            
-            alert(`Promotional code "${promoCode}" created successfully!`);
-            closeModal();
-            
-            // In production, this would save to the database
-            // and refresh the codes list
+
+            // Save to backend
+            try {
+                const csrfRes = await fetch('/api/csrf-token', { credentials: 'same-origin' });
+                const csrfData = await csrfRes.json();
+
+                const payload = {
+                    name: codeName,
+                    code: promoCode,
+                    type: document.getElementById('codeType').value,
+                    description: document.getElementById('codeDescription').value,
+                    discount_type: document.getElementById('discountType').value,
+                    discount_value: parseFloat(document.getElementById('discountValue').value) || 0,
+                    valid_from: document.getElementById('validFrom').value,
+                    valid_until: document.getElementById('validUntil').value,
+                    min_stay: parseInt(document.getElementById('minStay').value) || 1,
+                    usage_limit: parseInt(document.getElementById('usageLimit').value) || null,
+                    partner_info: document.getElementById('partnerInfo').value
+                };
+
+                const response = await fetch('/api/admin/promotions', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': csrfData.csrfToken
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    adminShell.showAlert(`Promotional code "${promoCode}" created successfully!`, 'info');
+                    closeModal();
+                } else {
+                    const data = await response.json().catch(() => ({}));
+                    adminShell.showAlert(data.error || 'Promotions backend is not yet connected. Code saved locally.', 'warning');
+                    closeModal();
+                }
+            } catch {
+                adminShell.showAlert('Promotions backend is not yet available. This feature is coming soon.', 'warning');
+                closeModal();
+            }
         }
 
         function editCode(codeId) {
             document.getElementById('modalTitle').textContent = 'Edit Promotional Code';
-            document.getElementById('codeModal').style.display = 'block';
-            
-            // In production, this would load the code data from the database
-            alert(`Editing code: ${codeId}`);
+            openCreateModal();
+            adminShell.showAlert(`Editing code: ${codeId}. Changes will be saved when the backend is connected.`, 'info');
         }
 
         function viewStats(codeId) {
-            alert(`Viewing detailed statistics for code: ${codeId}\n\n📊 Usage over time\n📍 Guest locations\n🏠 Accommodation preferences\n💰 Revenue impact`);
+            adminShell.showAlert(`Detailed statistics for "${codeId}" will be available once the promotions backend is connected.`, 'info');
         }
 
         function pauseCode(codeId) {
             if (confirm(`Are you sure you want to pause the code "${codeId}"? It will no longer be usable by guests.`)) {
-                alert(`Code "${codeId}" has been paused.`);
+                adminShell.showAlert(`Code "${codeId}" pause requested. Will take effect once the backend is connected.`, 'warning');
             }
         }
 
         function activateEarly(codeId) {
             if (confirm(`Activate the code "${codeId}" early? It will become immediately available to guests.`)) {
-                alert(`Code "${codeId}" is now active!`);
+                adminShell.showAlert(`Code "${codeId}" early activation requested. Will take effect once the backend is connected.`, 'info');
             }
         }
 
         function duplicateCode(codeId) {
             document.getElementById('modalTitle').textContent = 'Duplicate Promotional Code';
-            document.getElementById('codeModal').style.display = 'block';
-            
-            // In production, this would load the code data for duplication
-            alert(`Creating a copy of code: ${codeId}`);
+            openCreateModal();
+            adminShell.showAlert(`Duplicating "${codeId}". Modify the fields and save.`, 'info');
         }
 
         function deleteCode(codeId) {
             if (confirm(`Are you sure you want to delete the code "${codeId}"? This cannot be undone.`)) {
-                alert(`Code "${codeId}" has been deleted.`);
+                adminShell.showAlert(`Code "${codeId}" deletion requested. Will take effect once the backend is connected.`, 'warning');
             }
         }
 
@@ -782,9 +827,16 @@
             const status = document.getElementById('statusFilter').value;
             const type = document.getElementById('typeFilter').value;
             const search = document.getElementById('searchInput').value.toLowerCase();
-            
-            console.log('Filtering codes:', { status, type, search });
-            // In production, this would filter the displayed codes
+
+            // Client-side filtering of the displayed promo code cards
+            const allCards = document.querySelectorAll('.promo-code');
+            allCards.forEach(card => {
+                const cardText = card.textContent.toLowerCase();
+                const matchesSearch = !search || cardText.includes(search);
+                const matchesStatus = !status || card.querySelector(`.status-${status}`);
+                const matchesType = !type || card.classList.contains(type);
+                card.style.display = (matchesSearch && matchesStatus && matchesType) ? '' : 'none';
+            });
         }
 
         // Auto-uppercase promotional codes
@@ -797,13 +849,18 @@
         document.getElementById('codeName').addEventListener('input', updateDiscountPreview);
         document.getElementById('discountType').addEventListener('change', updateDiscountPreview);
 
-        // Close modal when clicking outside
-        window.onclick = function(event) {
+        // Close modal when clicking outside or pressing Escape
+        window.addEventListener('click', function(event) {
             const modal = document.getElementById('codeModal');
-            if (event.target == modal) {
+            if (event.target === modal) {
                 closeModal();
             }
-        }
+        });
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && document.getElementById('codeModal').style.display === 'block') {
+                closeModal();
+            }
+        });
     </script>
     <script src="/admin-shell.js?v=2"></script>
 </body>

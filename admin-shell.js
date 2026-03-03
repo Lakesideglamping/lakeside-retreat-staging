@@ -23,6 +23,7 @@
 
     function checkSessionTimeout() {
         if (Date.now() - lastActivityTime > SESSION_TIMEOUT) {
+            localStorage.removeItem('adminToken');
             // Call logout endpoint to clear the httpOnly cookie, then redirect
             fetch('/api/admin/logout', { method: 'POST', credentials: 'same-origin' })
                 .finally(() => {
@@ -50,7 +51,7 @@
                 title: 'Operations',
                 items: [
                     { id: 'bookings', label: 'Bookings', icon: '📅', href: '/admin-bookings.html' },
-                    { id: 'calendar', label: 'Calendar', icon: '🗓️', href: '/admin-calendar.html', badge: 'New' },
+                    { id: 'calendar', label: 'Calendar', icon: '🗓️', href: '/admin-calendar.html' },
                     { id: 'pricing', label: 'Pricing', icon: '💰', href: '/admin-pricing.html' }
                 ]
             },
@@ -66,13 +67,13 @@
                 title: 'Content',
                 items: [
                     { id: 'content', label: 'Website', icon: '📝', href: '/admin-content.html' },
-                    { id: 'inbox', label: 'Inbox', icon: '📬', href: '/admin-inbox.html', badge: 'New' }
+                    { id: 'inbox', label: 'Inbox', icon: '📬', href: '/admin-inbox.html' }
                 ]
             },
             {
                 title: 'System',
                 items: [
-                    { id: 'notifications', label: 'Notifications', icon: '🔔', href: '/admin-notifications.html', badge: 'New' },
+                    { id: 'notifications', label: 'Notifications', icon: '🔔', href: '/admin-notifications.html' },
                     { id: 'security', label: 'Security', icon: '🔒', href: '/admin-security.html' }
                 ]
             }
@@ -342,6 +343,7 @@
         },
 
         logout: function() {
+            localStorage.removeItem('adminToken');
             fetch('/api/admin/logout', { method: 'POST', credentials: 'same-origin' })
                 .finally(() => {
                     window.location.href = '/admin.html';

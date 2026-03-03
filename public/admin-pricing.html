@@ -550,28 +550,28 @@
                 const data = await response.json();
                 if (data.success && data.pricing) {
                     // Load Dome Pinot pricing
-                    if (data.pricing.pricing_dome_pinot) {
-                        const pinot = data.pricing.pricing_dome_pinot;
+                    const pinot = data.pricing['pricing_dome-pinot'];
+                    if (pinot) {
                         document.getElementById('pinot-base').value = pinot.base || 530;
                         document.getElementById('pinot-weekend').value = pinot.weekend || 325;
                         document.getElementById('pinot-peak').value = pinot.peak || 350;
                         document.getElementById('pinot-cleaning').value = pinot.cleaning || 50;
                         document.getElementById('pinot-min-nights').value = pinot.minNights || 2;
                     }
-                    
+
                     // Load Dome Rosé pricing
-                    if (data.pricing.pricing_dome_rosé) {
-                        const rose = data.pricing.pricing_dome_rosé;
+                    const rose = data.pricing['pricing_dome-rose'];
+                    if (rose) {
                         document.getElementById('rose-base').value = rose.base || 510;
                         document.getElementById('rose-weekend').value = rose.weekend || 325;
                         document.getElementById('rose-peak').value = rose.peak || 350;
                         document.getElementById('rose-cleaning').value = rose.cleaning || 50;
                         document.getElementById('rose-min-nights').value = rose.minNights || 2;
                     }
-                    
+
                     // Load Lakeside Cottage pricing
-                    if (data.pricing.pricing_lakeside_cottage) {
-                        const cottage = data.pricing.pricing_lakeside_cottage;
+                    const cottage = data.pricing['pricing_lakeside-cottage'];
+                    if (cottage) {
                         document.getElementById('cottage-base').value = cottage.base || 295;
                         document.getElementById('cottage-weekend').value = cottage.weekend || 275;
                         document.getElementById('cottage-peak').value = cottage.peak || 300;
@@ -625,11 +625,22 @@
             }
             
             try {
+                // Fetch CSRF token first
+                const csrfResponse = await fetch('/api/csrf-token', {
+                    credentials: 'same-origin'
+                });
+                if (!csrfResponse.ok) {
+                    throw new Error('Failed to obtain CSRF token');
+                }
+                const csrfData = await csrfResponse.json();
+                const csrfToken = csrfData.csrfToken;
+
                 const response = await fetch('/api/admin/pricing', {
                     method: 'POST',
                     credentials: 'same-origin',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': csrfToken
                     },
                     body: JSON.stringify({
                         accommodation: accommodationName,
@@ -641,12 +652,12 @@
                     window.location.href = '/admin.html';
                     return;
                 }
-                
+
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => ({}));
                     throw new Error(errorData.error || 'Failed to update pricing');
                 }
-                
+
                 showAlert(`${accommodationName} pricing updated successfully!`);
             } catch (error) {
                 console.error('Error updating pricing:', error);

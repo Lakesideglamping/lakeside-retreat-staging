@@ -232,6 +232,11 @@
             background: #17a2b8;
             color: white;
         }
+
+        .btn-confirm {
+            background: #28a745;
+            color: white;
+        }
         
         .empty-state {
             text-align: center;
@@ -658,7 +663,8 @@
                         <div class="actions">
                             <button class="btn-action btn-view" onclick="viewBooking('${booking.id}')">View</button>
                             <button class="btn-action btn-edit" onclick="editBooking('${booking.id}')">Edit</button>
-                            <button class="btn-action btn-cancel" onclick="cancelBooking('${booking.id}')">Cancel</button>
+                            ${booking.status === 'pending' ? `<button class="btn-action btn-confirm" onclick="confirmBooking('${booking.id}')">Confirm</button>` : ''}
+                            ${booking.status !== 'cancelled' ? `<button class="btn-action btn-cancel" onclick="cancelBooking('${booking.id}')">Cancel</button>` : ''}
                         </div>
                     </td>
                 </tr>
@@ -838,11 +844,11 @@
                     viewBooking(bookingId); // Refresh modal
                     loadBookings(); // Refresh table
                 } else {
-                    alert('Sync failed: ' + (data.error || 'Unknown error'));
+                    adminShell.showAlert('Sync failed: ' + (data.error || 'Unknown error'), 'error');
                     if (btn) { btn.disabled = false; btn.textContent = 'Retry Sync'; }
                 }
             } catch (error) {
-                alert('Sync failed: ' + error.message);
+                adminShell.showAlert('Sync failed: ' + error.message, 'error');
                 if (btn) { btn.disabled = false; btn.textContent = 'Retry Sync'; }
             }
         }
@@ -855,6 +861,36 @@
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') closeBookingModal();
         });
+
+        async function confirmBooking(id) {
+            if (!confirm('Confirm this booking? The guest will be notified.')) return;
+
+            try {
+                const csrfRes = await fetch('/api/csrf-token', { credentials: 'same-origin' });
+                const csrfData = await csrfRes.json();
+
+                const response = await fetch(`/api/admin/booking/${id}`, {
+                    method: 'PUT',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': csrfData.csrfToken
+                    },
+                    body: JSON.stringify({ status: 'confirmed' })
+                });
+
+                if (!response.ok) {
+                    const data = await response.json();
+                    throw new Error(data.error?.message || 'Failed to confirm booking');
+                }
+
+                adminShell.showAlert('Booking confirmed successfully!', 'info');
+                loadBookings();
+            } catch (error) {
+                console.error('Error confirming booking:', error);
+                adminShell.showAlert(`Failed to confirm booking: ${error.message}`, 'error');
+            }
+        }
 
         function editBooking(id) {
             window.location.href = `/edit-booking.html?id=${id}`;
@@ -882,11 +918,11 @@
                     throw new Error(data.error?.message || 'Failed to cancel booking');
                 }
                 
-                alert('Booking cancelled successfully!');
+                adminShell.showAlert('Booking cancelled successfully.', 'info');
                 loadBookings();
             } catch (error) {
                 console.error('Error cancelling booking:', error);
-                alert(`Failed to cancel booking: ${error.message}`);
+                adminShell.showAlert(`Failed to cancel booking: ${error.message}`, 'error');
             }
         }
 
@@ -984,7 +1020,7 @@
             })
             .catch(error => {
                 console.error('Export error:', error);
-                alert('Failed to export bookings. Please try again.');
+                adminShell.showAlert('Failed to export bookings. Please try again.', 'error');
             });
         }
 

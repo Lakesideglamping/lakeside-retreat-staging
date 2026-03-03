@@ -51,7 +51,7 @@
                 title: 'Operations',
                 items: [
                     { id: 'bookings', label: 'Bookings', icon: '📅', href: '/admin-bookings.html' },
-                    { id: 'calendar', label: 'Calendar', icon: '🗓️', href: '/admin-calendar.html', badge: 'New' },
+                    { id: 'calendar', label: 'Calendar', icon: '🗓️', href: '/admin-calendar.html' },
                     { id: 'pricing', label: 'Pricing', icon: '💰', href: '/admin-pricing.html' }
                 ]
             },
@@ -67,13 +67,13 @@
                 title: 'Content',
                 items: [
                     { id: 'content', label: 'Website', icon: '📝', href: '/admin-content.html' },
-                    { id: 'inbox', label: 'Inbox', icon: '📬', href: '/admin-inbox.html', badge: 'New' }
+                    { id: 'inbox', label: 'Inbox', icon: '📬', href: '/admin-inbox.html' }
                 ]
             },
             {
                 title: 'System',
                 items: [
-                    { id: 'notifications', label: 'Notifications', icon: '🔔', href: '/admin-notifications.html', badge: 'New' },
+                    { id: 'notifications', label: 'Notifications', icon: '🔔', href: '/admin-notifications.html' },
                     { id: 'security', label: 'Security', icon: '🔒', href: '/admin-security.html' }
                 ]
             }
