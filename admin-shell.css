@@ -155,7 +155,9 @@
 }
 
 /* Main Content Area - offset by sidebar width */
-.admin-main {
+/* Using .admin-shell > .admin-main (specificity 0,2,0) to beat the
+   .admin-shell * reset (specificity 0,1,0) that comes later in this file */
+.admin-shell > .admin-main {
     min-height: 100vh;
     margin-left: var(--admin-sidebar-width);
     background: var(--admin-bg);
@@ -258,7 +260,7 @@
         display: block;
     }
 
-    .admin-main {
+    .admin-shell > .admin-main {
         margin-left: 0;
     }
 
@@ -566,7 +568,7 @@
    ============================================================ */
 
 /* --- Global Reset & Body --- */
-.admin-shell .admin-content * {
+.admin-shell * {
     margin: 0;
     padding: 0;
 }
