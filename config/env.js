@@ -55,7 +55,12 @@ function loadConfig() {
 
     // --- Stripe Webhook Secret ---
     if (isProduction && stripeSecretKey && !process.env.STRIPE_WEBHOOK_SECRET) {
-        warnings.push('STRIPE_WEBHOOK_SECRET not set — Stripe webhooks will be rejected');
+        errors.push('STRIPE_WEBHOOK_SECRET is required in production when Stripe is configured — payment webhooks will fail without it');
+    }
+
+    // --- Uplisting Webhook Secret ---
+    if (isProduction && uplistingApiKey && !process.env.UPLISTING_WEBHOOK_SECRET) {
+        warnings.push('UPLISTING_WEBHOOK_SECRET not set — Uplisting webhooks will be rejected (fail-closed)');
     }
 
     // --- Public URL ---

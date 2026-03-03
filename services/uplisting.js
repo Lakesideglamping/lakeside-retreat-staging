@@ -237,8 +237,8 @@ class UplistingService {
      */
     verifyWebhookSignature(rawBody, signature) {
         if (!this.webhookSecret) {
-            console.warn('[SECURITY WARNING] UPLISTING_WEBHOOK_SECRET is not set — skipping signature verification');
-            return { valid: true, reason: 'no_secret_configured' };
+            console.error('[SECURITY] UPLISTING_WEBHOOK_SECRET is not set — rejecting webhook (fail-closed)');
+            return { valid: false, reason: 'no_secret_configured' };
         }
 
         if (!signature) {

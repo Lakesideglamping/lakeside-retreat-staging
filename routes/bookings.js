@@ -85,7 +85,7 @@ function createBookingRoutes(deps) {
             db().all(sql, [accommodation], async (err, rows) => {
                 if (err) {
                     logger.error('Error fetching blocked dates:', { error: err?.message });
-                    return res.json({ success: true, blockedDates: [] });
+                    return res.status(500).json({ success: false, error: 'Failed to fetch blocked dates', blockedDates: [] });
                 }
 
                 const localDates = new Set();
@@ -125,7 +125,7 @@ function createBookingRoutes(deps) {
             });
         } catch (error) {
             logger.error('Error in blocked-dates endpoint:', { error: error?.message });
-            res.json({ success: true, blockedDates: [] });
+            res.status(500).json({ success: false, error: 'Failed to fetch blocked dates', blockedDates: [] });
         }
     });
 
@@ -249,7 +249,7 @@ function createBookingRoutes(deps) {
                 if (!accommodationConfig) {
                     return sendError(res, 400, ERROR_CODES.VALIDATION_ERROR, 'Invalid accommodation');
                 }
-                const maxGuests = accommodationConfig.maxGuests || 6;
+                const maxGuests = accommodationConfig.maxGuests || 3;
                 if (sanitizedData.guests > maxGuests) {
                     return res.status(400).json({ success: false, error: `Maximum ${maxGuests} guests for ${accommodationConfig.name}` });
                 }
@@ -324,8 +324,8 @@ function createBookingRoutes(deps) {
 
                 const cleaningFee = 50;
                 const expectedTotal = expectedAccommodationCost + expectedExtraGuestFee + expectedPetFee + cleaningFee;
-                const minExpected = expectedTotal * 0.9;
-                const maxExpected = expectedTotal * 1.1;
+                const minExpected = expectedTotal * 0.98;
+                const maxExpected = expectedTotal * 1.02;
                 if (sanitizedData.total_price < minExpected || sanitizedData.total_price > maxExpected) {
                     return res.status(400).json({ success: false, error: 'Price validation failed. Please try again.' });
                 }

@@ -315,7 +315,7 @@
                     
                     <div class="booking-accommodation-selector">
                         <div class="accommodation-option" data-accommodation="dome-pinot" data-select-accommodation="dome-pinot">
-                            <img class="accom-thumb" src="images/dome-pinot-hero.jpeg" alt="Dome Pinot luxury glamping dome, Cromwell" width="80" height="80">
+                            <img class="accom-thumb" src="images/dome-pinot-hero.jpeg" alt="Dome Pinot luxury glamping dome, Cromwell" width="80" height="80" loading="lazy" decoding="async">
                             <div class="accom-info">
                                 <h4>Dome Pinot <span style="background: #dc3545; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: 600; vertical-align: middle;">Adults Only</span></h4>
                                 <p>Flagship 50sqm luxury dome with panoramic views and private spa</p>
@@ -324,7 +324,7 @@
                         </div>
 
                         <div class="accommodation-option" data-accommodation="dome-rose" data-select-accommodation="dome-rose">
-                            <img class="accom-thumb" src="images/dome-rose-spa1.jpeg" alt="Dome Rosé romantic glamping dome, Central Otago" width="80" height="80">
+                            <img class="accom-thumb" src="images/dome-rose-spa1.jpeg" alt="Dome Rosé romantic glamping dome, Central Otago" width="80" height="80" loading="lazy" decoding="async">
                             <div class="accom-info">
                                 <h4>Dome Rosé <span style="background: #dc3545; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: 600; vertical-align: middle;">Adults Only</span></h4>
                                 <p>Romantic 40sqm retreat perfect for couples</p>
@@ -333,7 +333,7 @@
                         </div>
 
                         <div class="accommodation-option" data-accommodation="lakeside-cottage" data-select-accommodation="lakeside-cottage">
-                            <img class="accom-thumb" src="images/lakeside-cottage-exterior.jpeg" alt="Lakeside Cottage pet-friendly accommodation, Lake Dunstan" width="80" height="80">
+                            <img class="accom-thumb" src="images/lakeside-cottage-exterior.jpeg" alt="Lakeside Cottage pet-friendly accommodation, Lake Dunstan" width="80" height="80" loading="lazy" decoding="async">
                             <div class="accom-info">
                                 <h4>Lakeside Cottage</h4>
                                 <p>Family-friendly cottage with direct lake access</p>
@@ -4446,7 +4446,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const checkinInput = document.getElementById('bookingCheckin');
             const checkoutInput = document.getElementById('bookingCheckout');
             
-            // Date picker initialization handled by Flatpickr (see app.js)
+            // Date picker initialization handled by Flatpickr
 
             // Initialize mobile optimizations
             detectTouch();
@@ -4504,7 +4504,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-            // Booking date listeners handled by Flatpickr (see app.js)
+            // Booking date listeners handled by Flatpickr
 
             // Mobile-specific performance optimizations
             if (window.innerWidth <= 768) {
