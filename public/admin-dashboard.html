@@ -421,8 +421,12 @@
                 ]);
 
                 if (statsResponse.ok && bookingStatsResponse.ok) {
-                    const stats = await statsResponse.json();
-                    const bookingStats = await bookingStatsResponse.json();
+                    const statsJson = await statsResponse.json();
+                    const bookingStatsJson = await bookingStatsResponse.json();
+
+                    // Unwrap nested stats objects from API responses
+                    const localStats = statsJson.stats || statsJson;
+                    const bookingStats = bookingStatsJson.stats || bookingStatsJson;
 
                     // Get Uplisting data if available
                     let uplistingData = null;
@@ -430,34 +434,47 @@
                         uplistingData = await uplistingResponse.json();
                     }
 
-                    const hasLocalBookings = stats.total_bookings > 0;
+                    const hasLocalBookings = (localStats.total_bookings || 0) > 0;
                     const hasUplistingData = uplistingData?.success;
+                    const uplistingBookings = uplistingData?.total_bookings || 0;
+                    const uplistingRevenue = uplistingData?.total_revenue || 0;
 
-                    // --- Stat cards ---
-                    document.getElementById('totalBookings').textContent = stats.total_bookings || '0';
+                    // --- Stat cards: combine local + Uplisting data ---
+                    const totalBookings = (localStats.total_bookings || 0) + uplistingBookings;
+                    const totalRevenue = (localStats.total_revenue || 0) + uplistingRevenue;
+
+                    document.getElementById('totalBookings').textContent =
+                        totalBookings > 0 ? totalBookings.toLocaleString() : '0';
 
                     document.getElementById('monthlyRevenue').textContent =
-                        hasLocalBookings ? `$${(stats.total_revenue || 0).toLocaleString()}` : '$0';
+                        totalRevenue > 0 ? `$${totalRevenue.toLocaleString()}` : '$0';
 
-                    if (hasLocalBookings && bookingStats.overview?.total_bookings > 0) {
+                    // Occupancy rate from local booking stats or Uplisting
+                    const overview = bookingStats.overview || {};
+                    if (overview.total_bookings > 0) {
                         const occupancyRate = Math.round(
-                            (bookingStats.overview.paid_bookings / bookingStats.overview.total_bookings) * 100
+                            (overview.paid_bookings / overview.total_bookings) * 100
                         );
                         document.getElementById('occupancyRate').textContent = `${occupancyRate}%`;
+                    } else if (hasUplistingData && uplistingBookings > 0) {
+                        document.getElementById('occupancyRate').textContent = 'Via Uplisting';
                     } else {
-                        document.getElementById('occupancyRate').textContent =
-                            hasUplistingData ? 'Uplisting Connected' : 'No data';
+                        document.getElementById('occupancyRate').textContent = 'No data';
                     }
 
+                    // Properties / rating card
                     document.getElementById('avgRating').textContent =
                         hasUplistingData ? `${uplistingData.total_properties} Properties` :
                         hasLocalBookings ? 'No reviews yet' : 'No data';
 
                     // --- Revenue chart ---
-                    buildRevenueChart(bookingStats);
+                    buildRevenueChart(bookingStats, uplistingData);
 
                     // --- Recent activity ---
-                    buildRecentActivity(stats, uplistingData);
+                    buildRecentActivity(localStats, uplistingData);
+
+                    // --- System status (dynamic) ---
+                    updateSystemStatus(statsJson.success, bookingStatsJson.success, hasUplistingData);
 
                 } else {
                     throw new Error('Failed to fetch dashboard data');
@@ -472,7 +489,7 @@
             }
         }
 
-        function buildRevenueChart(bookingStats) {
+        function buildRevenueChart(bookingStats, uplistingData) {
             const chartCard = document.getElementById('revenueChartCard');
             const barsEl = document.getElementById('revenueChartBars');
             const summaryEl = document.getElementById('revenueChartSummary');
@@ -487,13 +504,28 @@
                 monthlyData.push({ key, label, revenue: 0, bookings: 0 });
             }
 
-            // Try to fill in from booking stats monthly_revenue if available
+            // Try to fill in from local booking stats monthly_revenue if available
             if (bookingStats.monthly_revenue) {
                 bookingStats.monthly_revenue.forEach(item => {
                     const match = monthlyData.find(m => m.key === item.month);
                     if (match) {
                         match.revenue = item.revenue || 0;
                         match.bookings = item.bookings || 0;
+                    }
+                });
+            }
+
+            // Also include Uplisting bookings data if available
+            if (uplistingData?.bookings?.length) {
+                uplistingData.bookings.forEach(booking => {
+                    const checkIn = booking.attributes?.check_in || booking.attributes?.arrive;
+                    if (!checkIn) return;
+                    const d = new Date(checkIn);
+                    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                    const match = monthlyData.find(m => m.key === key);
+                    if (match) {
+                        match.bookings += 1;
+                        match.revenue += parseFloat(booking.attributes?.total_amount || booking.attributes?.amount || 0);
                     }
                 });
             }
@@ -585,6 +617,22 @@
                     <span class="activity-time">${item.time}</span>
                 </div>
             `).join('');
+        }
+
+        function updateSystemStatus(dbOk, bookingsOk, uplistingOk) {
+            const statusItems = document.querySelectorAll('.system-status .status-item');
+            // Server Status (always online if we got here)
+            // Database
+            if (statusItems[1]) {
+                const dbSpan = statusItems[1].querySelector('.status-good');
+                if (dbSpan) dbSpan.innerHTML = dbOk ? '✅ Connected' : '❌ Error';
+            }
+            // Stripe - check if env var likely set (API returned ok)
+            // Uplisting
+            if (statusItems[3]) {
+                const upSpan = statusItems[3].querySelector('.status-good');
+                if (upSpan) upSpan.innerHTML = uplistingOk ? '✅ Connected' : '⚠️ Not configured';
+            }
         }
 
         // Load data when page loads
