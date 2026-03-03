@@ -162,13 +162,6 @@ database.initializeDatabase()
         }
 
         // Sync ADMIN_PASSWORD_HASH env var into database so env var always wins
-        logger.info('🔑 Admin config check', {
-            usernameSet: !!process.env.ADMIN_USERNAME,
-            usernameValue: process.env.ADMIN_USERNAME,
-            hashSet: !!process.env.ADMIN_PASSWORD_HASH,
-            hashLength: process.env.ADMIN_PASSWORD_HASH?.length,
-            hashPrefix: process.env.ADMIN_PASSWORD_HASH?.substring(0, 7),
-        });
         if (process.env.ADMIN_PASSWORD_HASH) {
             // Trim whitespace that can sneak in when pasting into dashboard
             process.env.ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH.trim();
