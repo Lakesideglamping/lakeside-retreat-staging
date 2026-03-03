@@ -120,7 +120,7 @@ database.initializeDatabase()
             // Periodic calendar reconciliation — re-sync every hour to prevent drift
             setInterval(() => {
                 if (uplisting?.isConfigured) {
-                    uplisting.reconcileCalendars().catch(err =>
+                    uplisting.reconcileCalendar().catch(err =>
                         logger.error('Calendar reconciliation failed', { error: err.message })
                     );
                 }
@@ -135,20 +135,30 @@ database.initializeDatabase()
             logger.warn('⚠️ Marketing automation initialization failed:', { error: err.message });
         }
 
-        // Ensure deposit_release_due column exists (idempotent migration)
-        try {
-            await new Promise((resolve, reject) => {
-                db.run(`ALTER TABLE bookings ADD COLUMN deposit_release_due TEXT`, (err) => {
-                    // Ignore "duplicate column" errors - column already exists
-                    if (err && !err.message.includes('duplicate') && !err.message.includes('already exists')) {
-                        reject(err);
-                    } else {
-                        resolve();
-                    }
+        // Ensure deposit/security columns exist (idempotent — ignores "already exists" errors)
+        const idempotentColumns = [
+            `ALTER TABLE bookings ADD COLUMN deposit_release_due TEXT`,
+            `ALTER TABLE bookings ADD COLUMN security_deposit_intent_id TEXT`,
+            `ALTER TABLE bookings ADD COLUMN security_deposit_status TEXT DEFAULT 'pending'`,
+            `ALTER TABLE bookings ADD COLUMN security_deposit_amount DECIMAL(10,2) DEFAULT 300.00`,
+            `ALTER TABLE bookings ADD COLUMN security_deposit_released_at TIMESTAMP`,
+            `ALTER TABLE bookings ADD COLUMN security_deposit_claimed_amount DECIMAL(10,2) DEFAULT 0`,
+        ];
+        for (const sql of idempotentColumns) {
+            try {
+                await new Promise((resolve, reject) => {
+                    db.run(sql, (err) => {
+                        // Ignore "duplicate column" / "already exists" errors
+                        if (err && !err.message.includes('duplicate') && !err.message.includes('already exists')) {
+                            reject(err);
+                        } else {
+                            resolve();
+                        }
+                    });
                 });
-            });
-        } catch (err) {
-            logger.warn('⚠️ Could not add deposit_release_due column:', { error: err.message });
+            } catch (err) {
+                logger.warn('⚠️ Could not add column:', { sql, error: err.message });
+            }
         }
 
         // Recover any pending deposit releases that were lost due to server restart
