@@ -23,6 +23,7 @@
 
     function checkSessionTimeout() {
         if (Date.now() - lastActivityTime > SESSION_TIMEOUT) {
+            localStorage.removeItem('adminToken');
             // Call logout endpoint to clear the httpOnly cookie, then redirect
             fetch('/api/admin/logout', { method: 'POST', credentials: 'same-origin' })
                 .finally(() => {
@@ -342,6 +343,7 @@
         },
 
         logout: function() {
+            localStorage.removeItem('adminToken');
             fetch('/api/admin/logout', { method: 'POST', credentials: 'same-origin' })
                 .finally(() => {
                     window.location.href = '/admin.html';

@@ -222,6 +222,8 @@
 
                 if (response.ok && data.success) {
                     // The httpOnly cookie is set by the server automatically
+                    // Store flag so admin-shell.js knows we're authenticated
+                    localStorage.setItem('adminToken', 'authenticated');
                     window.location.href = '/admin-dashboard.html';
                 } else {
                     // Handle both old format (data.error as string) and new format (data.error.message)
