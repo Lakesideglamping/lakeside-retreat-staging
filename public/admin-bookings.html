@@ -586,54 +586,43 @@
         // Load bookings data
         async function loadBookings() {
             try {
-                // Load Uplisting properties first
-                await loadUplistingProperties();
+                // Load accommodation filter options from local API (not Uplisting)
+                await loadAccommodationFilter();
 
                 const response = await fetch('/api/admin/bookings', {
                     credentials: 'same-origin'
                 });
-                
+
                 if (!response.ok) {
                     throw new Error('Failed to load bookings');
                 }
-                
+
                 const bookings = await response.json();
                 displayBookings(bookings);
                 updateStats(bookings);
             } catch (error) {
                 console.error('Error loading bookings:', error);
-                // Load Uplisting properties and show empty state
-                await loadUplistingProperties();
                 displayBookings([]);
                 updateStats([]);
             }
         }
 
-        // Load Uplisting properties into filter dropdown
-        async function loadUplistingProperties() {
+        // Populate accommodation filter dropdown from /api/accommodations
+        async function loadAccommodationFilter() {
             try {
-                const response = await fetch('/api/admin/uplisting-dashboard', {
-                    credentials: 'same-origin'
-                });
-                
-                if (response.ok) {
-                    const uplistingData = await response.json();
-                    if (uplistingData.success && uplistingData.properties) {
-                        const select = document.getElementById('filterAccommodation');
-                        
-                        // Add Uplisting properties to dropdown
-                        uplistingData.properties.forEach(property => {
-                            const option = document.createElement('option');
-                            option.value = property.name;
-                            option.textContent = property.name;
-                            select.appendChild(option);
-                        });
-                        
-                        // Uplisting properties loaded into filter
-                    }
+                const response = await fetch('/api/accommodations');
+                const data = await response.json();
+                if (data.success && data.accommodations) {
+                    const select = document.getElementById('filterAccommodation');
+                    data.accommodations.forEach(acc => {
+                        const option = document.createElement('option');
+                        option.value = acc.id;
+                        option.textContent = acc.name;
+                        select.appendChild(option);
+                    });
                 }
-            } catch (error) {
-                // Uplisting properties unavailable — filter will use local data only
+            } catch (_) {
+                // Filter stays at "All Properties" only — non-critical failure
             }
         }
 
@@ -918,7 +907,8 @@
                     throw new Error(data.error?.message || 'Failed to cancel booking');
                 }
                 
-                adminShell.showAlert('Booking cancelled successfully.', 'info');
+                adminShell.showAlert('Booking cancelled successfully.');
+                closeBookingModal();
                 loadBookings();
             } catch (error) {
                 console.error('Error cancelling booking:', error);

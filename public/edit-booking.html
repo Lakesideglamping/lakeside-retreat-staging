@@ -299,10 +299,7 @@
                     <div class="form-group">
                         <label for="accommodation">Accommodation *</label>
                         <select id="accommodation" required>
-                            <option value="">Select accommodation...</option>
-                            <option value="dome-pinot">Dome Pinot</option>
-                            <option value="dome-rose">Dome Ros&eacute;</option>
-                            <option value="lakeside-cottage">Lakeside Cottage</option>
+                            <option value="">Loading accommodations…</option>
                         </select>
                     </div>
                     <div class="form-row">
@@ -379,6 +376,31 @@
         if (!bookingId) {
             document.getElementById('loadingState').textContent = 'No booking ID specified.';
             document.getElementById('alertBox').innerHTML = '<div class="alert alert-error">No booking ID provided. <a href="/admin-bookings.html">Return to bookings</a></div>';
+        }
+
+        // Populate accommodation select from API — must complete before loadBooking() sets value
+        async function loadAccommodations() {
+            try {
+                const res = await fetch('/api/accommodations');
+                const data = await res.json();
+                const sel = document.getElementById('accommodation');
+                if (data.success && data.accommodations && data.accommodations.length) {
+                    sel.innerHTML = '<option value="">Select accommodation...</option>'
+                        + data.accommodations.map(a =>
+                            `<option value="${escapeHtml(a.id)}">${escapeHtml(a.name)}</option>`
+                        ).join('');
+                } else {
+                    sel.innerHTML = '<option value="">No accommodations available</option>';
+                }
+            } catch (_) {
+                // Fallback to hardcoded list if API fails
+                document.getElementById('accommodation').innerHTML = [
+                    '<option value="">Select accommodation...</option>',
+                    '<option value="dome-pinot">Dome Pinot</option>',
+                    '<option value="dome-rose">Dome Rosé</option>',
+                    '<option value="lakeside-cottage">Lakeside Cottage</option>'
+                ].join('');
+            }
         }
 
         // Load booking data
@@ -521,8 +543,8 @@
             }
         });
 
-        // Load the booking on page load
-        loadBooking();
+        // Load accommodations first, then booking — so the select has options before value is set
+        loadAccommodations().then(loadBooking);
     </script>
 </body>
 </html>

@@ -255,10 +255,7 @@
                     <div class="form-group">
                         <label for="accommodation">Accommodation *</label>
                         <select id="accommodation" required>
-                            <option value="">Select accommodation...</option>
-                            <option value="dome-pinot">Dome Pinot</option>
-                            <option value="dome-rose">Dome Ros&eacute;</option>
-                            <option value="lakeside-cottage">Lakeside Cottage</option>
+                            <option value="">Loading accommodations…</option>
                         </select>
                         <div class="field-error">Please select an accommodation.</div>
                     </div>
@@ -316,6 +313,32 @@
 
     <script src="/admin-shell.js?v=3"></script>
     <script>
+        // Populate accommodation select from API instead of hardcoded values
+        async function loadAccommodations() {
+            try {
+                const res = await fetch('/api/accommodations');
+                const data = await res.json();
+                const sel = document.getElementById('accommodation');
+                if (data.success && data.accommodations && data.accommodations.length) {
+                    sel.innerHTML = '<option value="">Select accommodation...</option>'
+                        + data.accommodations.map(a =>
+                            `<option value="${escapeHtml(a.id)}">${escapeHtml(a.name)}</option>`
+                        ).join('');
+                } else {
+                    sel.innerHTML = '<option value="">No accommodations available</option>';
+                }
+            } catch (_) {
+                // Fallback to hardcoded list if API fails
+                document.getElementById('accommodation').innerHTML = [
+                    '<option value="">Select accommodation...</option>',
+                    '<option value="dome-pinot">Dome Pinot</option>',
+                    '<option value="dome-rose">Dome Rosé</option>',
+                    '<option value="lakeside-cottage">Lakeside Cottage</option>'
+                ].join('');
+            }
+        }
+        loadAccommodations();
+
         // Set minimum check-in date to today
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('checkIn').setAttribute('min', today);
