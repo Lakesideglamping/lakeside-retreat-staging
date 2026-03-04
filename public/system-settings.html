@@ -516,12 +516,12 @@
                 });
                 const data = await response.json();
                 if (data.success) {
-                    adminShell.showAlert('Cache cleared successfully', 'success');
+                    showAlert('Cache cleared successfully');
                 } else {
-                    adminShell.showAlert('Failed to clear cache: ' + (data.error || 'Unknown error'), 'error');
+                    showAlert('Failed to clear cache: ' + (data.error || 'Unknown error'), 'error');
                 }
             } catch (err) {
-                adminShell.showAlert('Error: ' + err.message, 'error');
+                showAlert('Error: ' + err.message, 'error');
             }
         }
 
@@ -543,7 +543,7 @@
                     showAlert(data.error || 'Failed to reset analytics', 'error');
                 }
             } catch (err) {
-                adminShell.showAlert('Error: ' + err.message, 'error');
+                showAlert('Error: ' + err.message, 'error');
             }
         }
 
