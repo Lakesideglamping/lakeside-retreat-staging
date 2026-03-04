@@ -340,6 +340,49 @@
         .badge-confirmed { background: #d4edda; color: #155724; }
         .badge-pending   { background: #fff3cd; color: #856404; }
         .badge-cancelled { background: #f8d7da; color: #721c24; }
+
+        /* Per-property revenue breakdown */
+        .property-breakdown-card {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        .property-breakdown-card h3 {
+            color: #2d5a5a;
+            margin-bottom: 1.25rem;
+            font-size: 1.25rem;
+        }
+        .property-breakdown-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+        }
+        .property-breakdown-item {
+            border-radius: 10px;
+            padding: 1.1rem 1.25rem;
+            border: 1px solid #eee;
+            background: #fafafa;
+        }
+        .property-breakdown-name {
+            font-weight: 700;
+            font-size: 0.85rem;
+            margin-bottom: 0.75rem;
+            display: inline-block;
+            padding: 0.2rem 0.65rem;
+            border-radius: 12px;
+        }
+        .property-breakdown-revenue {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #2d5a5a;
+            margin-bottom: 0.25rem;
+        }
+        .property-breakdown-meta { font-size: 0.8rem; color: #888; }
+        .prop-pinot   { background: #fce7f3; color: #be185d; }
+        .prop-rose    { background: #fce7f3; color: #db2777; }
+        .prop-cottage { background: #dbeafe; color: #1e40af; }
     </style>
 </head>
 <body>
@@ -382,6 +425,12 @@
             <div class="chart-summary" id="revenueChartSummary">
                 <!-- Populated by JS -->
             </div>
+        </div>
+
+        <!-- Per-property breakdown -->
+        <div class="property-breakdown-card" id="propertyBreakdownCard" style="display:none">
+            <h3>🏠 Revenue by Property — This Month</h3>
+            <div class="property-breakdown-grid" id="propertyBreakdownGrid"></div>
         </div>
 
         <!-- Today at a Glance -->
@@ -518,15 +567,17 @@
             hideDashboardBanner();
             try {
                 // Fire all four requests simultaneously; tolerate individual failures
-                const [statsResult, bookingStatsResult, uplistingResult, reviewsResult] = await Promise.allSettled([
+                const [statsResult, bookingStatsResult, uplistingResult, reviewsResult, analyticsResult] = await Promise.allSettled([
                     fetch('/api/admin/stats', { credentials: 'same-origin' }),
                     fetch('/api/admin/booking-stats', { credentials: 'same-origin' }),
                     fetch('/api/admin/uplisting-dashboard', { credentials: 'same-origin' }),
-                    fetch('/api/admin/reviews/summary', { credentials: 'same-origin' })
+                    fetch('/api/admin/reviews/summary', { credentials: 'same-origin' }),
+                    fetch('/api/admin/analytics?dateRange=month', { credentials: 'same-origin' })
                 ]);
 
                 const statsResponse        = statsResult.status        === 'fulfilled' ? statsResult.value        : null;
                 const bookingStatsResponse = bookingStatsResult.status === 'fulfilled' ? bookingStatsResult.value : null;
+                const analyticsResponse    = analyticsResult.status    === 'fulfilled' ? analyticsResult.value    : null;
                 const uplistingResponse    = uplistingResult.status    === 'fulfilled' ? uplistingResult.value    : null;
                 const reviewsResponse      = reviewsResult.status      === 'fulfilled' ? reviewsResult.value      : null;
 
@@ -617,6 +668,18 @@
 
                 // --- Revenue chart ---
                 buildRevenueChart(bookingStats, uplistingData);
+
+                // --- Per-property breakdown ---
+                let accommodations = [];
+                if (analyticsResponse?.ok) {
+                    try {
+                        const aJson = await analyticsResponse.json();
+                        if (aJson.success && aJson.analytics?.accommodations) {
+                            accommodations = aJson.analytics.accommodations;
+                        }
+                    } catch (e) { /* non-fatal */ }
+                }
+                buildPropertyBreakdown(accommodations);
 
                 // --- Today at a glance + Recent bookings ---
                 buildTodayStrip(localStats);
@@ -712,6 +775,29 @@
                     </div>
                 `;
             }
+        }
+
+        function buildPropertyBreakdown(accommodations) {
+            const card = document.getElementById('propertyBreakdownCard');
+            const grid = document.getElementById('propertyBreakdownGrid');
+            if (!card || !grid || !accommodations.length) return;
+
+            grid.innerHTML = accommodations.map(a => {
+                const name = a.accommodation || 'Unknown';
+                const propClass = name.includes('Pinot') ? 'prop-pinot' :
+                                  (name.includes('Ros') ? 'prop-rose' : 'prop-cottage');
+                const revenue  = Math.round(parseFloat(a.revenue) || 0);
+                const bookings = parseInt(a.bookings) || 0;
+                const avgVal   = bookings > 0 ? Math.round(revenue / bookings) : 0;
+                return `
+                    <div class="property-breakdown-item">
+                        <div class="property-breakdown-name ${propClass}">${escapeHtml(name)}</div>
+                        <div class="property-breakdown-revenue">$${revenue.toLocaleString()}</div>
+                        <div class="property-breakdown-meta">${bookings} booking${bookings !== 1 ? 's' : ''} · avg $${avgVal.toLocaleString()}/stay</div>
+                    </div>
+                `;
+            }).join('');
+            card.style.display = '';
         }
 
         function buildTodayStrip(stats) {
