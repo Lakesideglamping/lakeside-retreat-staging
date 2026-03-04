@@ -191,6 +191,16 @@
         .tab-content.active {
             display: block;
         }
+
+        @media (max-width: 768px) {
+            .container { padding: 1rem; }
+            .content-section { padding: 1rem; }
+            .tabs { flex-direction: column; }
+            .tab { text-align: center; }
+            .form-actions { flex-direction: column; }
+            .form-actions .btn { width: 100%; }
+            .character-count { font-size: 0.8rem; }
+        }
     </style>
 </head>
 <body>
@@ -217,7 +227,7 @@
             </div>
             
             <div class="form-actions">
-                <button class="btn btn-primary" onclick="saveContent('hero')">Save Changes</button>
+                <button class="btn btn-primary" onclick="saveContent('hero', event)">Save Changes</button>
                 <button class="btn btn-preview" onclick="previewContent('hero')">Preview</button>
             </div>
         </div>
@@ -241,7 +251,7 @@
             </div>
             
             <div class="form-actions">
-                <button class="btn btn-primary" onclick="saveContent('about')">Save Changes</button>
+                <button class="btn btn-primary" onclick="saveContent('about', event)">Save Changes</button>
                 <button class="btn btn-preview" onclick="previewContent('about')">Preview</button>
             </div>
         </div>
@@ -254,9 +264,9 @@
             </div>
             
             <div class="tabs">
-                <div class="tab active" onclick="switchTab('pinot')">Dome Pinot</div>
-                <div class="tab" onclick="switchTab('rose')">Dome Rosé</div>
-                <div class="tab" onclick="switchTab('cottage')">Lakeside Cottage</div>
+                <div class="tab active" onclick="switchTab('pinot', event)">Dome Pinot</div>
+                <div class="tab" onclick="switchTab('rose', event)">Dome Rosé</div>
+                <div class="tab" onclick="switchTab('cottage', event)">Lakeside Cottage</div>
             </div>
             
             <div class="tab-content active" id="pinot-content">
@@ -299,7 +309,7 @@
             </div>
             
             <div class="form-actions">
-                <button class="btn btn-primary" onclick="saveContent('accommodations')">Save All Accommodations</button>
+                <button class="btn btn-primary" onclick="saveContent('accommodations', event)">Save All Accommodations</button>
                 <button class="btn btn-preview" onclick="previewContent('accommodations')">Preview</button>
             </div>
         </div>
@@ -327,7 +337,7 @@
             </div>
             
             <div class="form-actions">
-                <button class="btn btn-primary" onclick="saveContent('contact')">Save Changes</button>
+                <button class="btn btn-primary" onclick="saveContent('contact', event)">Save Changes</button>
             </div>
         </div>
         
@@ -351,7 +361,7 @@
             </div>
             
             <div class="form-actions">
-                <button class="btn btn-primary" onclick="saveContent('seo')">Save SEO Settings</button>
+                <button class="btn btn-primary" onclick="saveContent('seo', event)">Save SEO Settings</button>
                 <button class="btn btn-secondary" onclick="analyzeSEO()">Analyze SEO</button>
             </div>
         </div>
@@ -360,19 +370,19 @@
     <script>
         // Authentication is handled by admin-shell.js via cookie verification
 
-        function switchTab(tabName) {
+        function switchTab(tabName, evt) {
             // Remove active class from all tabs and content
             document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
 
             // Add active class to clicked tab and corresponding content
-            event.target.classList.add('active');
+            if (evt && evt.target) evt.target.classList.add('active');
             document.getElementById(tabName + '-content').classList.add('active');
         }
 
-        async function saveContent(section) {
-            const sectionEl = event.target.closest('.content-section');
-            const btn = event.target;
+        async function saveContent(section, evt) {
+            const sectionEl = evt.target.closest('.content-section');
+            const btn = evt.target;
             btn.disabled = true;
             btn.textContent = 'Saving...';
 

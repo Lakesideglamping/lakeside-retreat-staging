@@ -1024,8 +1024,8 @@
             });
         }
 
-        // Load bookings on page load
-        loadBookings();
+        // Load bookings after admin-shell.js verifies auth
+        document.addEventListener('DOMContentLoaded', loadBookings);
     </script>
     <script src="/admin-shell.js?v=3"></script>
 

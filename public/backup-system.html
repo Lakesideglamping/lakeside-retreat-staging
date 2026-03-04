@@ -330,6 +330,17 @@
             border-radius: 4px;
             background: white;
         }
+
+        @media (max-width: 768px) {
+            .container { padding: 0 1rem; }
+            .page-header { flex-direction: column; gap: 1rem; align-items: flex-start; }
+            .status-grid { grid-template-columns: repeat(2, 1fr); }
+            .backup-table { font-size: 0.85rem; }
+            .backup-table th, .backup-table td { padding: 0.5rem; }
+            .action-buttons { flex-direction: column; }
+            .setting-row { flex-direction: column; align-items: flex-start; gap: 0.75rem; }
+            .settings-section { padding: 1rem; }
+        }
     </style>
 </head>
 <body>
@@ -495,7 +506,7 @@
             }
             tbody.innerHTML = backups.slice(0, 10).map(backup => {
                 const sizeStr = backup.size > 1024 ? (backup.size / 1024).toFixed(1) + ' MB' : backup.size + ' KB';
-                const fname = escapeHtml(backup.filename);
+                const safeFilename = encodeURIComponent(backup.filename);
                 return `
                 <tr>
                     <td><strong>${new Date(backup.created_at).toLocaleString()}</strong><br><small>${escapeHtml(backup.type || 'Automatic')}</small></td>
@@ -503,8 +514,8 @@
                     <td>${sizeStr}</td>
                     <td><div class="backup-status"><span class="status-dot success"></span>Completed</div></td>
                     <td><div class="action-buttons">
-                        <button class="btn btn-secondary btn-sm" onclick="downloadBackup('${fname}')">Download</button>
-                        <button class="btn btn-success btn-sm" onclick="restoreBackup('${fname}')">Restore</button>
+                        <button class="btn btn-secondary btn-sm" onclick="downloadBackup(decodeURIComponent('${safeFilename}'))">Download</button>
+                        <button class="btn btn-success btn-sm" onclick="restoreBackup(decodeURIComponent('${safeFilename}'))">Restore</button>
                     </div></td>
                 </tr>`;
             }).join('');

@@ -400,9 +400,9 @@
                 <div class="chart-header">
                     <h2 class="chart-title">Revenue Trend</h2>
                     <div class="chart-controls">
-                        <button class="chart-btn active" onclick="changeRevenueView('daily')">Daily</button>
-                        <button class="chart-btn" onclick="changeRevenueView('weekly')">Weekly</button>
-                        <button class="chart-btn" onclick="changeRevenueView('monthly')">Monthly</button>
+                        <button class="chart-btn active" onclick="changeRevenueView('daily', event)">Daily</button>
+                        <button class="chart-btn" onclick="changeRevenueView('weekly', event)">Weekly</button>
+                        <button class="chart-btn" onclick="changeRevenueView('monthly', event)">Monthly</button>
                     </div>
                 </div>
                 <canvas id="revenueChart" style="max-height: 300px;"></canvas>
@@ -775,17 +775,19 @@
 
         function updateComparison() {
             const comparison = document.getElementById('compareWith').value;
-            // Update comparison data
+            // Re-fetch data with comparison context
+            fetchRealAnalytics(document.getElementById('dateRange')?.value || 'month');
         }
 
-        function changeRevenueView(view) {
+        function changeRevenueView(view, evt) {
             // Update button states
             document.querySelectorAll('.chart-controls .chart-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
-            event.target.classList.add('active');
-            
-            // Update chart data based on view
+            if (evt && evt.target) evt.target.classList.add('active');
+
+            // Re-fetch analytics with the selected granularity
+            fetchRealAnalytics(document.getElementById('dateRange')?.value || 'month');
         }
 
         // Initialize on page load
@@ -819,14 +821,16 @@
         async function fetchRealAnalytics(dateRange = 'month') {
             try {
                 // Fetch both analytics and Uplisting data
-                const [analyticsResponse, uplistingResponse] = await Promise.all([
-                    fetch(`/api/admin/analytics?dateRange=${dateRange}`, {
+                const [analyticsResult, uplistingResult] = await Promise.allSettled([
+                    fetch(`/api/admin/analytics?dateRange=${encodeURIComponent(dateRange)}`, {
                         credentials: 'same-origin'
                     }),
                     fetch('/api/admin/uplisting-dashboard', {
                         credentials: 'same-origin'
                     })
                 ]);
+                const analyticsResponse = analyticsResult.status === 'fulfilled' ? analyticsResult.value : null;
+                const uplistingResponse = uplistingResult.status === 'fulfilled' ? uplistingResult.value : null;
                 
                 // Handle Uplisting data
                 let uplistingData = null;
@@ -909,7 +913,12 @@
                 }
                 
             } catch (error) {
-                // API not available — dashboard will show default placeholder values
+                // Show error indicator so admin knows API failed
+                const banner = document.createElement('div');
+                banner.style.cssText = 'background:#fff3cd;border:1px solid #ffc107;color:#856404;padding:0.75rem 1rem;border-radius:8px;margin:1rem 2rem;';
+                banner.textContent = 'Unable to fetch live analytics data. Showing cached/default values.';
+                const container = document.querySelector('.container');
+                if (container) container.prepend(banner);
             }
         }
         

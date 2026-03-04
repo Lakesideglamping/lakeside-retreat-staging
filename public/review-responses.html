@@ -273,6 +273,18 @@
             border-radius: 4px;
             background: white;
         }
+
+        @media (max-width: 768px) {
+            .container { padding: 0 1rem; }
+            .stats-row { grid-template-columns: repeat(2, 1fr); }
+            .review-header { flex-direction: column; gap: 0.75rem; }
+            .review-card { padding: 1rem; }
+            .filter-bar { flex-direction: column; }
+            .filter-bar select { width: 100%; }
+            .button-group { flex-direction: column; }
+            .button-group .btn { width: 100%; }
+            .template-buttons { flex-direction: column; }
+        }
     </style>
 </head>
 <body>

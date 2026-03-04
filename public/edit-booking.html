@@ -440,18 +440,50 @@
             }
         }
 
+        // Client-side validation
+        function validateBookingForm() {
+            const errors = [];
+            const name = document.getElementById('guestName').value.trim();
+            const email = document.getElementById('guestEmail').value.trim();
+            const accommodation = document.getElementById('accommodation').value;
+            const checkIn = document.getElementById('checkIn').value;
+            const checkOut = document.getElementById('checkOut').value;
+            const guests = parseInt(document.getElementById('guests').value);
+            const totalPrice = parseFloat(document.getElementById('totalPriceInput').value);
+
+            if (!name) errors.push('Guest name is required.');
+            if (!email) errors.push('Guest email is required.');
+            else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.push('Please enter a valid email address.');
+            if (!accommodation) errors.push('Accommodation is required.');
+            if (!checkIn) errors.push('Check-in date is required.');
+            if (!checkOut) errors.push('Check-out date is required.');
+            if (checkIn && checkOut && new Date(checkOut) <= new Date(checkIn)) errors.push('Check-out must be after check-in.');
+            if (isNaN(guests) || guests < 1) errors.push('Number of guests must be at least 1.');
+            if (isNaN(totalPrice) || totalPrice < 0) errors.push('Total price must be a valid positive number.');
+
+            return errors;
+        }
+
         // Form submission with CSRF token
         document.getElementById('bookingForm').addEventListener('submit', async function(e) {
             e.preventDefault();
+
+            // Validate before submitting
+            const validationErrors = validateBookingForm();
+            if (validationErrors.length > 0) {
+                document.getElementById('alertBox').innerHTML = `<div class="alert alert-error">${validationErrors.map(e => escapeHtml(e)).join('<br>')}</div>`;
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                return;
+            }
 
             const saveBtn = document.getElementById('saveBtn');
             saveBtn.disabled = true;
             saveBtn.textContent = 'Saving...';
 
             const bookingData = {
-                guest_name: document.getElementById('guestName').value,
-                guest_email: document.getElementById('guestEmail').value,
-                guest_phone: document.getElementById('guestPhone').value,
+                guest_name: document.getElementById('guestName').value.trim(),
+                guest_email: document.getElementById('guestEmail').value.trim(),
+                guest_phone: document.getElementById('guestPhone').value.trim(),
                 accommodation: document.getElementById('accommodation').value,
                 check_in: document.getElementById('checkIn').value,
                 check_out: document.getElementById('checkOut').value,

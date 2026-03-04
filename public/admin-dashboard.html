@@ -414,13 +414,16 @@
         async function loadDashboardData() {
             try {
                 // Fetch real booking stats from API and Uplisting data
-                const [statsResponse, bookingStatsResponse, uplistingResponse] = await Promise.all([
+                const [statsResult, bookingStatsResult, uplistingResult] = await Promise.allSettled([
                     fetch('/api/admin/stats', { credentials: 'same-origin' }),
                     fetch('/api/admin/booking-stats', { credentials: 'same-origin' }),
                     fetch('/api/admin/uplisting-dashboard', { credentials: 'same-origin' })
                 ]);
+                const statsResponse = statsResult.status === 'fulfilled' ? statsResult.value : null;
+                const bookingStatsResponse = bookingStatsResult.status === 'fulfilled' ? bookingStatsResult.value : null;
+                const uplistingResponse = uplistingResult.status === 'fulfilled' ? uplistingResult.value : null;
 
-                if (statsResponse.ok && bookingStatsResponse.ok) {
+                if (statsResponse?.ok && bookingStatsResponse?.ok) {
                     const statsJson = await statsResponse.json();
                     const bookingStatsJson = await bookingStatsResponse.json();
 

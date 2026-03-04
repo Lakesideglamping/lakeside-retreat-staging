@@ -409,10 +409,10 @@
         </div>
         
         <div class="tabs">
-            <button class="tab active" onclick="showTab('abandoned')">Abandoned Checkouts</button>
-            <button class="tab" onclick="showTab('reviews')">Review Requests</button>
-            <button class="tab" onclick="showTab('social')">Social Content</button>
-            <button class="tab" onclick="showTab('availability')">Availability Calendar</button>
+            <button class="tab active" onclick="showTab('abandoned', event)">Abandoned Checkouts</button>
+            <button class="tab" onclick="showTab('reviews', event)">Review Requests</button>
+            <button class="tab" onclick="showTab('social', event)">Social Content</button>
+            <button class="tab" onclick="showTab('availability', event)">Availability Calendar</button>
         </div>
         
         <div id="abandonedTab" class="tab-content active">
@@ -597,11 +597,11 @@
             setTimeout(() => alert.remove(), 5000);
         }
 
-        function showTab(tabName) {
+        function showTab(tabName, evt) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-            
-            event.target.classList.add('active');
+
+            if (evt && evt.target) evt.target.classList.add('active');
             document.getElementById(tabName + 'Tab').classList.add('active');
             
             if (tabName === 'abandoned') loadAbandonedCheckouts();
