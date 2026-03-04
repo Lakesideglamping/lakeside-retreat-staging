@@ -675,16 +675,20 @@
 
         function updateStats(bookings) {
             const today = new Date().toISOString().split('T')[0];
+            const thisMonth = today.slice(0, 7); // 'YYYY-MM'
             const upcoming = bookings.filter(b => b.check_in > today && b.status === 'confirmed').length;
             const todayCheckIns = bookings.filter(b => b.check_in === today).length;
+            // Monthly revenue: completed payments where check-in is in the current calendar month
             const monthRevenue = bookings
-                .filter(b => b.status === 'confirmed')
-                .reduce((sum, b) => sum + b.total_price, 0);
-            
+                .filter(b => b.payment_status === 'completed'
+                    && b.check_in && b.check_in.slice(0, 7) === thisMonth)
+                .reduce((sum, b) => sum + (parseFloat(b.total_price) || 0), 0);
+
             document.getElementById('totalBookings').textContent = bookings.length;
             document.getElementById('upcomingBookings').textContent = upcoming;
             document.getElementById('todayCheckIns').textContent = todayCheckIns;
-            document.getElementById('monthRevenue').textContent = `$${monthRevenue.toLocaleString()}`;
+            document.getElementById('monthRevenue').textContent =
+                '$' + Math.round(monthRevenue).toLocaleString('en-NZ');
         }
 
         function formatDate(dateStr) {
