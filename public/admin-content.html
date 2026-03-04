@@ -201,12 +201,26 @@
             .form-actions .btn { width: 100%; }
             .character-count { font-size: 0.8rem; }
         }
+
+        #unsavedBar {
+            display: none;
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+            border-radius: 6px;
+            padding: 0.65rem 1rem;
+            margin-bottom: 1rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        #unsavedBar.visible { display: block; }
     </style>
 </head>
 <body>
     <!-- Old header removed - now using admin-shell.js for unified navigation -->
     
     <div class="container">
+        <div id="unsavedBar">⚠ You have unsaved changes — don't forget to save.</div>
         <!-- Hero Section -->
         <div class="content-section" id="section-hero">
             <div class="section-header">
@@ -370,6 +384,24 @@
     <script>
         // Authentication is handled by admin-shell.js via cookie verification
 
+        let dirty = false;
+        function markDirty() {
+            if (dirty) return;
+            dirty = true;
+            document.getElementById('unsavedBar').classList.add('visible');
+        }
+        function markClean() {
+            dirty = false;
+            document.getElementById('unsavedBar').classList.remove('visible');
+        }
+        window.addEventListener('beforeunload', function(e) {
+            if (dirty) { e.preventDefault(); e.returnValue = ''; }
+        });
+        // e.isTrusted is false for programmatic dispatchEvent (character count refresh)
+        // so this only fires on real user interaction
+        document.addEventListener('input',  e => { if (e.isTrusted) markDirty(); });
+        document.addEventListener('change', e => { if (e.isTrusted) markDirty(); });
+
         function switchTab(tabName, evt) {
             document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
@@ -476,6 +508,7 @@
                 });
 
                 if (response.ok) {
+                    markClean();
                     adminShell.showAlert(
                         `${section.charAt(0).toUpperCase() + section.slice(1)} content saved successfully!`,
                         'success'

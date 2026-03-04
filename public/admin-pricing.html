@@ -279,6 +279,19 @@
             .rule-item { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
             .rule-item select { width: 100%; }
         }
+
+        #unsavedBar {
+            display: none;
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+            border-radius: 6px;
+            padding: 0.65rem 1rem;
+            margin-bottom: 1rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        #unsavedBar.visible { display: block; }
     </style>
 </head>
 <body>
@@ -286,6 +299,7 @@
     
     <div class="container">
         <div id="alertBox"></div>
+        <div id="unsavedBar">⚠ You have unsaved changes — don't forget to save.</div>
         
         <!-- Accommodation Pricing -->
         <div class="pricing-grid">
@@ -537,6 +551,22 @@
     <script>
         // Authentication is handled by admin-shell.js via cookie verification
 
+        let dirty = false;
+        function markDirty() {
+            if (dirty) return;
+            dirty = true;
+            document.getElementById('unsavedBar').classList.add('visible');
+        }
+        function markClean() {
+            dirty = false;
+            document.getElementById('unsavedBar').classList.remove('visible');
+        }
+        window.addEventListener('beforeunload', function(e) {
+            if (dirty) { e.preventDefault(); e.returnValue = ''; }
+        });
+        document.addEventListener('input',  e => { if (e.isTrusted) markDirty(); });
+        document.addEventListener('change', e => { if (e.isTrusted) markDirty(); });
+
         function showAlert(message, type = 'success') {
             const alertBox = document.getElementById('alertBox');
             const div = document.createElement('div');
@@ -689,6 +719,7 @@
                     throw new Error(errorData.error || 'Failed to update pricing');
                 }
 
+                markClean();
                 showAlert(`${displayName} pricing updated successfully!`);
             } catch (error) {
                 console.error('Error updating pricing:', error);
@@ -714,6 +745,7 @@
                 });
                 const data = await response.json();
                 if (data.success) {
+                    markClean();
                     showAlert('Seasonal pricing periods saved!');
                 } else {
                     showAlert(data.error || 'Failed to save seasonal pricing', 'error');
@@ -741,6 +773,7 @@
                 });
                 const data = await response.json();
                 if (data.success) {
+                    markClean();
                     showAlert('Booking rules saved!');
                 } else {
                     showAlert(data.error || 'Failed to save booking rules', 'error');
