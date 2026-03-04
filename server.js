@@ -260,7 +260,7 @@ app.get('/api/health', (req, res) => {
 // Rate limiting middleware
 const generalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // limit each IP to 100 requests per windowMs
+    max: 500, // 500 req per 15min — admin panel makes many API calls per page
     message: { error: 'Too many requests, please try again later' },
     standardHeaders: true,
     legacyHeaders: false,
@@ -653,8 +653,9 @@ app.use(express.static(path.join(__dirname, 'public'), {
             // HTML: short cache so deploys take effect quickly
             res.setHeader('Cache-Control', 'public, max-age=60');
         } else if (filePath.endsWith('.js')) {
-            // JS: short cache so deploys take effect quickly
-            res.setHeader('Cache-Control', 'public, max-age=60');
+            // JS: cache for 1 day — versioned with ?v= query param for cache-busting on deploy
+            // Longer cache prevents Render cold-start 503s from breaking admin-shell.js
+            res.setHeader('Cache-Control', 'public, max-age=86400');
         }
     }
 }));
