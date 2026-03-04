@@ -192,6 +192,7 @@
                     <h1 class="admin-page-title">${pageTitle}</h1>
                 </div>
                 <div class="admin-topbar-right">
+                    <a href="/" target="_blank" rel="noopener noreferrer" style="font-size: 0.9rem; color: #666; text-decoration: none; margin-right: 1.25rem;" title="Open public website">🌐 View Website</a>
                     <span id="adminUserInfo" style="font-size: 0.9rem; color: #666;">Admin</span>
                 </div>
             </header>

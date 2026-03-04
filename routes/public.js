@@ -458,25 +458,32 @@ function createPublicRoutes(deps) {
         }
     });
 
-    // --- SEO-friendly routes ---
-    const seoPages = {
-        '/': { page: 'home', title: 'Central Otago Luxury Glamping Dome Accommodation' },
-        '/stay': { page: 'stay', title: 'Accommodation - Luxury Glamping Domes & Cottage' },
-        '/gallery': { page: 'gallery', title: 'Photo Gallery - Lake Dunstan Views & Interiors' },
-        '/guides': { page: 'blog', title: 'Local Guides - Wine Tours, Cycling & Activities' },
-        '/blog': { page: 'blog', title: 'Local Guides - Wine Tours, Cycling & Activities' },
-        '/reviews': { page: 'reviews', title: 'Guest Reviews - 4.9 Star Rating' },
-        '/story': { page: 'story', title: 'Our Story - Meet Stephen & Sandy' },
-        '/explore': { page: 'explore', title: 'Explore Central Otago - Wineries, Cycling & Activities' },
-        '/contact': { page: 'contact', title: 'Contact Us - Bookings & Enquiries' }
+    // --- SEO-friendly routes: serve standalone HTML pages ---
+    const standalonePages = {
+        '/stay':         'stay.html',
+        '/gallery':      'gallery.html',
+        '/guides':       'guides.html',
+        '/blog':         'guides.html',
+        '/reviews':      'reviews.html',
+        '/our-story':    'our-story.html',
+        '/story':        'our-story.html',
+        '/explore':      'explore.html',
+        '/contact':      'contact.html',
+        '/dome-pinot':   'dome-pinot.html',
+        '/dome-rose':    'dome-rose.html',
+        '/lakeside-cottage': 'lakeside-cottage.html',
+        '/privacy-policy':   'privacy-policy.html',
+        '/terms':            'terms.html',
+        '/central-otago-wine-trail':      'central-otago-wine-trail.html',
+        '/couples-retreat-central-otago': 'couples-retreat-central-otago.html',
+        '/weekend-getaway-queenstown':    'weekend-getaway-queenstown.html',
+        '/cromwell-activities':           'cromwell-activities.html',
     };
 
-    Object.keys(seoPages).forEach(route => {
-        if (route !== '/') {
-            router.get(route, (req, res) => {
-                res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
-            });
-        }
+    Object.entries(standalonePages).forEach(([route, file]) => {
+        router.get(route, (req, res) => {
+            res.sendFile(path.join(__dirname, '..', 'public', file));
+        });
     });
 
     // SPA catch-all — MUST be registered last in server.js
