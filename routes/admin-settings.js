@@ -175,6 +175,10 @@ router.get('/api/admin/gallery', verifyAdmin, (req, res) => {
             
             const images = imageFiles.map((filename, index) => {
                 const dbData = dbImageMap.get(filename);
+                let fileSizeBytes = 0;
+                try {
+                    fileSizeBytes = fs.statSync(path.join(imagesDir, filename)).size;
+                } catch (_) { /* ignore stat errors */ }
                 return {
                     id: dbData?.id || null,
                     filename,
@@ -184,15 +188,18 @@ router.get('/api/admin/gallery', verifyAdmin, (req, res) => {
                     property: dbData?.property || 'all',
                     is_hero: dbData?.is_hero || false,
                     is_featured: dbData?.is_featured || false,
-                    display_order: dbData?.display_order || index
+                    display_order: dbData?.display_order || index,
+                    size_bytes: fileSizeBytes
                 };
             });
-            
+
+            const totalBytes = images.reduce((sum, img) => sum + (img.size_bytes || 0), 0);
+
             res.json({
                 success: true,
                 images,
                 total: images.length,
-                storage_used: images.length * 0.5
+                storage_used_mb: (totalBytes / (1024 * 1024)).toFixed(2)
             });
         });
     });
@@ -251,6 +258,33 @@ router.put('/api/admin/gallery/:filename', verifyAdmin, verifyCsrf, (req, res) =
                 res.json({ success: true, message: 'Image metadata saved', id: this.lastID });
             });
         }
+    });
+});
+
+router.delete('/api/admin/gallery/:filename', verifyAdmin, verifyCsrf, (req, res) => {
+    const { filename } = req.params;
+    const fs = require('fs');
+
+    // Prevent path traversal — only allow safe filename characters
+    if (!filename.match(/^[a-zA-Z0-9._-]+$/) || filename.includes('..')) {
+        return res.status(400).json({ success: false, error: 'Invalid filename' });
+    }
+
+    const filePath = path.join(__dirname, '..', 'public', 'images', filename);
+
+    if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ success: false, error: 'Image not found' });
+    }
+
+    fs.unlink(filePath, (err) => {
+        if (err) {
+            logger.error('Error deleting gallery image', { error: err.message });
+            return res.status(500).json({ success: false, error: 'Failed to delete image' });
+        }
+        // Best-effort: remove from gallery_images DB if the filename is tracked there
+        db().run('DELETE FROM gallery_images WHERE filename = ?', [filename], () => {});
+        logger.info('Gallery image deleted', { filename });
+        res.json({ success: true, message: 'Image deleted' });
     });
 });
 

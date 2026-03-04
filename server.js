@@ -64,7 +64,8 @@ const createAdminBookingRoutes = require('./routes/admin-bookings');
 const createAdminOperationsRoutes = require('./routes/admin-operations');
 const createAdminSettingsRoutes = require('./routes/admin-settings');
 const { escapeHtml: escapeHtmlUtil,
-        executeDbOperation: executeDbOpUtil, verifyCsrf, generateCsrfToken, initBlacklist } = require('./middleware/auth');
+        executeDbOperation: executeDbOpUtil, verifyCsrf, generateCsrfToken, initBlacklist,
+        verifyAdmin } = require('./middleware/auth');
 const { errorMiddleware, setupProcessHandlers, setupGracefulShutdown } = require('./middleware/error-handler');
 const { adminActionLimiter, adminDestructiveLimiter } = require('./middleware/rate-limit');
 
@@ -454,6 +455,64 @@ if (process.env.MAINTENANCE_MODE === 'true') {
         return res.status(503).sendFile(path.join(__dirname, 'public', 'maintenance.html'));
     });
 }
+
+// CRITICAL: Gallery image upload MUST be defined BEFORE express.json() middleware
+// because base64-encoded images can be up to ~14MB, well above the 10kb global limit.
+app.post('/api/admin/gallery/upload',
+    express.json({ limit: '15mb' }),
+    verifyAdmin,
+    verifyCsrf,
+    async (req, res) => {
+        const { filename, type, data } = req.body || {};
+
+        if (!filename || !type || !data) {
+            return res.status(400).json({ success: false, error: 'filename, type, and data are required' });
+        }
+
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+        if (!allowedTypes.includes(type.toLowerCase())) {
+            return res.status(400).json({ success: false, error: 'Only JPEG, PNG, WebP and GIF images are allowed' });
+        }
+
+        const origExt = path.extname(filename).toLowerCase();
+        const allowedExts = ['.jpg', '.jpeg', '.png', '.webp', '.gif'];
+        if (!allowedExts.includes(origExt)) {
+            return res.status(400).json({ success: false, error: 'Invalid file extension' });
+        }
+
+        // Sanitize filename — strip path traversal, allow only safe characters
+        const safeName = path.basename(filename)
+            .replace(/[^a-zA-Z0-9._-]/g, '_')
+            .replace(/_{2,}/g, '_');
+
+        try {
+            // Strip the data URL prefix (data:image/jpeg;base64,...) if present
+            const base64Data = data.replace(/^data:[^;]+;base64,/, '');
+            const buffer = Buffer.from(base64Data, 'base64');
+
+            // Enforce 10MB limit on actual decoded file size
+            if (buffer.length > 10 * 1024 * 1024) {
+                return res.status(400).json({ success: false, error: 'Image exceeds 10MB limit' });
+            }
+
+            // Convert to WebP and resize to max 1920px on longest side
+            const sharpLib = require('sharp');
+            const finalName = safeName.replace(/\.[^.]+$/, '.webp');
+            const finalPath = path.join(__dirname, 'public', 'images', finalName);
+
+            await sharpLib(buffer)
+                .resize(1920, 1920, { fit: 'inside', withoutEnlargement: true })
+                .webp({ quality: 85 })
+                .toFile(finalPath);
+
+            logger.info('Gallery image uploaded', { filename: finalName });
+            res.json({ success: true, filename: finalName, url: `/images/${finalName}` });
+        } catch (err) {
+            logger.error('Gallery upload error', { error: err.message });
+            res.status(500).json({ success: false, error: 'Failed to save image' });
+        }
+    }
+);
 
 // Middleware (AFTER webhook routes that need raw body)
 app.use(express.json({ limit: '10kb' }));

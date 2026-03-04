@@ -245,11 +245,10 @@
             </button>
         </div>
         
-        <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
+        <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
             <h3>Drop images here or click to upload</h3>
-            <p>Supports JPG, PNG, WebP (max 10MB each)</p>
-            <p style="color:#856404;font-size:0.85rem;margin-top:0.5rem;">⚠️ Upload requires server configuration — add images via SFTP for now</p>
-            <input type="file" id="fileInput" multiple accept="image/*">
+            <p>Supports JPG, PNG, WebP — max 10MB each — auto-converted to WebP</p>
+            <input type="file" id="fileInput" multiple accept="image/jpeg,image/png,image/webp,image/gif">
         </div>
         
         <div class="stats-bar">
@@ -330,15 +329,22 @@
 
         function renderGallery(images) {
             const grid = document.querySelector('.gallery-grid');
-            grid.innerHTML = images.map((img, idx) => `
+            if (!images.length) {
+                grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:2rem;color:#666;">No images found. Upload images using the button above.</div>';
+                return;
+            }
+            grid.innerHTML = images.map(img => `
                 <div class="gallery-item">
                     <img src="${escapeHtml(img.url)}" alt="${escapeHtml(img.title)}" onerror="this.src='https://placehold.co/400x300/2d5a5a/white?text=Image'">
+                    ${img.is_hero ? '<span class="badge badge-hero">Hero</span>' : ''}
+                    ${img.is_featured ? '<span class="badge badge-featured">Featured</span>' : ''}
                     <div class="gallery-item-info">
                         <h4>${escapeHtml(img.title)}</h4>
                         <p>${escapeHtml(img.property || 'All')}</p>
                     </div>
                     <div class="gallery-item-actions">
                         <button class="btn btn-secondary btn-sm" onclick="editImage('${escapeHtml(img.filename)}')">Edit</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteImage('${escapeHtml(img.filename)}')">Delete</button>
                     </div>
                 </div>
             `).join('');
@@ -368,30 +374,92 @@
                 });
                 const data = await response.json();
                 if (data.success) {
-                    adminShell.showAlert('Image updated successfully', 'success');
+                    showAlert('Image updated successfully');
                     loadGallery();
                 } else {
-                    adminShell.showAlert('Failed to update image: ' + (data.error || 'Unknown error'), 'error');
+                    showAlert('Failed to update image: ' + (data.error || 'Unknown error'), 'alert-danger');
                 }
             } catch (err) {
-                adminShell.showAlert('Error updating image: ' + err.message, 'error');
+                showAlert('Error updating image: ' + err.message, 'alert-danger');
             }
         }
 
-        document.getElementById('fileInput').addEventListener('change', function(e) {
-            const files = e.target.files;
-            if (files.length > 0) {
-                showAlert(`Note: File upload requires server configuration. ${files.length} file(s) selected.`);
+        async function deleteImage(filename) {
+            if (!confirm(`Delete "${filename}"? This cannot be undone.`)) return;
+            try {
+                const csrfRes = await fetch('/api/csrf-token', { credentials: 'same-origin' });
+                const csrfData = await csrfRes.json();
+                const response = await fetch(`/api/admin/gallery/${encodeURIComponent(filename)}`, {
+                    method: 'DELETE',
+                    credentials: 'same-origin',
+                    headers: { 'X-CSRF-Token': csrfData.csrfToken }
+                });
+                const data = await response.json();
+                if (data.success) {
+                    showAlert('Image deleted');
+                    loadGallery();
+                } else {
+                    showAlert('Failed to delete: ' + (data.error || 'Unknown error'), 'alert-danger');
+                }
+            } catch (err) {
+                showAlert('Error deleting image: ' + err.message, 'alert-danger');
             }
+        }
+
+        async function uploadFiles(files) {
+            for (const file of files) {
+                if (file.size > 10 * 1024 * 1024) {
+                    showAlert(`${file.name}: exceeds 10MB limit — skipped`, 'alert-danger');
+                    continue;
+                }
+                showAlert(`Uploading ${file.name}…`);
+                try {
+                    // Read file as base64 data URL
+                    const base64 = await new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = () => resolve(reader.result);
+                        reader.onerror = reject;
+                        reader.readAsDataURL(file);
+                    });
+                    // CSRF token is single-use — fetch fresh for every upload
+                    const csrfRes = await fetch('/api/csrf-token', { credentials: 'same-origin' });
+                    const csrfData = await csrfRes.json();
+                    const response = await fetch('/api/admin/gallery/upload', {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-Token': csrfData.csrfToken
+                        },
+                        body: JSON.stringify({ filename: file.name, type: file.type, data: base64 })
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        showAlert(`✅ ${file.name} uploaded`);
+                    } else {
+                        showAlert(`❌ ${file.name}: ${data.error}`, 'alert-danger');
+                    }
+                } catch (err) {
+                    showAlert(`❌ Failed to upload ${file.name}: ${err.message}`, 'alert-danger');
+                }
+            }
+            loadGallery();
+        }
+
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const files = Array.from(e.target.files);
+            if (files.length) uploadFiles(files);
+            e.target.value = ''; // reset so same file can be re-uploaded
         });
 
-        const uploadZone = document.querySelector('.upload-zone');
+        const uploadZone = document.getElementById('uploadZone');
         uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.style.borderColor = '#2d5a5a'; });
         uploadZone.addEventListener('dragleave', () => { uploadZone.style.borderColor = '#ddd'; });
         uploadZone.addEventListener('drop', (e) => {
             e.preventDefault();
             uploadZone.style.borderColor = '#ddd';
-            showAlert('Note: File upload requires server configuration.');
+            const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+            if (files.length) uploadFiles(files);
         });
 
         loadGallery();
