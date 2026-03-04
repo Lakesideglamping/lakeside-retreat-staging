@@ -259,6 +259,87 @@
             color: #666;
             margin-top: 0.25rem;
         }
+
+        /* Today at a Glance */
+        .today-strip {
+            background: white;
+            border-radius: 12px;
+            padding: 1.25rem 1.75rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+
+        .today-strip h3 {
+            color: #2d5a5a;
+            margin-bottom: 1rem;
+            font-size: 1rem;
+            font-weight: 700;
+        }
+
+        .today-metrics {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .today-metric {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.55rem 1.1rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .today-metric.checkin  { background: #d1fae5; color: #065f46; }
+        .today-metric.checkout { background: #fee2e2; color: #991b1b; }
+        .today-metric.pending  { background: #fef3c7; color: #92400e; }
+        .today-metric.quiet    { background: #f3f4f6; color: #6b7280; }
+
+        /* Recent bookings mini-table */
+        .recent-bk-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.55rem 0;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 0.88rem;
+        }
+
+        .recent-bk-row:last-child { border-bottom: none; }
+
+        .recent-bk-guest {
+            font-weight: 600;
+            color: #333;
+            flex: 1.2;
+            min-width: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .recent-bk-details {
+            color: #666;
+            font-size: 0.82rem;
+            flex: 1.5;
+            min-width: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .recent-bk-badge {
+            padding: 0.15rem 0.55rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .badge-confirmed { background: #d4edda; color: #155724; }
+        .badge-pending   { background: #fff3cd; color: #856404; }
+        .badge-cancelled { background: #f8d7da; color: #721c24; }
     </style>
 </head>
 <body>
@@ -301,6 +382,12 @@
             <div class="chart-summary" id="revenueChartSummary">
                 <!-- Populated by JS -->
             </div>
+        </div>
+
+        <!-- Today at a Glance -->
+        <div class="today-strip" id="todayStrip" style="display:none">
+            <h3>📅 Today — <span id="todayDate"></span></h3>
+            <div class="today-metrics" id="todayMetrics"></div>
         </div>
 
         <!-- Admin Sections -->
@@ -403,14 +490,14 @@
                 </div>
             </div>
             
-            <!-- Recent Activity -->
+            <!-- Recent Bookings -->
             <div class="admin-card">
-                <h3>📊 Recent Activity</h3>
-                <div class="recent-activity" id="recentActivity">
-                    <div class="activity-item">
-                        <span>No recent activity</span>
-                        <span class="activity-time">System ready for bookings</span>
-                    </div>
+                <h3>🕐 Recent Bookings</h3>
+                <div class="recent-activity" id="recentBookings">
+                    <div class="activity-item"><span>Loading...</span></div>
+                </div>
+                <div style="margin-top:1rem;">
+                    <a href="/admin-bookings.html" class="btn btn-secondary" style="font-size:0.85rem; padding:0.5rem 1rem;">View All →</a>
                 </div>
             </div>
         </div>
@@ -531,8 +618,9 @@
                 // --- Revenue chart ---
                 buildRevenueChart(bookingStats, uplistingData);
 
-                // --- Recent activity ---
-                buildRecentActivity(localStats, uplistingData);
+                // --- Today at a glance + Recent bookings ---
+                buildTodayStrip(localStats);
+                buildRecentBookings(bookingStats.recent_bookings || []);
 
                 // --- System status (dynamic) ---
                 updateSystemStatus(statsJson?.success, bookingStatsJson?.success, hasUplistingData);
@@ -626,53 +714,46 @@
             }
         }
 
-        function buildRecentActivity(stats, uplistingData) {
-            const activityDiv = document.getElementById('recentActivity');
-            const items = [];
+        function buildTodayStrip(stats) {
+            const strip     = document.getElementById('todayStrip');
+            const metricsEl = document.getElementById('todayMetrics');
+            const dateEl    = document.getElementById('todayDate');
+            if (!strip || !stats) return;
 
-            if (uplistingData?.success) {
-                items.push({
-                    text: `Connected to Uplisting (${uplistingData.total_properties} properties)`,
-                    icon: '✅',
-                    time: 'Live'
-                });
-                uplistingData.properties?.forEach(p => {
-                    items.push({
-                        text: escapeHtml(p.name),
-                        icon: '🏠',
-                        time: 'Active'
-                    });
-                });
+            dateEl.textContent = new Date().toLocaleDateString('en-NZ', {
+                weekday: 'long', day: 'numeric', month: 'long'
+            });
+
+            const checkins  = parseInt(stats.today_checkins   || 0);
+            const checkouts = parseInt(stats.today_checkouts  || 0);
+            const pending   = parseInt(stats.pending_bookings || 0);
+
+            const parts = [];
+            if (checkins  > 0) parts.push(`<span class="today-metric checkin">🏠 ${checkins} Check-in${checkins !== 1 ? 's' : ''}</span>`);
+            if (checkouts > 0) parts.push(`<span class="today-metric checkout">🚪 ${checkouts} Check-out${checkouts !== 1 ? 's' : ''}</span>`);
+            if (pending   > 0) parts.push(`<span class="today-metric pending">⏳ ${pending} Pending booking${pending !== 1 ? 's' : ''}</span>`);
+            if (parts.length === 0) parts.push('<span class="today-metric quiet">✅ Nothing scheduled — all clear</span>');
+
+            metricsEl.innerHTML = parts.join('');
+            strip.style.display = 'block';
+        }
+
+        function buildRecentBookings(bookings) {
+            const container = document.getElementById('recentBookings');
+            if (!container) return;
+
+            if (!bookings || bookings.length === 0) {
+                container.innerHTML = '<div class="activity-item"><span>No bookings yet</span></div>';
+                return;
             }
 
-            if (stats.total_bookings > 0) {
-                items.push({
-                    text: `${stats.total_bookings} total bookings in system`,
-                    icon: '📅',
-                    time: 'All time'
-                });
-            }
+            const fmtDate = d => new Date(d).toLocaleDateString('en-NZ', { day: 'numeric', month: 'short' });
 
-            if (stats.total_revenue > 0) {
-                items.push({
-                    text: `$${(stats.total_revenue || 0).toLocaleString()} total revenue`,
-                    icon: '💰',
-                    time: 'All time'
-                });
-            }
-
-            if (items.length === 0) {
-                items.push({
-                    text: 'No recent activity',
-                    icon: '📊',
-                    time: 'System ready for bookings'
-                });
-            }
-
-            activityDiv.innerHTML = items.map(item => `
-                <div class="activity-item">
-                    <span>${item.icon} ${item.text}</span>
-                    <span class="activity-time">${item.time}</span>
+            container.innerHTML = bookings.slice(0, 6).map(b => `
+                <div class="recent-bk-row">
+                    <span class="recent-bk-guest">${escapeHtml(b.guest_name)}</span>
+                    <span class="recent-bk-details">${escapeHtml(b.accommodation)} · ${fmtDate(b.check_in)}</span>
+                    <span class="recent-bk-badge badge-${b.status}">${b.status}</span>
                 </div>
             `).join('');
         }
