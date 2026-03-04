@@ -472,12 +472,34 @@
             <input type="text" class="search-input" id="searchInput" placeholder="Guest name, email, or review text...">
         </div>
 
+        <div class="filter-group">
+            <label>Sort:</label>
+            <select class="filter-select" id="sortOrder">
+                <option value="newest">Newest first</option>
+                <option value="oldest">Oldest first</option>
+                <option value="rating_high">Highest rating</option>
+                <option value="rating_low">Lowest rating</option>
+            </select>
+        </div>
+
         <button class="btn btn-secondary" onclick="refreshReviews()">
             🔄 Refresh
         </button>
     </div>
 
     <div class="main-content">
+        <!-- Result count + bulk action bar -->
+        <div id="listHeader" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; min-height:2rem;">
+            <span id="resultCount" style="font-size:0.9rem; color:#666;"></span>
+            <div id="bulkBar" style="display:none; gap:0.6rem; align-items:center;">
+                <label style="font-size:0.9rem; cursor:pointer; display:flex; align-items:center; gap:0.4rem; font-weight:500;">
+                    <input type="checkbox" id="selectAll" onchange="toggleSelectAll(this.checked)"> Select all
+                </label>
+                <button class="btn btn-approve" onclick="bulkModerate('approved')" style="padding:0.35rem 0.9rem; font-size:0.85rem;">✅ Approve Selected</button>
+                <button class="btn btn-reject" onclick="bulkModerate('rejected')" style="padding:0.35rem 0.9rem; font-size:0.85rem;">❌ Reject Selected</button>
+            </div>
+        </div>
+
         <div id="loading" class="loading">
             <div>Loading reviews...</div>
         </div>
@@ -505,6 +527,7 @@
             document.getElementById('statusFilter').addEventListener('change', filterReviews);
             document.getElementById('accommodationFilter').addEventListener('change', filterReviews);
             document.getElementById('searchInput').addEventListener('input', filterReviews);
+            document.getElementById('sortOrder').addEventListener('change', filterReviews);
         }
 
         // logout() provided by adminShell.logout() via admin-shell.js
@@ -546,33 +569,92 @@
             }
         }
 
+        function sortReviews(arr) {
+            const order = document.getElementById('sortOrder')?.value || 'newest';
+            const copy = [...arr];
+            if (order === 'oldest')      copy.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+            else if (order === 'rating_high') copy.sort((a, b) => (b.overall_rating || 0) - (a.overall_rating || 0));
+            else if (order === 'rating_low')  copy.sort((a, b) => (a.overall_rating || 0) - (b.overall_rating || 0));
+            else                         copy.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)); // newest
+            return copy;
+        }
+
         function filterReviews() {
             const statusFilter = document.getElementById('statusFilter').value;
             const accommodationFilter = document.getElementById('accommodationFilter').value;
             const searchQuery = document.getElementById('searchInput').value.toLowerCase();
-            
+
             filteredReviews = reviews.filter(review => {
                 const matchesStatus = !statusFilter || review.status === statusFilter;
                 const matchesAccommodation = !accommodationFilter || review.accommodation_type === accommodationFilter;
-                const matchesSearch = !searchQuery || 
+                const matchesSearch = !searchQuery ||
                     review.guest_name.toLowerCase().includes(searchQuery) ||
                     review.guest_email.toLowerCase().includes(searchQuery) ||
                     review.review_text.toLowerCase().includes(searchQuery) ||
                     (review.review_title && review.review_title.toLowerCase().includes(searchQuery));
-                
+
                 return matchesStatus && matchesAccommodation && matchesSearch;
             });
-            
+
+            filteredReviews = sortReviews(filteredReviews);
             renderReviews();
+        }
+
+        function toggleSelectAll(checked) {
+            document.querySelectorAll('.review-select').forEach(cb => cb.checked = checked);
+        }
+
+        async function bulkModerate(status) {
+            const checked = [...document.querySelectorAll('.review-select:checked')];
+            if (checked.length === 0) {
+                adminShell.showAlert('No reviews selected.', 'info');
+                return;
+            }
+            const ids = checked.map(cb => parseInt(cb.dataset.id));
+            const label = status === 'approved' ? 'approved' : 'rejected';
+            try {
+                const csrfRes = await fetch('/api/csrf-token', { credentials: 'same-origin' });
+                const csrfData = await csrfRes.json();
+                await Promise.all(ids.map(id =>
+                    fetch(`/api/admin/reviews/${id}`, {
+                        method: 'PUT',
+                        credentials: 'same-origin',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfData.csrfToken },
+                        body: JSON.stringify({ status })
+                    })
+                ));
+                adminShell.showAlert(`${ids.length} review${ids.length !== 1 ? 's' : ''} ${label}.`, 'success');
+                await loadReviews();
+            } catch (error) {
+                console.error('Error during bulk moderation:', error);
+                adminShell.showAlert('Error during bulk moderation: ' + error.message, 'error');
+            }
         }
 
         function renderReviews() {
             const container = document.getElementById('reviewsList');
             const loading = document.getElementById('loading');
             const emptyState = document.getElementById('emptyState');
-            
+            const resultCount = document.getElementById('resultCount');
+            const bulkBar = document.getElementById('bulkBar');
+            const selectAllCb = document.getElementById('selectAll');
+
             loading.style.display = 'none';
-            
+
+            // Update result count
+            if (reviews.length > 0) {
+                resultCount.textContent = filteredReviews.length === reviews.length
+                    ? `${reviews.length} review${reviews.length !== 1 ? 's' : ''}`
+                    : `Showing ${filteredReviews.length} of ${reviews.length} reviews`;
+            } else {
+                resultCount.textContent = '';
+            }
+
+            // Show bulk bar only when pending reviews are in the filtered set
+            const hasPending = filteredReviews.some(r => r.status === 'pending');
+            bulkBar.style.display = hasPending ? 'flex' : 'none';
+            if (selectAllCb) selectAllCb.checked = false;
+
             if (filteredReviews.length === 0) {
                 container.innerHTML = '';
                 emptyState.style.display = 'block';
@@ -583,13 +665,14 @@
                 }
                 return;
             }
-            
+
             emptyState.style.display = 'none';
-            
+
             container.innerHTML = filteredReviews.map(review => `
                 <div class="review-card ${review.status}" data-id="${review.id}">
                     <div class="review-header">
                         <div class="guest-info">
+                            ${review.status === 'pending' ? `<div style="margin-bottom:0.4rem;"><input type="checkbox" class="review-select" data-id="${review.id}" style="width:1rem;height:1rem;margin-right:0.4rem;cursor:pointer;vertical-align:middle;"><span style="font-size:0.82rem;color:#6b7280;vertical-align:middle;">Select for bulk action</span></div>` : ''}
                             <h3>${escapeHtml(review.guest_name)}</h3>
                             <div class="guest-details">
                                 📧 ${escapeHtml(review.guest_email)} | 
