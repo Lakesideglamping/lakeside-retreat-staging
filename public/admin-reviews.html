@@ -507,12 +507,7 @@
             document.getElementById('searchInput').addEventListener('input', filterReviews);
         }
 
-        function logout() {
-            fetch('/api/admin/logout', { method: 'POST', credentials: 'same-origin' })
-                .finally(() => {
-                    window.location.href = '/admin.html';
-                });
-        }
+        // logout() provided by adminShell.logout() via admin-shell.js
 
         function loadStats(stats) {
             try {
@@ -741,7 +736,7 @@
                 await loadReviews();
             } catch (error) {
                 console.error('Error moderating review:', error);
-                alert('Error moderating review: ' + error.message);
+                adminShell.showAlert('Error moderating review: ' + error.message, 'error');
             }
         }
 
@@ -768,7 +763,7 @@
                 await loadReviews();
             } catch (error) {
                 console.error('Error featuring review:', error);
-                alert('Error updating feature status: ' + error.message);
+                adminShell.showAlert('Error updating feature status: ' + error.message, 'error');
             }
         }
 
@@ -797,7 +792,7 @@
                 await loadReviews();
             } catch (error) {
                 console.error('Error updating reply:', error);
-                alert('Error updating reply: ' + error.message);
+                adminShell.showAlert('Error updating reply: ' + error.message, 'error');
             }
         }
 
@@ -826,7 +821,7 @@
                 await loadReviews();
             } catch (error) {
                 console.error('Error updating notes:', error);
-                alert('Error updating notes: ' + error.message);
+                adminShell.showAlert('Error updating notes: ' + error.message, 'error');
             }
         }
 
@@ -835,17 +830,7 @@
             loadReviews();
         }
 
-        // Utility functions
-        function escapeHtml(text) {
-            const map = {
-                '&': '&amp;',
-                '<': '&lt;',
-                '>': '&gt;',
-                '"': '&quot;',
-                "'": '&#039;'
-            };
-            return text ? text.replace(/[&<>"']/g, function(m) { return map[m]; }) : '';
-        }
+        // escapeHtml() provided globally by admin-shell.js
 
         function generateStars(rating) {
             const full = '★';

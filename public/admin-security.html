@@ -856,13 +856,6 @@ If you lose access to your authenticator app, use one of these codes to log in.
             alert('All other sessions have been logged out.');
         }
 
-        function logout() {
-            fetch('/api/admin/logout', { method: 'POST', credentials: 'same-origin' })
-                .finally(() => {
-                    window.location.href = '/admin.html';
-                });
-        }
-
         // Check status on load
         check2FAStatus();
         

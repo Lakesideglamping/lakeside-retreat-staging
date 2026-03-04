@@ -982,13 +982,6 @@
             container.innerHTML = html;
         }
 
-        function logout() {
-            fetch('/api/admin/logout', { method: 'POST', credentials: 'same-origin' })
-                .finally(() => {
-                    window.location.href = '/admin.html';
-                });
-        }
-
         document.addEventListener('DOMContentLoaded', async () => {
             await fetchCsrfToken();
             loadStats();

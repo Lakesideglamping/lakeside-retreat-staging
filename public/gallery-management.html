@@ -378,32 +378,6 @@
             }
         }
 
-        async function deleteImage(filename) {
-            if (!confirm('Are you sure you want to remove this image from the gallery? The file will not be deleted from the server.')) return;
-            try {
-                const csrfRes = await fetch('/api/csrf-token', { credentials: 'same-origin' });
-                const csrfData = await csrfRes.json();
-                const response = await fetch(`/api/admin/gallery/${encodeURIComponent(filename)}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-Token': csrfData.csrfToken
-                    },
-                    credentials: 'same-origin',
-                    body: JSON.stringify({ title: '[REMOVED]', is_hero: false, is_featured: false, display_order: -1 })
-                });
-                const data = await response.json();
-                if (data.success) {
-                    adminShell.showAlert('Image removed from gallery', 'success');
-                    loadGallery();
-                } else {
-                    adminShell.showAlert('Failed to remove image: ' + (data.error || 'Unknown error'), 'error');
-                }
-            } catch (err) {
-                adminShell.showAlert('Error removing image: ' + err.message, 'error');
-            }
-        }
-
         document.getElementById('fileInput').addEventListener('change', function(e) {
             const files = e.target.files;
             if (files.length > 0) {

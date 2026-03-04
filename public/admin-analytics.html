@@ -337,7 +337,7 @@
                 <div class="kpi-label">
                     <span>💰</span> Total Revenue
                 </div>
-                <div class="kpi-value" id="totalRevenue">$0</div>
+                <div class="kpi-value" id="totalRevenue"><div class="spinner" style="width:24px;height:24px;border-width:3px;margin:0 auto;"></div></div>
                 <div class="kpi-change positive" id="revenueChange">
                     <span>↑</span> +0% vs last period
                 </div>
@@ -347,7 +347,7 @@
                 <div class="kpi-label">
                     <span>🏠</span> Occupancy Rate
                 </div>
-                <div class="kpi-value" id="occupancyRate">0%</div>
+                <div class="kpi-value" id="occupancyRate"><div class="spinner" style="width:24px;height:24px;border-width:3px;margin:0 auto;"></div></div>
                 <div class="kpi-change positive" id="occupancyChange">
                     <span>↑</span> +0% vs last period
                 </div>
@@ -357,7 +357,7 @@
                 <div class="kpi-label">
                     <span>📅</span> Total Bookings
                 </div>
-                <div class="kpi-value" id="totalBookings">0</div>
+                <div class="kpi-value" id="totalBookings"><div class="spinner" style="width:24px;height:24px;border-width:3px;margin:0 auto;"></div></div>
                 <div class="kpi-change positive" id="bookingsChange">
                     <span>↑</span> +0% vs last period
                 </div>
@@ -367,7 +367,7 @@
                 <div class="kpi-label">
                     <span>💵</span> Average Booking Value
                 </div>
-                <div class="kpi-value" id="avgBookingValue">$0</div>
+                <div class="kpi-value" id="avgBookingValue"><div class="spinner" style="width:24px;height:24px;border-width:3px;margin:0 auto;"></div></div>
                 <div class="kpi-change negative" id="avgValueChange">
                     <span>↓</span> -0% vs last period
                 </div>
@@ -377,7 +377,7 @@
                 <div class="kpi-label">
                     <span>⭐</span> Average Rating
                 </div>
-                <div class="kpi-value" id="avgRating">0.0</div>
+                <div class="kpi-value" id="avgRating"><div class="spinner" style="width:24px;height:24px;border-width:3px;margin:0 auto;"></div></div>
                 <div class="kpi-change positive" id="ratingChange">
                     <span>↑</span> +0.0 vs last period
                 </div>
@@ -387,7 +387,7 @@
                 <div class="kpi-label">
                     <span>🔄</span> Repeat Guest Rate
                 </div>
-                <div class="kpi-value" id="repeatRate">0%</div>
+                <div class="kpi-value" id="repeatRate"><div class="spinner" style="width:24px;height:24px;border-width:3px;margin:0 auto;"></div></div>
                 <div class="kpi-change positive" id="repeatChange">
                     <span>↑</span> +0% vs last period
                 </div>
@@ -840,8 +840,13 @@
                     hasUplistingData = uplistingData && uplistingData.success;
                     
                     if (hasUplistingData) {
+                        // Remove any existing Uplisting banner before adding a new one
+                        const existingBanner = document.getElementById('uplistingBanner');
+                        if (existingBanner) existingBanner.remove();
+
                         // Add Uplisting connection indicator with booking data
                         const connectStatus = document.createElement('div');
+                        connectStatus.id = 'uplistingBanner';
                         connectStatus.innerHTML = `
                             <div style="background: #e8f5e8; border: 1px solid #c3e6c3; padding: 1rem; border-radius: 8px; margin: 1rem 0;">
                                 <strong>✅ Connected to Uplisting Channel Manager</strong><br>
@@ -849,7 +854,7 @@
                                 <small>${uplistingData.properties.map(p => escapeHtml(p.name)).join(', ')}</small>
                             </div>
                         `;
-                        
+
                         // Add to top of main content
                         const mainContent = document.querySelector('.container');
                         if (mainContent) {
@@ -913,8 +918,13 @@
                 }
                 
             } catch (error) {
+                // Remove any existing error banner before adding a new one
+                const existingError = document.getElementById('analyticsErrorBanner');
+                if (existingError) existingError.remove();
+
                 // Show error indicator so admin knows API failed
                 const banner = document.createElement('div');
+                banner.id = 'analyticsErrorBanner';
                 banner.style.cssText = 'background:#fff3cd;border:1px solid #ffc107;color:#856404;padding:0.75rem 1rem;border-radius:8px;margin:1rem 2rem;';
                 banner.textContent = 'Unable to fetch live analytics data. Showing cached/default values.';
                 const container = document.querySelector('.container');

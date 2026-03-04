@@ -674,11 +674,7 @@
             return date.toLocaleDateString();
         }
 
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
+        // escapeHtml() provided globally by admin-shell.js
 
         function scrollToSection(sectionId) {
             document.getElementById(sectionId).scrollIntoView({ behavior: 'smooth' });
@@ -822,13 +818,6 @@
             } catch (error) {
                 adminShell.showAlert('Error sending review request', 'danger');
             }
-        }
-
-        function logout() {
-            fetch('/api/admin/logout', { method: 'POST', credentials: 'same-origin' })
-                .finally(() => {
-                    window.location.href = '/admin.html';
-                });
         }
 
         // Load notifications on page load

@@ -225,12 +225,48 @@
 <body>
     <div class="container">
         <div id="alertBox"></div>
-        
+
         <div class="page-header">
             <h2>Seasonal Rates Management</h2>
             <p>Configure pricing multipliers for different seasons throughout the year</p>
         </div>
-        
+
+        <!-- Edit Modal -->
+        <div id="editModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1000; display:none; align-items:center; justify-content:center;">
+            <div style="background:white; border-radius:12px; padding:2rem; width:90%; max-width:500px; box-shadow:0 8px 32px rgba(0,0,0,0.2);">
+                <h3 style="color:#2d5a5a; margin-bottom:1.5rem;">Edit Seasonal Rate</h3>
+                <input type="hidden" id="editSeasonId">
+                <input type="hidden" id="editSeasonActive">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="editSeasonName">Season Name</label>
+                        <input type="text" id="editSeasonName">
+                    </div>
+                    <div class="form-group">
+                        <label for="editMultiplier">Price Multiplier</label>
+                        <div class="multiplier-input">
+                            <input type="number" id="editMultiplier" step="0.05" min="0.5" max="2.0">
+                            <span>x base rate</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="editStartDate">Start Date</label>
+                        <input type="date" id="editStartDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="editEndDate">End Date</label>
+                        <input type="date" id="editEndDate">
+                    </div>
+                </div>
+                <div class="button-group" style="justify-content:flex-end;">
+                    <button class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+                    <button class="btn btn-primary" onclick="submitEdit()">Save Changes</button>
+                </div>
+            </div>
+        </div>
+
         <div class="rates-grid" id="ratesGrid">
             <div style="text-align:center; padding:2rem; color:#666;">Loading seasonal rates...</div>
         </div>
@@ -393,15 +429,38 @@
                 const rate = ratesData.rates.find(r => r.id == id);
                 if (!rate) { showAlert('Rate not found', 'error'); return; }
 
-                const name = prompt('Season name:', rate.name);
-                if (!name) return;
-                const multiplier = prompt('Price multiplier (e.g. 1.2 for 20% increase):', rate.multiplier);
-                if (!multiplier) return;
-                const startDate = prompt('Start date (YYYY-MM-DD):', rate.start_date);
-                if (!startDate) return;
-                const endDate = prompt('End date (YYYY-MM-DD):', rate.end_date);
-                if (!endDate) return;
+                // Populate and show the edit modal
+                document.getElementById('editSeasonId').value = id;
+                document.getElementById('editSeasonActive').value = rate.is_active ? '1' : '0';
+                document.getElementById('editSeasonName').value = rate.name || '';
+                document.getElementById('editMultiplier').value = rate.multiplier || 1;
+                document.getElementById('editStartDate').value = rate.start_date || '';
+                document.getElementById('editEndDate').value = rate.end_date || '';
+                const modal = document.getElementById('editModal');
+                modal.style.display = 'flex';
+            } catch (err) {
+                showAlert('Error: ' + err.message, 'error');
+            }
+        }
 
+        function closeEditModal() {
+            document.getElementById('editModal').style.display = 'none';
+        }
+
+        async function submitEdit() {
+            const id = document.getElementById('editSeasonId').value;
+            const name = document.getElementById('editSeasonName').value.trim();
+            const multiplier = parseFloat(document.getElementById('editMultiplier').value);
+            const startDate = document.getElementById('editStartDate').value;
+            const endDate = document.getElementById('editEndDate').value;
+            const isActive = document.getElementById('editSeasonActive').value === '1';
+
+            if (!name || !startDate || !endDate) {
+                showAlert('Please fill in all fields', 'error');
+                return;
+            }
+
+            try {
                 const csrfRes = await fetch('/api/csrf-token', { credentials: 'same-origin' });
                 const csrfData = await csrfRes.json();
                 const response = await fetch('/api/admin/seasonal-rates/' + id, {
@@ -411,10 +470,11 @@
                         'X-CSRF-Token': csrfData.csrfToken
                     },
                     credentials: 'same-origin',
-                    body: JSON.stringify({ name, multiplier: parseFloat(multiplier), start_date: startDate, end_date: endDate, is_active: rate.is_active })
+                    body: JSON.stringify({ name, multiplier, start_date: startDate, end_date: endDate, is_active: isActive })
                 });
                 const data = await response.json();
                 if (data.success) {
+                    closeEditModal();
                     showAlert('Season updated successfully');
                     loadSeasonalRates();
                 } else {

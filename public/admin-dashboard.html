@@ -372,22 +372,22 @@
             <div class="admin-card">
                 <h3>⚙️ System Management</h3>
                 <p>Monitor system health, manage integrations, and configure settings.</p>
-                <div class="system-status">
+                <div class="system-status" id="systemStatus">
                     <div class="status-item">
                         <span>Server Status</span>
-                        <span class="status-good">✅ Online</span>
+                        <span class="status-indicator">⏳ Checking...</span>
                     </div>
                     <div class="status-item">
                         <span>Database</span>
-                        <span class="status-good">✅ Connected</span>
+                        <span class="status-indicator">⏳ Checking...</span>
                     </div>
                     <div class="status-item">
                         <span>Stripe Integration</span>
-                        <span class="status-good">✅ Active</span>
+                        <span class="status-indicator">⏳ Checking...</span>
                     </div>
                     <div class="status-item">
                         <span>Uplisting Sync</span>
-                        <span class="status-good">✅ Connected</span>
+                        <span class="status-indicator">⏳ Checking...</span>
                     </div>
                 </div>
                 <div class="quick-actions">
@@ -623,18 +623,29 @@
         }
 
         function updateSystemStatus(dbOk, bookingsOk, uplistingOk) {
-            const statusItems = document.querySelectorAll('.system-status .status-item');
-            // Server Status (always online if we got here)
-            // Database
-            if (statusItems[1]) {
-                const dbSpan = statusItems[1].querySelector('.status-good');
-                if (dbSpan) dbSpan.innerHTML = dbOk ? '✅ Connected' : '❌ Error';
+            const indicators = document.querySelectorAll('#systemStatus .status-indicator');
+            // Server Status — always online if we reached this code
+            if (indicators[0]) {
+                indicators[0].textContent = '✅ Online';
+                indicators[0].className = 'status-indicator status-good';
             }
-            // Stripe - check if env var likely set (API returned ok)
+            // Database
+            if (indicators[1]) {
+                indicators[1].textContent = dbOk ? '✅ Connected' : '❌ Error';
+                indicators[1].className = dbOk ? 'status-indicator status-good' : 'status-indicator';
+                if (!dbOk) indicators[1].style.color = '#ef4444';
+            }
+            // Stripe
+            if (indicators[2]) {
+                indicators[2].textContent = bookingsOk ? '✅ Active' : '⚠️ Unknown';
+                indicators[2].className = bookingsOk ? 'status-indicator status-good' : 'status-indicator';
+                if (!bookingsOk) indicators[2].style.color = '#f59e0b';
+            }
             // Uplisting
-            if (statusItems[3]) {
-                const upSpan = statusItems[3].querySelector('.status-good');
-                if (upSpan) upSpan.innerHTML = uplistingOk ? '✅ Connected' : '⚠️ Not configured';
+            if (indicators[3]) {
+                indicators[3].textContent = uplistingOk ? '✅ Connected' : '⚠️ Not configured';
+                indicators[3].className = uplistingOk ? 'status-indicator status-good' : 'status-indicator';
+                if (!uplistingOk) indicators[3].style.color = '#f59e0b';
             }
         }
 

@@ -850,12 +850,7 @@
             });
         }
 
-        function escapeHtml(text) {
-            if (!text) return '';
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
+        // escapeHtml() provided globally by admin-shell.js
 
         // Close modal on outside click
         document.getElementById('bookingModal').addEventListener('click', function(e) {
@@ -870,13 +865,6 @@
                 closeModal();
             }
         });
-
-        function logout() {
-            fetch('/api/admin/logout', { method: 'POST', credentials: 'same-origin' })
-                .finally(() => {
-                    window.location.href = '/admin.html';
-                });
-        }
 
         // Load bookings after admin-shell.js verifies auth
         document.addEventListener('DOMContentLoaded', loadBookings);

@@ -1114,12 +1114,7 @@ The Lakeside Retreat Team`
             }
         }
 
-        function escapeHtml(text) {
-            if (!text) return '';
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
+        // escapeHtml() provided globally by admin-shell.js
 
         function toggleMobileSidebar() {
             const sidebar = document.getElementById('inboxSidebar');
@@ -1147,13 +1142,6 @@ The Lakeside Retreat Team`
                 replyingTo = null;
             }
         });
-
-        function logout() {
-            fetch('/api/admin/logout', { method: 'POST', credentials: 'same-origin' })
-                .finally(() => {
-                    window.location.href = '/admin.html';
-                });
-        }
 
         // Load messages on page load
         loadMessages();
