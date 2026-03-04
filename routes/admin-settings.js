@@ -728,6 +728,163 @@ router.post('/api/admin/backups/restore', verifyAdmin, verifyCsrf, async (req, r
 });
 
 
+// ============================================================
+// Promotions / Promo Codes
+// ============================================================
+
+router.get('/api/admin/promotions', verifyAdmin, (req, res) => {
+    const now = new Date().toISOString().split('T')[0];
+    db().all(
+        `SELECT *,
+            CASE
+                WHEN status = 'paused' THEN 'paused'
+                WHEN valid_until IS NOT NULL AND valid_until < ? THEN 'expired'
+                WHEN valid_from  IS NOT NULL AND valid_from  > ? THEN 'scheduled'
+                ELSE status
+            END AS computed_status
+         FROM promo_codes ORDER BY created_at DESC`,
+        [now, now],
+        (err, rows) => {
+            if (err) return res.status(500).json({ success: false, error: err.message });
+            const codes = rows || [];
+            res.json({
+                success: true,
+                codes,
+                stats: {
+                    total:      codes.length,
+                    active:     codes.filter(r => r.computed_status === 'active').length,
+                    scheduled:  codes.filter(r => r.computed_status === 'scheduled').length,
+                    expired:    codes.filter(r => r.computed_status === 'expired').length,
+                    total_uses: codes.reduce((s, r) => s + (r.usage_count || 0), 0)
+                }
+            });
+        }
+    );
+});
+
+router.post('/api/admin/promotions', verifyAdmin, verifyCsrf, (req, res) => {
+    const {
+        name, code, type, description,
+        discount_type, discount_value,
+        valid_from, valid_until, min_stay, usage_limit, partner_info
+    } = req.body || {};
+
+    if (!name || !code) {
+        return res.status(400).json({ success: false, error: 'Code name and promotional code are required' });
+    }
+    const cleanCode = String(code).toUpperCase().replace(/[^A-Z0-9_-]/g, '');
+    if (!cleanCode) {
+        return res.status(400).json({ success: false, error: 'Invalid promotional code format' });
+    }
+
+    const nowFunc = database.isUsingPostgres() ? 'NOW()' : "datetime('now')";
+    db().run(
+        `INSERT INTO promo_codes
+             (name, code, type, description, discount_type, discount_value,
+              valid_from, valid_until, min_stay, usage_limit, partner_info,
+              status, created_at, updated_at)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,'active',${nowFunc},${nowFunc})`,
+        [
+            String(name).substring(0, 100),
+            cleanCode,
+            ['seasonal', 'partner', 'general'].includes(type) ? type : 'general',
+            description ? String(description).substring(0, 500) : null,
+            ['percentage', 'fixed'].includes(discount_type) ? discount_type : 'percentage',
+            parseFloat(discount_value) || 0,
+            valid_from  || null,
+            valid_until || null,
+            parseInt(min_stay) || 1,
+            usage_limit ? parseInt(usage_limit) : null,
+            partner_info ? String(partner_info).substring(0, 200) : null
+        ],
+        function(err) {
+            if (err) {
+                if (err.message && err.message.includes('UNIQUE')) {
+                    return res.status(409).json({ success: false, error: `Code "${cleanCode}" already exists` });
+                }
+                return res.status(500).json({ success: false, error: err.message });
+            }
+            res.json({ success: true, id: this.lastID, code: cleanCode });
+        }
+    );
+});
+
+router.put('/api/admin/promotions/:id', verifyAdmin, verifyCsrf, (req, res) => {
+    const id = parseInt(req.params.id);
+    if (!id) return res.status(400).json({ success: false, error: 'Invalid ID' });
+
+    const {
+        name, code, type, description,
+        discount_type, discount_value,
+        valid_from, valid_until, min_stay, usage_limit, partner_info
+    } = req.body || {};
+
+    if (!name || !code) {
+        return res.status(400).json({ success: false, error: 'Code name and promotional code are required' });
+    }
+    const cleanCode = String(code).toUpperCase().replace(/[^A-Z0-9_-]/g, '');
+    const nowFunc = database.isUsingPostgres() ? 'NOW()' : "datetime('now')";
+    db().run(
+        `UPDATE promo_codes
+         SET name=?, code=?, type=?, description=?, discount_type=?, discount_value=?,
+             valid_from=?, valid_until=?, min_stay=?, usage_limit=?, partner_info=?,
+             updated_at=${nowFunc}
+         WHERE id=?`,
+        [
+            String(name).substring(0, 100),
+            cleanCode,
+            ['seasonal', 'partner', 'general'].includes(type) ? type : 'general',
+            description ? String(description).substring(0, 500) : null,
+            ['percentage', 'fixed'].includes(discount_type) ? discount_type : 'percentage',
+            parseFloat(discount_value) || 0,
+            valid_from  || null,
+            valid_until || null,
+            parseInt(min_stay) || 1,
+            usage_limit ? parseInt(usage_limit) : null,
+            partner_info ? String(partner_info).substring(0, 200) : null,
+            id
+        ],
+        function(err) {
+            if (err) {
+                if (err.message && err.message.includes('UNIQUE')) {
+                    return res.status(409).json({ success: false, error: `Code "${cleanCode}" already exists` });
+                }
+                return res.status(500).json({ success: false, error: err.message });
+            }
+            if (this.changes === 0) return res.status(404).json({ success: false, error: 'Promo code not found' });
+            res.json({ success: true });
+        }
+    );
+});
+
+router.patch('/api/admin/promotions/:id/status', verifyAdmin, verifyCsrf, (req, res) => {
+    const id = parseInt(req.params.id);
+    const { status } = req.body || {};
+    if (!id || !['active', 'paused'].includes(status)) {
+        return res.status(400).json({ success: false, error: 'Valid ID and status (active/paused) required' });
+    }
+    const nowFunc = database.isUsingPostgres() ? 'NOW()' : "datetime('now')";
+    db().run(
+        `UPDATE promo_codes SET status=?, updated_at=${nowFunc} WHERE id=?`,
+        [status, id],
+        function(err) {
+            if (err) return res.status(500).json({ success: false, error: err.message });
+            if (this.changes === 0) return res.status(404).json({ success: false, error: 'Promo code not found' });
+            res.json({ success: true });
+        }
+    );
+});
+
+router.delete('/api/admin/promotions/:id', verifyAdmin, verifyCsrf, (req, res) => {
+    const id = parseInt(req.params.id);
+    if (!id) return res.status(400).json({ success: false, error: 'Invalid ID' });
+    db().run('DELETE FROM promo_codes WHERE id=?', [id], function(err) {
+        if (err) return res.status(500).json({ success: false, error: err.message });
+        if (this.changes === 0) return res.status(404).json({ success: false, error: 'Promo code not found' });
+        res.json({ success: true });
+    });
+});
+
     return router;
 }
 

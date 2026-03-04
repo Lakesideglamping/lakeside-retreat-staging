@@ -383,11 +383,7 @@
 <body>
     <!-- Old header removed - now using admin-shell.js for unified navigation -->
     <div class="container">
-        <!-- Coming Soon Notice -->
-        <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 1.5rem; margin-bottom: 2rem;">
-            <h3 style="color: #856404; margin-bottom: 0.5rem;">🚧 Promotional Codes — Coming Soon</h3>
-            <p style="color: #856404; margin: 0;">The promotional codes feature is under development. The examples below are previews of the planned functionality. Creating codes via the form will be saved once the backend is connected.</p>
-        </div>
+        <div id="alertBox" style="margin-bottom:1rem;"></div>
 
         <div style="margin-bottom: 1.5rem;">
             <button class="create-code-btn" onclick="openCreateModal()">+ Create Code</button>
@@ -442,155 +438,9 @@
             </div>
         </div>
         
-        <!-- Active Seasonal Offers -->
-        <div class="promo-code seasonal">
-            <div class="code-header">
-                <div class="code-info">
-                    <h3>🍂 Autumn Wine Harvest Special</h3>
-                    <div class="code-value">HARVEST2025</div>
-                    <div class="code-description">20% off 3+ night stays during Central Otago's harvest season</div>
-                </div>
-                <span class="status-badge status-active">Active</span>
-            </div>
-            
-            <div class="code-stats">
-                <div class="stat-item">
-                    <div class="number">23</div>
-                    <div class="label">Uses</div>
-                </div>
-                <div class="stat-item">
-                    <div class="number">20%</div>
-                    <div class="label">Discount</div>
-                </div>
-                <div class="stat-item">
-                    <div class="number">Mar 1 - May 31</div>
-                    <div class="label">Valid Period</div>
-                </div>
-                <div class="stat-item">
-                    <div class="number">$1,840</div>
-                    <div class="label">Total Savings</div>
-                </div>
-            </div>
-            
-            <div class="code-actions">
-                <button class="btn btn-primary" onclick="editCode('harvest2025')">Edit</button>
-                <button class="btn btn-info" onclick="viewStats('harvest2025')">View Stats</button>
-                <button class="btn btn-warning" onclick="pauseCode('harvest2025')">Pause</button>
-                <button class="btn btn-secondary" onclick="duplicateCode('harvest2025')">Duplicate</button>
-            </div>
-        </div>
-        
-        <!-- Partner Referral Code -->
-        <div class="promo-code partner">
-            <div class="code-header">
-                <div class="code-info">
-                    <h3>🤝 Gibbston Valley Winery Partnership</h3>
-                    <div class="code-value">GIBBSTON15</div>
-                    <div class="code-description">15% off for Gibbston Valley winery visitors</div>
-                </div>
-                <span class="status-badge status-active">Active</span>
-            </div>
-            
-            <div class="code-stats">
-                <div class="stat-item">
-                    <div class="number">8</div>
-                    <div class="label">Uses</div>
-                </div>
-                <div class="stat-item">
-                    <div class="number">15%</div>
-                    <div class="label">Discount</div>
-                </div>
-                <div class="stat-item">
-                    <div class="number">No Expiry</div>
-                    <div class="label">Valid Period</div>
-                </div>
-                <div class="stat-item">
-                    <div class="number">$720</div>
-                    <div class="label">Total Savings</div>
-                </div>
-            </div>
-            
-            <div class="code-actions">
-                <button class="btn btn-primary" onclick="editCode('gibbston15')">Edit</button>
-                <button class="btn btn-info" onclick="viewStats('gibbston15')">View Stats</button>
-                <button class="btn btn-warning" onclick="pauseCode('gibbston15')">Pause</button>
-                <button class="btn btn-secondary" onclick="duplicateCode('gibbston15')">Duplicate</button>
-            </div>
-        </div>
-        
-        <!-- Winter Cozy Stays -->
-        <div class="promo-code seasonal">
-            <div class="code-header">
-                <div class="code-info">
-                    <h3>❄️ Winter Cozy Stays</h3>
-                    <div class="code-value">COZY2025</div>
-                    <div class="code-description">25% off winter bookings with complimentary firewood</div>
-                </div>
-                <span class="status-badge status-scheduled">Scheduled</span>
-            </div>
-            
-            <div class="code-stats">
-                <div class="stat-item">
-                    <div class="number">0</div>
-                    <div class="label">Uses</div>
-                </div>
-                <div class="stat-item">
-                    <div class="number">25%</div>
-                    <div class="label">Discount</div>
-                </div>
-                <div class="stat-item">
-                    <div class="number">Jun 1 - Aug 31</div>
-                    <div class="label">Valid Period</div>
-                </div>
-                <div class="stat-item">
-                    <div class="number">$0</div>
-                    <div class="label">Total Savings</div>
-                </div>
-            </div>
-            
-            <div class="code-actions">
-                <button class="btn btn-primary" onclick="editCode('cozy2025')">Edit</button>
-                <button class="btn btn-success" onclick="activateEarly('cozy2025')">Activate Early</button>
-                <button class="btn btn-secondary" onclick="duplicateCode('cozy2025')">Duplicate</button>
-                <button class="btn btn-danger" onclick="deleteCode('cozy2025')">Delete</button>
-            </div>
-        </div>
-        
-        <!-- Expired Code Example -->
-        <div class="promo-code expired">
-            <div class="code-header">
-                <div class="code-info">
-                    <h3>🎄 Summer Holiday Special</h3>
-                    <div class="code-value">SUMMER2024</div>
-                    <div class="code-description">10% off December bookings - peak season discount</div>
-                </div>
-                <span class="status-badge status-expired">Expired</span>
-            </div>
-            
-            <div class="code-stats">
-                <div class="stat-item">
-                    <div class="number">34</div>
-                    <div class="label">Total Uses</div>
-                </div>
-                <div class="stat-item">
-                    <div class="number">10%</div>
-                    <div class="label">Discount</div>
-                </div>
-                <div class="stat-item">
-                    <div class="number">Dec 1-31, 2024</div>
-                    <div class="label">Valid Period</div>
-                </div>
-                <div class="stat-item">
-                    <div class="number">$1,360</div>
-                    <div class="label">Total Savings</div>
-                </div>
-            </div>
-            
-            <div class="code-actions">
-                <button class="btn btn-info" onclick="viewStats('summer2024')">View Stats</button>
-                <button class="btn btn-secondary" onclick="duplicateCode('summer2024')">Duplicate</button>
-                <button class="btn btn-danger" onclick="deleteCode('summer2024')">Delete</button>
-            </div>
+        <!-- Dynamic promo code cards rendered by loadPromoCodes() -->
+        <div id="promoCodesContainer">
+            <div style="text-align:center;padding:2rem;color:#666;">Loading promotional codes…</div>
         </div>
     </div>
     
@@ -683,11 +533,155 @@
     <script>
         // Authentication is handled by admin-shell.js via cookie verification
 
-        // Focus-trap cleanup reference (set when modal opens)
+        // ── Alert helper ──────────────────────────────────────────────────
+        function showAlert(message, type = 'info') {
+            const box = document.getElementById('alertBox');
+            if (!box) return;
+            const colors = {
+                success: { bg: '#d4edda', color: '#155724', border: '#c3e6cb' },
+                danger:  { bg: '#f8d7da', color: '#721c24', border: '#f5c6cb' },
+                warning: { bg: '#fff3cd', color: '#856404', border: '#ffeeba' },
+                info:    { bg: '#d1ecf1', color: '#0c5460', border: '#bee5eb' }
+            };
+            const c = colors[type] || colors.info;
+            const div = document.createElement('div');
+            div.style.cssText = `background:${c.bg};color:${c.color};border:1px solid ${c.border};padding:0.75rem 1rem;border-radius:4px;margin-bottom:0.5rem;display:flex;justify-content:space-between;align-items:center;`;
+            const span = document.createElement('span');
+            span.textContent = message;
+            const btn = document.createElement('button');
+            btn.innerHTML = '&times;';
+            btn.style.cssText = 'background:none;border:none;cursor:pointer;font-size:1.2rem;color:inherit;margin-left:1rem;';
+            btn.onclick = () => div.remove();
+            div.appendChild(span);
+            div.appendChild(btn);
+            box.innerHTML = '';
+            box.appendChild(div);
+            setTimeout(() => { if (div.parentElement) div.remove(); }, 5000);
+        }
+
+        // escapeHtml provided by admin-shell.js; fallback for safety
+        if (typeof escapeHtml === 'undefined') {
+            window.escapeHtml = function(t) {
+                if (!t) return '';
+                var d = document.createElement('div');
+                d.textContent = t;
+                return d.innerHTML;
+            };
+        }
+
+        // ── CSRF helper ───────────────────────────────────────────────────
+        async function getCSRF() {
+            const r = await fetch('/api/csrf-token', { credentials: 'same-origin' });
+            const d = await r.json();
+            return d.csrfToken;
+        }
+
+        // ── State ─────────────────────────────────────────────────────────
+        let allCodes = [];       // raw from API
+        let editingId = null;    // non-null when editing an existing code
+
+        // ── Load & render ─────────────────────────────────────────────────
+        async function loadPromoCodes() {
+            try {
+                const res = await fetch('/api/admin/promotions', { credentials: 'same-origin' });
+                const data = await res.json();
+                if (!data.success) throw new Error(data.error || 'Failed to load codes');
+                allCodes = data.codes || [];
+                updateStatsBar(data.stats || {});
+                renderCodes(allCodes);
+            } catch (err) {
+                document.getElementById('promoCodesContainer').innerHTML =
+                    `<div style="text-align:center;padding:2rem;color:#dc3545;">Error loading promo codes: ${escapeHtml(err.message)}</div>`;
+            }
+        }
+
+        function updateStatsBar(stats) {
+            const el = (id) => document.getElementById(id);
+            if (el('totalCodes'))   el('totalCodes').textContent   = stats.active   ?? '0';
+            if (el('totalUses'))    el('totalUses').textContent    = stats.total_uses ?? '0';
+            if (el('totalSavings')) el('totalSavings').textContent = '—';
+            if (el('avgDiscount'))  el('avgDiscount').textContent  = stats.total + ' total';
+        }
+
+        function renderCodes(codes) {
+            const container = document.getElementById('promoCodesContainer');
+            if (!codes.length) {
+                container.innerHTML = `
+                    <div style="text-align:center;padding:3rem;color:#666;">
+                        <div style="font-size:3rem;margin-bottom:1rem;">🎫</div>
+                        <p>No promotional codes yet. Click <strong>+ Create Code</strong> to add your first one.</p>
+                    </div>`;
+                return;
+            }
+            container.innerHTML = codes.map(c => buildCodeCard(c)).join('');
+        }
+
+        function buildCodeCard(c) {
+            const status = c.computed_status || c.status;
+            const typeIcon = { seasonal: '🍂', partner: '🤝', general: '🎫' }[c.type] || '🎫';
+            const validPeriod = c.valid_from && c.valid_until
+                ? `${c.valid_from} → ${c.valid_until}`
+                : c.valid_from ? `From ${c.valid_from}` : c.valid_until ? `Until ${c.valid_until}` : 'No expiry';
+            const discountDisplay = c.discount_type === 'percentage'
+                ? `${c.discount_value}%`
+                : `$${parseFloat(c.discount_value).toFixed(2)}`;
+
+            const actionButtons = [];
+            actionButtons.push(`<button class="btn btn-primary" onclick="editCode(${c.id})">Edit</button>`);
+            if (status === 'active') {
+                actionButtons.push(`<button class="btn btn-warning" onclick="setPaused(${c.id}, true)">Pause</button>`);
+            } else if (status === 'paused') {
+                actionButtons.push(`<button class="btn btn-success" onclick="setPaused(${c.id}, false)">Activate</button>`);
+            } else if (status === 'scheduled') {
+                actionButtons.push(`<button class="btn btn-success" onclick="setPaused(${c.id}, false)">Activate Early</button>`);
+            }
+            actionButtons.push(`<button class="btn btn-secondary" onclick="duplicateCode(${c.id})">Duplicate</button>`);
+            actionButtons.push(`<button class="btn btn-danger" onclick="deleteCode(${c.id})">Delete</button>`);
+
+            return `
+                <div class="promo-code ${escapeHtml(c.type)}" data-id="${c.id}" data-status="${escapeHtml(status)}" data-type="${escapeHtml(c.type)}">
+                    <div class="code-header">
+                        <div class="code-info">
+                            <h3>${typeIcon} ${escapeHtml(c.name)}</h3>
+                            <div class="code-value">${escapeHtml(c.code)}</div>
+                            <div class="code-description">${escapeHtml(c.description || '')}</div>
+                        </div>
+                        <span class="status-badge status-${escapeHtml(status)}">${capitalize(status)}</span>
+                    </div>
+                    <div class="code-stats">
+                        <div class="stat-item"><div class="number">${c.usage_count || 0}${c.usage_limit ? '/' + c.usage_limit : ''}</div><div class="label">Uses</div></div>
+                        <div class="stat-item"><div class="number">${escapeHtml(discountDisplay)}</div><div class="label">Discount</div></div>
+                        <div class="stat-item"><div class="number" style="font-size:0.9rem;">${escapeHtml(validPeriod)}</div><div class="label">Valid Period</div></div>
+                        <div class="stat-item"><div class="number">${escapeHtml(c.partner_info || '—')}</div><div class="label">Partner</div></div>
+                    </div>
+                    <div class="code-actions">${actionButtons.join('')}</div>
+                </div>`;
+        }
+
+        function capitalize(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
+
+        // ── Filter ────────────────────────────────────────────────────────
+        function filterCodes() {
+            const status = document.getElementById('statusFilter').value;
+            const type   = document.getElementById('typeFilter').value;
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = allCodes.filter(c => {
+                const cs = c.computed_status || c.status;
+                const matchStatus = !status || cs === status;
+                const matchType   = !type   || c.type === type;
+                const matchSearch = !search  || c.name.toLowerCase().includes(search) || c.code.toLowerCase().includes(search) || (c.description || '').toLowerCase().includes(search);
+                return matchStatus && matchType && matchSearch;
+            });
+            renderCodes(filtered);
+        }
+
+        // ── Modal open/close ──────────────────────────────────────────────
         let releaseModalTrap = null;
 
         function openCreateModal() {
+            editingId = null;
             document.getElementById('modalTitle').textContent = 'Create New Promotional Code';
+            clearForm();
             const modal = document.getElementById('codeModal');
             modal.style.display = 'block';
             modal.setAttribute('aria-hidden', 'false');
@@ -744,105 +738,147 @@
         }
 
         async function saveCode() {
-            const codeName = document.getElementById('codeName').value;
-            const promoCode = document.getElementById('promoCode').value;
+            const codeName  = document.getElementById('codeName').value.trim();
+            const promoCode = document.getElementById('promoCode').value.trim();
 
             if (!codeName || !promoCode) {
-                adminShell.showAlert('Please fill in at least the code name and promotional code.', 'warning');
+                showAlert('Please fill in at least the code name and promotional code.', 'warning');
                 return;
             }
 
-            // Save to backend
+            const payload = {
+                name:           codeName,
+                code:           promoCode,
+                type:           document.getElementById('codeType').value,
+                description:    document.getElementById('codeDescription').value.trim(),
+                discount_type:  document.getElementById('discountType').value,
+                discount_value: parseFloat(document.getElementById('discountValue').value) || 0,
+                valid_from:     document.getElementById('validFrom').value  || null,
+                valid_until:    document.getElementById('validUntil').value || null,
+                min_stay:       parseInt(document.getElementById('minStay').value) || 1,
+                usage_limit:    document.getElementById('usageLimit').value ? parseInt(document.getElementById('usageLimit').value) : null,
+                partner_info:   document.getElementById('partnerInfo').value.trim()
+            };
+
             try {
-                const csrfRes = await fetch('/api/csrf-token', { credentials: 'same-origin' });
-                const csrfData = await csrfRes.json();
-
-                const payload = {
-                    name: codeName,
-                    code: promoCode,
-                    type: document.getElementById('codeType').value,
-                    description: document.getElementById('codeDescription').value,
-                    discount_type: document.getElementById('discountType').value,
-                    discount_value: parseFloat(document.getElementById('discountValue').value) || 0,
-                    valid_from: document.getElementById('validFrom').value,
-                    valid_until: document.getElementById('validUntil').value,
-                    min_stay: parseInt(document.getElementById('minStay').value) || 1,
-                    usage_limit: parseInt(document.getElementById('usageLimit').value) || null,
-                    partner_info: document.getElementById('partnerInfo').value
-                };
-
-                const response = await fetch('/api/admin/promotions', {
-                    method: 'POST',
-                    credentials: 'same-origin',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-Token': csrfData.csrfToken
-                    },
+                const csrf = await getCSRF();
+                const url    = editingId ? `/api/admin/promotions/${editingId}` : '/api/admin/promotions';
+                const method = editingId ? 'PUT' : 'POST';
+                const response = await fetch(url, {
+                    method, credentials: 'same-origin',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
                     body: JSON.stringify(payload)
                 });
-
-                if (response.ok) {
-                    adminShell.showAlert(`Promotional code "${promoCode}" created successfully!`, 'info');
+                const data = await response.json().catch(() => ({}));
+                if (response.ok && data.success) {
+                    showAlert(editingId ? `Code "${promoCode}" updated!` : `Code "${promoCode}" created!`, 'success');
                     closeModal();
+                    loadPromoCodes();
                 } else {
-                    const data = await response.json().catch(() => ({}));
-                    adminShell.showAlert(data.error || 'Promotions backend is not yet connected. Code saved locally.', 'warning');
-                    closeModal();
+                    showAlert(data.error || 'Failed to save code', 'danger');
                 }
-            } catch {
-                adminShell.showAlert('Promotions backend is not yet available. This feature is coming soon.', 'warning');
-                closeModal();
+            } catch (err) {
+                showAlert('Error saving code: ' + err.message, 'danger');
             }
         }
 
-        function editCode(codeId) {
+        function editCode(id) {
+            const c = allCodes.find(x => x.id === id);
+            if (!c) return;
+            editingId = id;
             document.getElementById('modalTitle').textContent = 'Edit Promotional Code';
-            openCreateModal();
-            adminShell.showAlert(`Editing code: ${codeId}. Changes will be saved when the backend is connected.`, 'info');
-        }
-
-        function viewStats(codeId) {
-            adminShell.showAlert(`Detailed statistics for "${codeId}" will be available once the promotions backend is connected.`, 'info');
-        }
-
-        function pauseCode(codeId) {
-            if (confirm(`Are you sure you want to pause the code "${codeId}"? It will no longer be usable by guests.`)) {
-                adminShell.showAlert(`Code "${codeId}" pause requested. Will take effect once the backend is connected.`, 'warning');
+            document.getElementById('codeName').value        = c.name        || '';
+            document.getElementById('promoCode').value       = c.code        || '';
+            document.getElementById('codeType').value        = c.type        || 'general';
+            document.getElementById('codeDescription').value = c.description || '';
+            document.getElementById('discountType').value    = c.discount_type  || 'percentage';
+            document.getElementById('discountValue').value   = c.discount_value || '';
+            document.getElementById('validFrom').value       = c.valid_from   || '';
+            document.getElementById('validUntil').value      = c.valid_until  || '';
+            document.getElementById('minStay').value         = c.min_stay     || 1;
+            document.getElementById('usageLimit').value      = c.usage_limit  || '';
+            document.getElementById('partnerInfo').value     = c.partner_info || '';
+            updateDiscountPreview();
+            const modal = document.getElementById('codeModal');
+            modal.style.display = 'block';
+            modal.setAttribute('aria-hidden', 'false');
+            if (window.adminShell && adminShell.trapFocus) {
+                releaseModalTrap = adminShell.trapFocus(modal.querySelector('.modal-content'));
             }
         }
 
-        function activateEarly(codeId) {
-            if (confirm(`Activate the code "${codeId}" early? It will become immediately available to guests.`)) {
-                adminShell.showAlert(`Code "${codeId}" early activation requested. Will take effect once the backend is connected.`, 'info');
+        async function setPaused(id, pause) {
+            const c = allCodes.find(x => x.id === id);
+            const label = c ? c.code : id;
+            const newStatus = pause ? 'paused' : 'active';
+            const msg = pause
+                ? `Pause code "${label}"? Guests won't be able to use it until reactivated.`
+                : `Activate code "${label}"?`;
+            if (!confirm(msg)) return;
+            try {
+                const csrf = await getCSRF();
+                const response = await fetch(`/api/admin/promotions/${id}/status`, {
+                    method: 'PATCH', credentials: 'same-origin',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
+                    body: JSON.stringify({ status: newStatus })
+                });
+                const data = await response.json().catch(() => ({}));
+                if (response.ok && data.success) {
+                    showAlert(`Code "${label}" ${newStatus}.`, 'success');
+                    loadPromoCodes();
+                } else {
+                    showAlert(data.error || 'Failed to update status', 'danger');
+                }
+            } catch (err) {
+                showAlert('Error: ' + err.message, 'danger');
             }
         }
 
-        function duplicateCode(codeId) {
+        function duplicateCode(id) {
+            const c = allCodes.find(x => x.id === id);
+            if (!c) return;
+            editingId = null;
             document.getElementById('modalTitle').textContent = 'Duplicate Promotional Code';
-            openCreateModal();
-            adminShell.showAlert(`Duplicating "${codeId}". Modify the fields and save.`, 'info');
-        }
-
-        function deleteCode(codeId) {
-            if (confirm(`Are you sure you want to delete the code "${codeId}"? This cannot be undone.`)) {
-                adminShell.showAlert(`Code "${codeId}" deletion requested. Will take effect once the backend is connected.`, 'warning');
+            document.getElementById('codeName').value        = c.name + ' (Copy)';
+            document.getElementById('promoCode').value       = c.code + '_COPY';
+            document.getElementById('codeType').value        = c.type        || 'general';
+            document.getElementById('codeDescription').value = c.description || '';
+            document.getElementById('discountType').value    = c.discount_type  || 'percentage';
+            document.getElementById('discountValue').value   = c.discount_value || '';
+            document.getElementById('validFrom').value       = c.valid_from   || '';
+            document.getElementById('validUntil').value      = c.valid_until  || '';
+            document.getElementById('minStay').value         = c.min_stay     || 1;
+            document.getElementById('usageLimit').value      = c.usage_limit  || '';
+            document.getElementById('partnerInfo').value     = c.partner_info || '';
+            updateDiscountPreview();
+            const modal = document.getElementById('codeModal');
+            modal.style.display = 'block';
+            modal.setAttribute('aria-hidden', 'false');
+            if (window.adminShell && adminShell.trapFocus) {
+                releaseModalTrap = adminShell.trapFocus(modal.querySelector('.modal-content'));
             }
         }
 
-        function filterCodes() {
-            const status = document.getElementById('statusFilter').value;
-            const type = document.getElementById('typeFilter').value;
-            const search = document.getElementById('searchInput').value.toLowerCase();
-
-            // Client-side filtering of the displayed promo code cards
-            const allCards = document.querySelectorAll('.promo-code');
-            allCards.forEach(card => {
-                const cardText = card.textContent.toLowerCase();
-                const matchesSearch = !search || cardText.includes(search);
-                const matchesStatus = !status || card.querySelector(`.status-${status}`);
-                const matchesType = !type || card.classList.contains(type);
-                card.style.display = (matchesSearch && matchesStatus && matchesType) ? '' : 'none';
-            });
+        async function deleteCode(id) {
+            const c = allCodes.find(x => x.id === id);
+            const label = c ? c.code : id;
+            if (!confirm(`Delete code "${label}"? This cannot be undone.`)) return;
+            try {
+                const csrf = await getCSRF();
+                const response = await fetch(`/api/admin/promotions/${id}`, {
+                    method: 'DELETE', credentials: 'same-origin',
+                    headers: { 'X-CSRF-Token': csrf }
+                });
+                const data = await response.json().catch(() => ({}));
+                if (response.ok && data.success) {
+                    showAlert(`Code "${label}" deleted.`, 'success');
+                    loadPromoCodes();
+                } else {
+                    showAlert(data.error || 'Failed to delete code', 'danger');
+                }
+            } catch (err) {
+                showAlert('Error: ' + err.message, 'danger');
+            }
         }
 
         // Auto-uppercase promotional codes
@@ -858,15 +894,14 @@
         // Close modal when clicking outside or pressing Escape
         window.addEventListener('click', function(event) {
             const modal = document.getElementById('codeModal');
-            if (event.target === modal) {
-                closeModal();
-            }
+            if (event.target === modal) closeModal();
         });
         document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape' && document.getElementById('codeModal').style.display === 'block') {
-                closeModal();
-            }
+            if (e.key === 'Escape' && document.getElementById('codeModal').style.display === 'block') closeModal();
         });
+
+        // Load on page start
+        loadPromoCodes();
     </script>
     <script src="/admin-shell.js?v=3"></script>
 </body>
