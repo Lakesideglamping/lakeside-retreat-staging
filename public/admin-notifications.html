@@ -388,7 +388,7 @@
         async function loadNotifications() {
             try {
                 // Fetch data from multiple endpoints
-                const [bookingsRes, abandonedRes, statsRes] = await Promise.all([
+                const [bookingsRes, abandonedRes, statsRes, reviewsRes] = await Promise.all([
                     fetch('/api/admin/bookings?limit=100', {
                         credentials: 'same-origin'
                     }),
@@ -397,12 +397,16 @@
                     }),
                     fetch('/api/admin/booking-stats', {
                         credentials: 'same-origin'
+                    }),
+                    fetch('/api/admin/reviews/summary', {
+                        credentials: 'same-origin'
                     })
                 ]);
 
                 let bookings = [];
                 let abandonedCheckouts = [];
                 let stats = {};
+                let reviewsSummary = null;
 
                 if (bookingsRes.ok) {
                     const data = await bookingsRes.json();
@@ -418,8 +422,13 @@
                     stats = await statsRes.json();
                 }
 
+                if (reviewsRes.ok) {
+                    const data = await reviewsRes.json();
+                    if (data.success) reviewsSummary = data.summary;
+                }
+
                 // Process notifications
-                processNotifications(bookings, abandonedCheckouts, stats);
+                processNotifications(bookings, abandonedCheckouts, stats, reviewsSummary);
                 
             } catch (error) {
                 console.error('Error loading notifications:', error);
@@ -430,7 +439,7 @@
             }
         }
 
-        function processNotifications(bookings, abandonedCheckouts, stats) {
+        function processNotifications(bookings, abandonedCheckouts, stats, reviewsSummary) {
             notifications = {
                 critical: [],
                 warnings: [],
@@ -531,6 +540,21 @@
                 });
             });
 
+            // Pending reviews awaiting moderation
+            if (reviewsSummary && reviewsSummary.pending > 0) {
+                const n = reviewsSummary.pending;
+                notifications.pending.push({
+                    type: 'pending_reviews',
+                    title: `${n} Pending Review${n !== 1 ? 's' : ''} Awaiting Moderation`,
+                    description: `${n} guest review${n !== 1 ? 's' : ''} need${n === 1 ? 's' : ''} approval before appearing on the website`,
+                    meta: {},
+                    time: null,
+                    actions: [
+                        { label: 'Review Now', action: () => window.location.href = '/admin-reviews.html' }
+                    ]
+                });
+            }
+
             // Simulated resolved items (in production, track actual resolutions)
             const recentConfirmed = bookings.filter(b => {
                 const createdDate = new Date(b.created_at);
@@ -567,9 +591,9 @@
             document.getElementById('pendingBadge').textContent = `${notifications.pending.length} items`;
             document.getElementById('resolvedBadge').textContent = `${notifications.resolved.length} items`;
 
-            // Update sidebar badge if available
+            // Update sidebar badge if available (critical + pending, matching shell polling formula)
             if (window.adminShell && window.adminShell.setNotificationBadge) {
-                const totalUrgent = notifications.critical.length + notifications.warnings.length;
+                const totalUrgent = notifications.critical.length + notifications.pending.length;
                 window.adminShell.setNotificationBadge(totalUrgent);
             }
         }
@@ -654,6 +678,7 @@
                 case 'today_checkin': return '&#x1F3E0;';
                 case 'today_checkout': return '&#x1F6AA;';
                 case 'booking_confirmed': return '&#x2705;';
+                case 'pending_reviews': return '&#x1F4DD;';
                 default: return '&#x1F514;';
             }
         }
