@@ -80,7 +80,36 @@
             border-color: #2d5a5a;
             box-shadow: 0 0 0 3px rgba(45, 90, 90, 0.1);
         }
-        
+
+        .pw-wrap {
+            position: relative;
+        }
+
+        .pw-wrap input {
+            padding-right: 3.75rem;
+        }
+
+        .pw-toggle {
+            position: absolute;
+            right: 0.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            cursor: pointer;
+            color: #666;
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.2rem 0.45rem;
+            line-height: 1.4;
+        }
+
+        .pw-toggle:hover {
+            color: #333;
+            border-color: #999;
+        }
+
         .btn-login {
             width: 100%;
             padding: 14px;
@@ -151,7 +180,10 @@
             
             <div class="form-group">
                 <label for="password">Password</label>
-                <input type="password" id="password" name="password" required autocomplete="current-password">
+                <div class="pw-wrap">
+                    <input type="password" id="password" name="password" required autocomplete="current-password">
+                    <button type="button" class="pw-toggle" onclick="togglePw(this)" title="Show/hide password">Show</button>
+                </div>
             </div>
             
             <button type="submit" class="btn-login" id="loginBtn">Sign In</button>
@@ -163,6 +195,13 @@
     </div>
     
     <script>
+        function togglePw(btn) {
+            const input = btn.previousElementSibling;
+            const isHidden = input.type === 'password';
+            input.type = isHidden ? 'text' : 'password';
+            btn.textContent = isHidden ? 'Hide' : 'Show';
+        }
+
         let csrfToken = null;
 
         // Fetch CSRF token on page load

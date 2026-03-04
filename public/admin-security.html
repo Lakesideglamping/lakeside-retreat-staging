@@ -311,7 +311,36 @@
             border-radius: 6px;
             font-size: 1rem;
         }
-        
+
+        .pw-wrap {
+            position: relative;
+        }
+
+        .pw-wrap input {
+            padding-right: 3.75rem;
+        }
+
+        .pw-toggle {
+            position: absolute;
+            right: 0.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            cursor: pointer;
+            color: #666;
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.2rem 0.45rem;
+            line-height: 1.4;
+        }
+
+        .pw-toggle:hover {
+            color: #333;
+            border-color: #999;
+        }
+
         .hidden {
             display: none !important;
         }
@@ -455,15 +484,24 @@
                 <form id="passwordForm" onsubmit="changePassword(event)">
                     <div class="form-group">
                         <label>Current Password</label>
-                        <input type="password" id="currentPassword" required>
+                        <div class="pw-wrap">
+                            <input type="password" id="currentPassword" required>
+                            <button type="button" class="pw-toggle" onclick="togglePw(this)" title="Show/hide password">Show</button>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label>New Password</label>
-                        <input type="password" id="newPassword" required minlength="8">
+                        <div class="pw-wrap">
+                            <input type="password" id="newPassword" required minlength="8">
+                            <button type="button" class="pw-toggle" onclick="togglePw(this)" title="Show/hide password">Show</button>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label>Confirm New Password</label>
-                        <input type="password" id="confirmPassword" required minlength="8">
+                        <div class="pw-wrap">
+                            <input type="password" id="confirmPassword" required minlength="8">
+                            <button type="button" class="pw-toggle" onclick="togglePw(this)" title="Show/hide password">Show</button>
+                        </div>
                     </div>
                     <button type="submit" class="btn">Update Password</button>
                 </form>
@@ -497,6 +535,13 @@
 
     <script>
         // Authentication is handled by admin-shell.js via cookie verification
+
+        function togglePw(btn) {
+            const input = btn.previousElementSibling;
+            const isHidden = input.type === 'password';
+            input.type = isHidden ? 'text' : 'password';
+            btn.textContent = isHidden ? 'Hide' : 'Show';
+        }
 
         // Inline alert helper — replaces native alert() throughout this page
         function showAlert(message, type = 'info') {
