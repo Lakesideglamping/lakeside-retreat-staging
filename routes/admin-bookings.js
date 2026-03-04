@@ -509,6 +509,11 @@ router.delete('/api/admin/booking/:id', verifyAdmin, verifyCsrf, adminDestructiv
 router.get('/api/admin/stats', verifyAdmin, (req, res) => {
     // Combined into a single query (was 5 separate queries)
     // See EFFICIENCY_REPORT.md - Issue #2
+    const conn = db();
+    if (!conn) {
+        return res.status(503).json({ success: false, error: 'Database not ready' });
+    }
+
     const sql = `
         SELECT
             COUNT(*) as total_bookings,
@@ -522,8 +527,8 @@ router.get('/api/admin/stats', verifyAdmin, (req, res) => {
         FROM bookings
         WHERE deleted_at IS NULL
     `;
-    
-    db().get(sql, (err, stats) => {
+
+    conn.get(sql, (err, stats) => {
         if (err) {
             logger.error('Stats query error', { error: err.message });
             return res.status(500).json({ success: false, error: 'Failed to load stats' });
@@ -825,11 +830,16 @@ router.post('/api/admin/retry-sync/:bookingId', verifyAdmin, verifyCsrf, async (
 
 // Get booking statistics with payment status
 router.get('/api/admin/booking-stats', verifyAdmin, (req, res) => {
+    const conn = db();
+    if (!conn) {
+        return res.status(503).json({ success: false, error: 'Database not ready' });
+    }
+
     const stats = {};
-    
+
     // Get overall stats
-    db().get(
-        `SELECT 
+    conn.get(
+        `SELECT
             COUNT(*) as total_bookings,
             COUNT(CASE WHEN payment_status = 'completed' THEN 1 END) as paid_bookings,
             COUNT(CASE WHEN payment_status = 'pending' THEN 1 END) as pending_payments,
@@ -844,9 +854,9 @@ router.get('/api/admin/booking-stats', verifyAdmin, (req, res) => {
             }
 
             stats.overview = row;
-            
+
             // Get recent bookings with sync status
-            db().all(
+            conn.all(
                 `SELECT 
                     id, guest_name, accommodation, check_in, total_price,
                     payment_status, status,
