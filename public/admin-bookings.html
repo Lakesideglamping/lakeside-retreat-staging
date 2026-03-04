@@ -477,6 +477,41 @@
             padding: 2rem;
             color: #666;
         }
+
+        .date-chips {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .chip-label {
+            font-weight: 600;
+            color: #555;
+            font-size: 0.9rem;
+        }
+
+        .date-chip {
+            padding: 0.3rem 0.9rem;
+            border: 2px solid #2d5a5a;
+            background: white;
+            color: #2d5a5a;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.15s ease;
+        }
+
+        .date-chip:hover {
+            background: #e8f0f0;
+        }
+
+        .date-chip.active {
+            background: #2d5a5a;
+            color: white;
+        }
     </style>
 </head>
 <body>
@@ -505,6 +540,13 @@
         
         <!-- Filters -->
         <div class="filters">
+            <div class="date-chips">
+                <span class="chip-label">Quick view:</span>
+                <button class="date-chip" id="chip-today"  onclick="setDatePreset('today')">Today</button>
+                <button class="date-chip" id="chip-week"   onclick="setDatePreset('week')">This week</button>
+                <button class="date-chip" id="chip-month"  onclick="setDatePreset('month')">This month</button>
+                <button class="date-chip" id="chip-all"    onclick="setDatePreset('all')">All</button>
+            </div>
             <div class="filter-row">
                 <div class="filter-group">
                     <label>Search Guest</label>
@@ -972,6 +1014,7 @@
             document.getElementById('filterSource').value = '';
             document.getElementById('dateFrom').value = '';
             document.getElementById('dateTo').value = '';
+            document.querySelectorAll('.date-chip').forEach(c => c.classList.remove('active'));
             loadBookings();
         }
 
@@ -1018,8 +1061,67 @@
             });
         }
 
-        // Load bookings after admin-shell.js verifies auth
-        document.addEventListener('DOMContentLoaded', loadBookings);
+        function debounce(fn, ms) {
+            let timer;
+            return function(...args) {
+                clearTimeout(timer);
+                timer = setTimeout(() => fn.apply(this, args), ms);
+            };
+        }
+
+        function setDatePreset(preset) {
+            const today = new Date();
+            const fmt = d => d.toISOString().split('T')[0];
+            document.querySelectorAll('.date-chip').forEach(c => c.classList.remove('active'));
+            const chip = document.getElementById('chip-' + preset);
+            if (chip) chip.classList.add('active');
+
+            if (preset === 'today') {
+                document.getElementById('dateFrom').value = fmt(today);
+                document.getElementById('dateTo').value   = fmt(today);
+            } else if (preset === 'week') {
+                // Monday as week start (NZ convention)
+                const mon = new Date(today);
+                const dow = today.getDay(); // 0=Sun
+                mon.setDate(today.getDate() - (dow === 0 ? 6 : dow - 1));
+                const sun = new Date(mon);
+                sun.setDate(mon.getDate() + 6);
+                document.getElementById('dateFrom').value = fmt(mon);
+                document.getElementById('dateTo').value   = fmt(sun);
+            } else if (preset === 'month') {
+                const start = new Date(today.getFullYear(), today.getMonth(), 1);
+                const end   = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+                document.getElementById('dateFrom').value = fmt(start);
+                document.getElementById('dateTo').value   = fmt(end);
+            } else {
+                document.getElementById('dateFrom').value = '';
+                document.getElementById('dateTo').value   = '';
+            }
+            filterBookings();
+        }
+
+        // Wire up auto-filter on DOMContentLoaded
+        document.addEventListener('DOMContentLoaded', function() {
+            loadBookings();
+
+            // Dropdowns filter instantly on change
+            ['filterAccommodation', 'filterStatus', 'filterSource'].forEach(id => {
+                document.getElementById(id).addEventListener('change', filterBookings);
+            });
+
+            // Date inputs filter on change; also clear chip highlight when manually edited
+            ['dateFrom', 'dateTo'].forEach(id => {
+                document.getElementById(id).addEventListener('change', function() {
+                    document.querySelectorAll('.date-chip').forEach(c => c.classList.remove('active'));
+                    filterBookings();
+                });
+            });
+
+            // Search box debounce-filters 300ms after typing stops
+            document.getElementById('searchGuest').addEventListener(
+                'input', debounce(filterBookings, 300)
+            );
+        });
     </script>
     <script src="/admin-shell.js?v=3"></script>
 
