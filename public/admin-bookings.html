@@ -689,7 +689,8 @@
                     throw new Error('Failed to load bookings');
                 }
 
-                const bookings = await response.json();
+                const data = await response.json();
+                const bookings = data.bookings || [];
                 displayBookings(bookings);
                 updateStats(bookings);
             } catch (error) {
