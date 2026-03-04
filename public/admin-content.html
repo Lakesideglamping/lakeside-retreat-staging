@@ -192,6 +192,30 @@
             display: block;
         }
 
+        /* ── Inline preview panels ───────────────────────────────────── */
+        .inline-preview { display: none; margin-top: 1.5rem; border-top: 2px solid #e9ecef; padding-top: 1.5rem; }
+        .inline-preview.visible { display: block; }
+        .preview-label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #aaa; margin-bottom: 0.75rem; }
+        .prev-hero { background: linear-gradient(135deg, #2d5a5a 0%, #1e4040 100%); color: white; padding: 2rem 2.5rem; border-radius: 8px; text-align: center; }
+        .prev-hero-headline { font-size: 1.6rem; font-weight: 700; margin-bottom: 0.5rem; line-height: 1.2; }
+        .prev-hero-subtitle { font-size: 0.95rem; opacity: 0.85; }
+        .prev-about { padding: 1.25rem; background: #fafafa; border-radius: 8px; border: 1px solid #eee; }
+        .prev-about-title { font-size: 1.2rem; font-weight: 700; color: #2d5a5a; margin-bottom: 0.5rem; }
+        .prev-about-desc { color: #555; line-height: 1.6; white-space: pre-wrap; }
+        .prev-accom { background: #fafafa; border: 1px solid #eee; border-radius: 8px; padding: 1.25rem; }
+        .prev-accom-desc { color: #555; line-height: 1.6; margin-bottom: 1rem; }
+        .prev-accom-features { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+        .prev-accom-feature { background: #e8f4f4; color: #2d5a5a; padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.8rem; font-weight: 600; }
+        .prev-contact { background: #fafafa; border: 1px solid #eee; border-radius: 8px; padding: 1.25rem; display: flex; flex-direction: column; gap: 0.6rem; }
+        .prev-contact-item { display: flex; align-items: baseline; gap: 0.5rem; font-size: 0.9rem; color: #444; }
+        .prev-serp { background: white; border: 1px solid #ddd; border-radius: 8px; padding: 1.25rem 1.5rem; font-family: Arial, sans-serif; }
+        .prev-serp-domain { font-size: 0.78rem; color: #202124; margin-bottom: 0.2rem; }
+        .prev-serp-title { font-size: 1.05rem; color: #1a0dab; margin-bottom: 0.2rem; font-weight: normal; line-height: 1.3; }
+        .prev-serp-title.too-long { color: #d93025; }
+        .prev-serp-desc { font-size: 0.83rem; color: #4d5156; line-height: 1.45; }
+        .prev-serp-desc.too-long { color: #d93025; }
+        .prev-serp-hint { font-size: 0.75rem; color: #999; margin-top: 0.65rem; border-top: 1px solid #f0f0f0; padding-top: 0.5rem; }
+
         @media (max-width: 768px) {
             .container { padding: 1rem; }
             .content-section { padding: 1rem; }
@@ -407,6 +431,10 @@
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
             if (evt && evt.target) evt.target.classList.add('active');
             document.getElementById(tabName + '-content').classList.add('active');
+            // Re-render accommodations preview if open
+            const sectionEl  = document.getElementById('section-accommodations');
+            const previewDiv = sectionEl?.querySelector('.inline-preview.visible');
+            if (previewDiv) renderPreview('accommodations', sectionEl, previewDiv);
         }
 
         // ── Load saved content from backend on page load ──────────────────
@@ -531,16 +559,100 @@
         }
 
         function previewContent(section) {
-            const previewUrls = {
-                'hero': '/',
-                'about': '/#about',
-                'accommodations': '/stay',
-                'contact': '/contact',
-                'seo': '/'
-            };
-            const url = previewUrls[section] || '/';
-            window.open(url, '_blank', 'noopener');
-            adminShell.showAlert(`Preview opened for ${section} section.`, 'info');
+            const sectionEl = document.getElementById('section-' + section);
+            if (!sectionEl) return;
+
+            let previewDiv = sectionEl.querySelector('.inline-preview');
+            if (!previewDiv) {
+                previewDiv = document.createElement('div');
+                previewDiv.className = 'inline-preview';
+                previewDiv.dataset.section = section;
+                const formActions = sectionEl.querySelector('.form-actions');
+                if (formActions) {
+                    sectionEl.insertBefore(previewDiv, formActions);
+                } else {
+                    sectionEl.appendChild(previewDiv);
+                }
+            }
+
+            const btn = sectionEl.querySelector('.btn-preview');
+            if (previewDiv.classList.contains('visible')) {
+                previewDiv.classList.remove('visible');
+                if (btn) btn.textContent = 'Preview';
+            } else {
+                renderPreview(section, sectionEl, previewDiv);
+                previewDiv.classList.add('visible');
+                if (btn) btn.textContent = 'Hide Preview';
+            }
+        }
+
+        function renderPreview(section, sectionEl, previewDiv) {
+            const esc = s => adminShell.escapeHtml ? adminShell.escapeHtml(s) :
+                s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+            let html = '<div class="preview-label">&#128065; Live Preview</div>';
+
+            if (section === 'hero') {
+                const inputs = sectionEl.querySelectorAll('input');
+                const headline = inputs[0]?.value || '';
+                const subtitle = inputs[1]?.value || '';
+                html += `<div class="prev-hero">
+                    <div class="prev-hero-headline">${esc(headline) || '<em style="opacity:.5">Headline…</em>'}</div>
+                    <div class="prev-hero-subtitle">${esc(subtitle) || '<em style="opacity:.5">Subtitle…</em>'}</div>
+                </div>`;
+
+            } else if (section === 'about') {
+                const title = sectionEl.querySelector('input')?.value || '';
+                const desc  = sectionEl.querySelector('textarea')?.value || '';
+                html += `<div class="prev-about">
+                    <div class="prev-about-title">${esc(title) || '<em style="color:#aaa">Title…</em>'}</div>
+                    <div class="prev-about-desc">${esc(desc) || '<em style="color:#aaa">Description…</em>'}</div>
+                </div>`;
+
+            } else if (section === 'accommodations') {
+                const activeTab = sectionEl.querySelector('.tab-content.active');
+                const tabLabel  = sectionEl.querySelector('.tab.active')?.textContent || '';
+                const desc      = activeTab?.querySelector('textarea')?.value || '';
+                const features  = (activeTab?.querySelector('input')?.value || '')
+                    .split(',').map(f => f.trim()).filter(Boolean);
+                html += `<div class="prev-accom">
+                    <div style="font-weight:700;color:#2d5a5a;margin-bottom:0.75rem;">${esc(tabLabel)}</div>
+                    <div class="prev-accom-desc">${esc(desc) || '<em style="color:#aaa">Description…</em>'}</div>
+                    <div class="prev-accom-features">${features.map(f => `<span class="prev-accom-feature">${esc(f)}</span>`).join('') || '<em style="color:#aaa;font-size:0.85rem">No features yet</em>'}</div>
+                </div>`;
+
+            } else if (section === 'contact') {
+                const fields  = sectionEl.querySelectorAll('input, textarea');
+                const email   = fields[0]?.value || '';
+                const phone   = fields[1]?.value || '';
+                const address = fields[2]?.value || '';
+                html += `<div class="prev-contact">
+                    <div class="prev-contact-item"><span>✉️</span>${esc(email) || '<em style="color:#aaa">email…</em>'}</div>
+                    <div class="prev-contact-item"><span>📞</span>${esc(phone) || '<em style="color:#aaa">phone…</em>'}</div>
+                    <div class="prev-contact-item"><span>📍</span>${esc(address) || '<em style="color:#aaa">address…</em>'}</div>
+                </div>`;
+
+            } else if (section === 'seo') {
+                const titleInput = sectionEl.querySelector('input[maxlength="60"]');
+                const descInput  = sectionEl.querySelector('textarea[maxlength="160"]');
+                const title = titleInput?.value || '';
+                const desc  = descInput?.value  || '';
+                const tLen  = title.length;
+                const dLen  = desc.length;
+                const tOk   = tLen >= 30 && tLen <= 60;
+                const dOk   = dLen >= 120 && dLen <= 160;
+                html += `<div class="prev-serp">
+                    <div class="prev-serp-domain">🔍 lakesideretreat.co.nz &rsaquo; ...</div>
+                    <div class="prev-serp-title${tLen > 60 ? ' too-long' : ''}">${esc(title) || '<em style="color:#aaa">(no title)</em>'}</div>
+                    <div class="prev-serp-desc${dLen > 160 ? ' too-long' : ''}">${esc(desc) || '<em style="color:#aaa">(no description)</em>'}</div>
+                    <div class="prev-serp-hint">
+                        Title: ${tLen}/60${tLen > 60 ? ' ⚠ too long' : (tLen < 30 ? ' ⚠ too short' : ' ✓')}
+                        &nbsp;&nbsp;|&nbsp;&nbsp;
+                        Description: ${dLen}/160${dLen > 160 ? ' ⚠ too long' : (dLen < 120 ? ' ⚠ could be longer' : ' ✓')}
+                    </div>
+                </div>`;
+            }
+
+            previewDiv.innerHTML = html;
         }
 
         function analyzeSEO() {
@@ -588,6 +700,16 @@
                     }
                 }
             });
+        });
+
+        // Re-render inline preview live as the user types
+        document.addEventListener('input', function(e) {
+            if (!e.isTrusted) return; // ignore programmatic dispatchEvent
+            const sectionEl  = e.target.closest('.content-section');
+            if (!sectionEl) return;
+            const previewDiv = sectionEl.querySelector('.inline-preview.visible');
+            if (!previewDiv) return;
+            renderPreview(previewDiv.dataset.section, sectionEl, previewDiv);
         });
 
         // Load saved content (DOM is ready at this point — script runs after all HTML)
