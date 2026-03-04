@@ -51,8 +51,9 @@ const csvExportLimit = rateLimit({
  * @param {Object} deps.database - Database abstraction layer
  */
 function createAdminBookingRoutes(deps) {
-    const { db, stripe, syncBookingToUplisting, cancelUplistingBooking, emailNotifications } = deps;
+    const { db, stripe, syncBookingToUplisting, cancelUplistingBooking, emailNotifications, database } = deps;
     const { getUplistingDashboardData } = require('../uplisting-dashboard-api');
+    const isPg = database?.isUsingPostgres?.() || false;
 
     /**
      * Audit log for admin actions. Logs to console and could be extended to DB later.
@@ -514,16 +515,22 @@ router.get('/api/admin/stats', verifyAdmin, (req, res) => {
         return res.status(503).json({ success: false, error: 'Database not ready' });
     }
 
+    // Build SQL with the correct date functions for each database engine
+    const monthlyFilter = isPg
+        ? `TO_CHAR(check_in, 'YYYY-MM') = TO_CHAR(NOW(), 'YYYY-MM')`
+        : `strftime('%Y-%m', check_in) = strftime('%Y-%m', 'now')`;
+    const today = isPg ? `CURRENT_DATE` : `DATE('now')`;
+
     const sql = `
         SELECT
             COUNT(*) as total_bookings,
             COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_bookings,
             COUNT(CASE WHEN status = 'confirmed' THEN 1 END) as confirmed_bookings,
             COALESCE(SUM(CASE WHEN payment_status = 'completed' THEN total_price ELSE 0 END), 0) as total_revenue,
-            COALESCE(SUM(CASE WHEN payment_status = 'completed' AND strftime('%Y-%m', check_in) = strftime('%Y-%m', 'now') THEN total_price ELSE 0 END), 0) as monthly_revenue,
-            COUNT(CASE WHEN DATE(created_at) = DATE('now') THEN 1 END) as today_bookings,
-            COUNT(CASE WHEN DATE(check_in) = DATE('now') THEN 1 END) as today_checkins,
-            COUNT(CASE WHEN DATE(check_out) = DATE('now') THEN 1 END) as today_checkouts
+            COALESCE(SUM(CASE WHEN payment_status = 'completed' AND ${monthlyFilter} THEN total_price ELSE 0 END), 0) as monthly_revenue,
+            COUNT(CASE WHEN DATE(created_at) = ${today} THEN 1 END) as today_bookings,
+            COUNT(CASE WHEN check_in = ${today} THEN 1 END) as today_checkins,
+            COUNT(CASE WHEN check_out = ${today} THEN 1 END) as today_checkouts
         FROM bookings
         WHERE deleted_at IS NULL
     `;
