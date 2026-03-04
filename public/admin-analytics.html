@@ -328,6 +328,13 @@
             <option value="previous">Previous Period</option>
             <option value="year">Previous Year</option>
         </select>
+        <div id="customDateRange" style="display:none; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+            <label style="font-size: 0.875rem; color: #666; white-space: nowrap;">From:</label>
+            <input type="date" id="customStart" style="padding: 0.45rem 0.5rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.875rem;">
+            <label style="font-size: 0.875rem; color: #666; white-space: nowrap;">To:</label>
+            <input type="date" id="customEnd" style="padding: 0.45rem 0.5rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.875rem;">
+            <button onclick="applyCustomRange()" style="padding: 0.45rem 1rem; background: #2d5a5a; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.875rem; font-weight: 600;">Apply</button>
+        </div>
     </div>
     
     <div class="container">
@@ -773,8 +780,28 @@
         // Update functions
         function updateDateRange() {
             const range = document.getElementById('dateRange').value;
-            // Reload data based on new range
-            fetchRealAnalytics(range);
+            const customDiv = document.getElementById('customDateRange');
+            if (range === 'custom') {
+                customDiv.style.display = 'flex';
+                // Set sensible defaults: first of current month to today
+                const today = new Date();
+                const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+                const fmt = d => d.toISOString().slice(0, 10);
+                if (!document.getElementById('customStart').value) document.getElementById('customStart').value = fmt(firstOfMonth);
+                if (!document.getElementById('customEnd').value) document.getElementById('customEnd').value = fmt(today);
+                // Don't auto-fetch — wait for Apply
+            } else {
+                customDiv.style.display = 'none';
+                fetchRealAnalytics(range);
+            }
+        }
+
+        function applyCustomRange() {
+            const start = document.getElementById('customStart').value;
+            const end   = document.getElementById('customEnd').value;
+            if (!start || !end) { adminShell.showAlert('Please select both a start and end date.', 'info'); return; }
+            if (start > end)    { adminShell.showAlert('Start date must be on or before the end date.', 'info'); return; }
+            fetchRealAnalytics('custom', start, end);
         }
 
         function updateComparison() {
@@ -822,11 +849,15 @@
         });
         
         // Fetch real analytics data from server including Uplisting
-        async function fetchRealAnalytics(dateRange = 'month') {
+        async function fetchRealAnalytics(dateRange = 'month', startDate = null, endDate = null) {
             try {
                 // Fetch analytics, Uplisting, and review summary in parallel
+                let analyticsUrl = `/api/admin/analytics?dateRange=${encodeURIComponent(dateRange)}`;
+                if (dateRange === 'custom' && startDate && endDate) {
+                    analyticsUrl += `&startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`;
+                }
                 const [analyticsResult, uplistingResult, reviewsResult] = await Promise.allSettled([
-                    fetch(`/api/admin/analytics?dateRange=${encodeURIComponent(dateRange)}`, {
+                    fetch(analyticsUrl, {
                         credentials: 'same-origin'
                     }),
                     fetch('/api/admin/uplisting-dashboard', {
