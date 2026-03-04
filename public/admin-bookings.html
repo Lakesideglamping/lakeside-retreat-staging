@@ -512,6 +512,47 @@
             background: #2d5a5a;
             color: white;
         }
+
+        /* Bulk action bar */
+        .bulk-bar {
+            display: none;
+            align-items: center;
+            gap: 1rem;
+            background: #2d5a5a;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .bulk-bar.visible {
+            display: flex;
+        }
+
+        .bulk-bar-count {
+            font-weight: 600;
+            flex: 1;
+            font-size: 0.9rem;
+        }
+
+        .btn-bulk {
+            border: none;
+            padding: 0.4rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .btn-bulk-confirm  { background: #28a745; color: white; }
+        .btn-bulk-cancel   { background: #dc3545; color: white; }
+        .btn-bulk-deselect { background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.35); }
+
+        th.cb-col, td.cb-col {
+            width: 40px;
+            padding: 0.5rem 0.5rem 0.5rem 1rem;
+        }
     </style>
 </head>
 <body>
@@ -595,11 +636,20 @@
             </div>
         </div>
         
+        <!-- Bulk action bar -->
+        <div id="bulkBar" class="bulk-bar">
+            <span id="bulkCount" class="bulk-bar-count">0 selected</span>
+            <button class="btn-bulk btn-bulk-confirm" onclick="bulkConfirmBookings()">✅ Confirm Selected</button>
+            <button class="btn-bulk btn-bulk-cancel"  onclick="bulkCancelBookings()">❌ Cancel Selected</button>
+            <button class="btn-bulk btn-bulk-deselect" onclick="deselectAllBookings()">✕ Deselect All</button>
+        </div>
+
         <!-- Bookings Table -->
         <div class="bookings-table">
             <table>
                 <thead>
                     <tr>
+                        <th class="cb-col"><input type="checkbox" id="selectAllBookings" onchange="toggleSelectAllBookings(this)" title="Select all"></th>
                         <th>ID</th>
                         <th>Guest</th>
                         <th>Accommodation</th>
@@ -614,7 +664,7 @@
                 </thead>
                 <tbody id="bookingsTableBody">
                     <tr>
-                        <td colspan="10" class="empty-state"><div class="spinner-sm" style="margin: 0 auto;"></div> Loading bookings...</td>
+                        <td colspan="11" class="empty-state"><div class="spinner-sm" style="margin: 0 auto;"></div> Loading bookings...</td>
                     </tr>
                 </tbody>
             </table>
@@ -671,13 +721,19 @@
         function displayBookings(bookings) {
             const tbody = document.getElementById('bookingsTableBody');
             
+            // Reset bulk selection state whenever table re-renders
+            const selAll = document.getElementById('selectAllBookings');
+            if (selAll) { selAll.checked = false; selAll.indeterminate = false; }
+            updateBulkBarVisibility();
+
             if (bookings.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="10" class="empty-state">No bookings found</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="11" class="empty-state">No bookings found</td></tr>';
                 return;
             }
-            
+
             tbody.innerHTML = bookings.map(booking => `
                 <tr>
+                    <td class="cb-col">${booking.status !== 'cancelled' ? `<input type="checkbox" class="booking-select" data-id="${booking.id}" data-status="${booking.status}" onchange="updateBulkBarVisibility()">` : ''}</td>
                     <td>#${booking.id}</td>
                     <td>
                         <strong>${escapeHtml(booking.guest_name)}</strong><br>
@@ -1036,6 +1092,7 @@
             document.getElementById('dateFrom').value = '';
             document.getElementById('dateTo').value = '';
             document.querySelectorAll('.date-chip').forEach(c => c.classList.remove('active'));
+            deselectAllBookings();
             loadBookings();
         }
 
@@ -1080,6 +1137,109 @@
                 console.error('Export error:', error);
                 adminShell.showAlert('Failed to export bookings. Please try again.', 'error');
             });
+        }
+
+        function updateBulkBarVisibility() {
+            const checked = document.querySelectorAll('.booking-select:checked');
+            const all = document.querySelectorAll('.booking-select');
+            const bar = document.getElementById('bulkBar');
+            const countEl = document.getElementById('bulkCount');
+            const selAll = document.getElementById('selectAllBookings');
+
+            if (checked.length > 0) {
+                bar.classList.add('visible');
+                countEl.textContent = checked.length + ' booking' + (checked.length !== 1 ? 's' : '') + ' selected';
+            } else {
+                bar.classList.remove('visible');
+            }
+
+            // Sync the header checkbox state
+            if (selAll) {
+                selAll.indeterminate = checked.length > 0 && checked.length < all.length;
+                selAll.checked = all.length > 0 && checked.length === all.length;
+            }
+        }
+
+        function toggleSelectAllBookings(cb) {
+            document.querySelectorAll('.booking-select').forEach(el => {
+                el.checked = cb.checked;
+            });
+            updateBulkBarVisibility();
+        }
+
+        function deselectAllBookings() {
+            document.querySelectorAll('.booking-select').forEach(el => el.checked = false);
+            const selAll = document.getElementById('selectAllBookings');
+            if (selAll) { selAll.checked = false; selAll.indeterminate = false; }
+            document.getElementById('bulkBar').classList.remove('visible');
+        }
+
+        async function bulkConfirmBookings() {
+            const pending = [...document.querySelectorAll('.booking-select:checked')]
+                .filter(cb => cb.dataset.status === 'pending');
+            if (pending.length === 0) {
+                adminShell.showAlert('No pending bookings selected — only pending bookings can be confirmed.', 'info');
+                return;
+            }
+            if (!confirm(`Confirm ${pending.length} pending booking(s)? Guests will be notified.`)) return;
+
+            try {
+                const csrfRes = await fetch('/api/csrf-token', { credentials: 'same-origin' });
+                const { csrfToken } = await csrfRes.json();
+                let success = 0, failed = 0;
+
+                await Promise.all(pending.map(async cb => {
+                    const res = await fetch(`/api/admin/booking/${cb.dataset.id}`, {
+                        method: 'PUT',
+                        credentials: 'same-origin',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+                        body: JSON.stringify({ status: 'confirmed' })
+                    });
+                    res.ok ? success++ : failed++;
+                }));
+
+                adminShell.showAlert(
+                    failed > 0 ? `${success} confirmed, ${failed} failed.` : `${success} booking(s) confirmed!`,
+                    failed > 0 ? 'error' : 'info'
+                );
+                deselectAllBookings();
+                filterBookings();
+            } catch (err) {
+                adminShell.showAlert('Bulk confirm failed: ' + err.message, 'error');
+            }
+        }
+
+        async function bulkCancelBookings() {
+            const selected = [...document.querySelectorAll('.booking-select:checked')];
+            if (selected.length === 0) {
+                adminShell.showAlert('No bookings selected.', 'info');
+                return;
+            }
+            if (!confirm(`Cancel ${selected.length} booking(s)? This cannot be undone.`)) return;
+
+            try {
+                const csrfRes = await fetch('/api/csrf-token', { credentials: 'same-origin' });
+                const { csrfToken } = await csrfRes.json();
+                let success = 0, failed = 0;
+
+                await Promise.all(selected.map(async cb => {
+                    const res = await fetch(`/api/admin/booking/${cb.dataset.id}`, {
+                        method: 'DELETE',
+                        credentials: 'same-origin',
+                        headers: { 'X-CSRF-Token': csrfToken }
+                    });
+                    res.ok ? success++ : failed++;
+                }));
+
+                adminShell.showAlert(
+                    failed > 0 ? `${success} cancelled, ${failed} failed.` : `${success} booking(s) cancelled.`,
+                    failed > 0 ? 'error' : 'info'
+                );
+                deselectAllBookings();
+                filterBookings();
+            } catch (err) {
+                adminShell.showAlert('Bulk cancel failed: ' + err.message, 'error');
+            }
         }
 
         function debounce(fn, ms) {
