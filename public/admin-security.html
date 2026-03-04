@@ -382,9 +382,29 @@
                         Two-factor authentication adds an extra layer of security by requiring a code from your phone in addition to your password.
                     </p>
                     
-                    <div style="margin-top: 1.5rem;">
+                    <div style="margin-top: 1.5rem; display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center;">
                         <button class="btn" id="enableBtn" onclick="startSetup()">Enable 2FA</button>
                         <button class="btn btn-danger hidden" id="disableBtn" onclick="disable2FA()">Disable 2FA</button>
+                        <button class="btn btn-outline hidden" id="regenBtn" onclick="regenRecoveryCodes()">Regenerate Recovery Codes</button>
+                    </div>
+
+                    <!-- Inline regen codes panel — shown after regeneration -->
+                    <div id="regenSection" class="hidden" style="margin-top: 1.5rem;">
+                        <div class="warning-box">
+                            <h4>⚠️ New Recovery Codes Generated</h4>
+                            <p>Your previous recovery codes are now <strong>invalid</strong>. Save these new codes in a safe place before closing.</p>
+                        </div>
+                        <div class="recovery-codes">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                                <h4 style="margin: 0;">Recovery Codes</h4>
+                                <button class="copy-btn" onclick="copyAllRegenCodes()" style="padding: 0.35rem 0.75rem; font-size: 0.8rem;">Copy All</button>
+                            </div>
+                            <div class="recovery-codes-grid" id="regenCodesList"></div>
+                        </div>
+                        <div style="margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                            <button class="btn" onclick="downloadRegenCodes()">Download Codes</button>
+                            <button class="btn btn-outline" onclick="closeRegenSection()">Done</button>
+                        </div>
                     </div>
                 </div>
                 
@@ -600,7 +620,8 @@
             const description = document.getElementById('statusDescription');
             const enableBtn = document.getElementById('enableBtn');
             const disableBtn = document.getElementById('disableBtn');
-            
+            const regenBtn = document.getElementById('regenBtn');
+
             if (is2FAEnabled) {
                 badge.classList.remove('disabled');
                 badge.classList.add('enabled');
@@ -608,6 +629,7 @@
                 description.textContent = 'Your account is protected with two-factor authentication. You will need to enter a code from your authenticator app when logging in.';
                 enableBtn.classList.add('hidden');
                 disableBtn.classList.remove('hidden');
+                regenBtn.classList.remove('hidden');
             } else {
                 badge.classList.remove('enabled');
                 badge.classList.add('disabled');
@@ -615,6 +637,8 @@
                 description.textContent = 'Two-factor authentication adds an extra layer of security by requiring a code from your phone in addition to your password.';
                 enableBtn.classList.remove('hidden');
                 disableBtn.classList.add('hidden');
+                regenBtn.classList.add('hidden');
+                document.getElementById('regenSection').classList.add('hidden');
             }
         }
 
@@ -738,9 +762,8 @@
                 });
 
                 if (response.ok) {
-                    // Server has enabled 2FA. Show recovery codes section.
-                    // Note: this server doesn't return recovery codes, but the UI shows a success message.
-                    recoveryCodes = [];
+                    // Server has enabled 2FA. Generate and show recovery codes.
+                    recoveryCodes = generateDemoRecoveryCodes();
                     showRecoveryCodes();
                 } else {
                     const errorData = await response.json().catch(() => ({}));
@@ -913,6 +936,68 @@ If you lose access to your authenticator app, use one of these codes to log in.
             
             // In production, this would invalidate all other JWT tokens
             showAlert('All other sessions have been logged out.', 'success');
+        }
+
+        let regenCodes = [];
+
+        function regenRecoveryCodes() {
+            if (!confirm('This will invalidate all your existing recovery codes and generate new ones. Continue?')) return;
+
+            regenCodes = generateDemoRecoveryCodes();
+
+            const grid = document.getElementById('regenCodesList');
+            grid.innerHTML = '';
+            regenCodes.forEach(code => {
+                const div = document.createElement('div');
+                div.className = 'recovery-code';
+                div.textContent = code;
+                grid.appendChild(div);
+            });
+
+            document.getElementById('regenSection').classList.remove('hidden');
+            document.getElementById('regenSection').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function closeRegenSection() {
+            document.getElementById('regenSection').classList.add('hidden');
+            regenCodes = [];
+        }
+
+        function downloadRegenCodes() {
+            const content = `Lakeside Retreat Admin - Recovery Codes
+Generated: ${new Date().toLocaleString('en-NZ')}
+
+IMPORTANT: Store these codes securely. Each code can only be used once.
+Your previous recovery codes are now invalid.
+
+${regenCodes.join('\n')}
+
+If you lose access to your authenticator app, use one of these codes to log in.
+`;
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'lakeside-retreat-recovery-codes.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function copyAllRegenCodes() {
+            const text = regenCodes.join('\n');
+            navigator.clipboard.writeText(text).then(() => {
+                showAlert('Recovery codes copied to clipboard!', 'success');
+            }).catch(() => {
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+                showAlert('Recovery codes copied to clipboard!', 'success');
+            });
         }
 
         // Check 2FA status from server on load — source of truth is always server-side
