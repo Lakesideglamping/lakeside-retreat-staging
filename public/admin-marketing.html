@@ -796,11 +796,14 @@
         async function loadStats() {
             try {
                 const data = await apiCall('/api/admin/marketing/stats');
-                if (data.success) {
-                    document.getElementById('abandonedCount').textContent = data.stats.abandonedCheckouts || 0;
-                    document.getElementById('remindersSent').textContent = data.stats.remindersSent || 0;
-                    document.getElementById('reviewRequestsSent').textContent = data.stats.reviewRequestsSent || 0;
-                    document.getElementById('socialDrafts').textContent = data.stats.socialDrafts || 0;
+                if (data.success && data.stats) {
+                    const ac = data.stats.abandonedCheckouts || {};
+                    const rr = data.stats.reviewRequests    || {};
+                    const sd = data.stats.socialDrafts      || {};
+                    document.getElementById('abandonedCount').textContent      = ac.total    ?? 0;
+                    document.getElementById('remindersSent').textContent       = ac.reminded  ?? 0;
+                    document.getElementById('reviewRequestsSent').textContent  = rr.sent      ?? 0;
+                    document.getElementById('socialDrafts').textContent        = sd.drafts    ?? 0;
                 }
             } catch (error) {
                 console.error('Failed to load stats:', error);

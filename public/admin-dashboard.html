@@ -782,10 +782,17 @@
             const grid = document.getElementById('propertyBreakdownGrid');
             if (!card || !grid || !accommodations.length) return;
 
+            const displayNames = {
+                'dome-pinot':       'Dome Pinot',
+                'dome-rose':        'Dome Rosé',
+                'lakeside-cottage': 'Lakeside Cottage'
+            };
+
             grid.innerHTML = accommodations.map(a => {
-                const name = a.accommodation || 'Unknown';
-                const propClass = name.includes('Pinot') ? 'prop-pinot' :
-                                  (name.includes('Ros') ? 'prop-rose' : 'prop-cottage');
+                const slug  = a.accommodation || '';
+                const name  = displayNames[slug] || slug || 'Unknown';
+                const propClass = slug === 'dome-pinot'       ? 'prop-pinot'  :
+                                  slug === 'dome-rose'        ? 'prop-rose'   : 'prop-cottage';
                 const revenue  = Math.round(parseFloat(a.revenue) || 0);
                 const bookings = parseInt(a.bookings) || 0;
                 const avgVal   = bookings > 0 ? Math.round(revenue / bookings) : 0;
