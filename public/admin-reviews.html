@@ -639,7 +639,7 @@
                         ${review.status === 'approved' ? `
                             <div class="admin-reply">
                                 <label><strong>Public Reply:</strong></label>
-                                <textarea id="reply_${review.id}" placeholder="Reply to guest (will be visible publicly)...">${escapeHtml(review.admin_reply || '')}</textarea>
+                                <textarea id="reply_${review.id}" placeholder="Reply to guest (will be visible publicly)...">${escapeHtml(review.admin_response || '')}</textarea>
                             </div>
                         ` : ''}
                         
@@ -654,8 +654,8 @@
                             ` : ''}
                             
                             ${review.status === 'approved' ? `
-                                <button class="btn btn-feature" onclick="toggleFeature(${review.id}, ${!review.featured})">
-                                    ${review.featured ? '⭐ Unfeature' : '⭐ Feature'}
+                                <button class="btn btn-feature" onclick="toggleFeature(${review.id}, ${!review.is_featured})">
+                                    ${review.is_featured ? '⭐ Unfeature' : '⭐ Feature'}
                                 </button>
                                 <button class="btn btn-secondary" onclick="updateReply(${review.id})">
                                     💬 Update Reply

@@ -613,12 +613,16 @@
         document.addEventListener('DOMContentLoaded', loadPricing);
 
         async function savePricing(accommodation) {
+            // accommodationName is the slug sent to the backend (key = pricing_{slug})
+            // displayName is used for alert messages only
             let accommodationName = '';
+            let displayName = '';
             let data = {};
-            
+
             switch(accommodation) {
                 case 'pinot':
-                    accommodationName = 'Dome Pinot';
+                    accommodationName = 'dome-pinot';
+                    displayName = 'Dome Pinot';
                     data = {
                         base: document.getElementById('pinot-base').value,
                         weekend: document.getElementById('pinot-weekend').value,
@@ -628,7 +632,8 @@
                     };
                     break;
                 case 'rose':
-                    accommodationName = 'Dome Rosé';
+                    accommodationName = 'dome-rose';
+                    displayName = 'Dome Rosé';
                     data = {
                         base: document.getElementById('rose-base').value,
                         weekend: document.getElementById('rose-weekend').value,
@@ -638,7 +643,8 @@
                     };
                     break;
                 case 'cottage':
-                    accommodationName = 'Lakeside Cottage';
+                    accommodationName = 'lakeside-cottage';
+                    displayName = 'Lakeside Cottage';
                     data = {
                         base: document.getElementById('cottage-base').value,
                         weekend: document.getElementById('cottage-weekend').value,
@@ -683,10 +689,10 @@
                     throw new Error(errorData.error || 'Failed to update pricing');
                 }
 
-                showAlert(`${accommodationName} pricing updated successfully!`);
+                showAlert(`${displayName} pricing updated successfully!`);
             } catch (error) {
                 console.error('Error updating pricing:', error);
-                showAlert(`Failed to save ${accommodationName} pricing: ${error.message}`, 'error');
+                showAlert(`Failed to save ${displayName} pricing: ${error.message}`, 'error');
             }
         }
         async function saveSeasonalPricing() {
