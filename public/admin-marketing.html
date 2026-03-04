@@ -356,27 +356,187 @@
             gap: 1.5rem;
         }
         
+        /* Email preview modal */
+        .email-preview-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.55);
+            z-index: 9000;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        .email-preview-overlay.open {
+            display: flex;
+        }
+        .email-preview-panel {
+            background: white;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 640px;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .email-preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid #eee;
+            flex-shrink: 0;
+        }
+        .email-preview-header h3 {
+            color: #2d5a5a;
+            font-size: 1.1rem;
+        }
+        .email-preview-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #666;
+            line-height: 1;
+            padding: 0 0.25rem;
+        }
+        .email-meta {
+            background: #f8f9fa;
+            padding: 0.875rem 1.5rem;
+            border-bottom: 1px solid #eee;
+            font-size: 0.875rem;
+            flex-shrink: 0;
+        }
+        .email-meta-row {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.25rem;
+            color: #444;
+        }
+        .email-meta-row:last-child {
+            margin-bottom: 0;
+        }
+        .email-meta-label {
+            font-weight: 600;
+            color: #666;
+            min-width: 3.5rem;
+        }
+        .email-body-scroll {
+            overflow-y: auto;
+            flex: 1;
+            padding: 1.5rem;
+            background: #f0f2f5;
+        }
+        .email-client-frame {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        .email-brand-bar {
+            background: linear-gradient(135deg, #2d5a5a 0%, #1e4040 100%);
+            padding: 1.5rem;
+            text-align: center;
+            color: white;
+        }
+        .email-brand-bar h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+        .email-brand-bar p {
+            font-size: 0.8rem;
+            opacity: 0.8;
+            margin-top: 0.25rem;
+        }
+        .email-body-content {
+            padding: 2rem 1.75rem;
+            color: #333;
+            line-height: 1.6;
+        }
+        .email-body-content p {
+            margin-bottom: 1rem;
+        }
+        .email-booking-box {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+            margin: 1.25rem 0;
+        }
+        .email-booking-box .booking-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.35rem 0;
+            border-bottom: 1px solid #eee;
+            font-size: 0.9rem;
+        }
+        .email-booking-box .booking-row:last-child {
+            border-bottom: none;
+            font-weight: 700;
+            font-size: 1rem;
+            margin-top: 0.25rem;
+        }
+        .email-booking-box .booking-row span:first-child {
+            color: #666;
+        }
+        .email-cta-wrap {
+            text-align: center;
+            margin: 1.5rem 0;
+        }
+        .email-cta-btn {
+            display: inline-block;
+            background: #2d5a5a;
+            color: white;
+            padding: 0.85rem 2.5rem;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 1rem;
+            text-decoration: none;
+            letter-spacing: 0.3px;
+        }
+        .email-footer-strip {
+            background: #f8f9fa;
+            border-top: 1px solid #eee;
+            padding: 1rem 1.75rem;
+            text-align: center;
+            font-size: 0.75rem;
+            color: #999;
+        }
+        .email-preview-actions {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+            flex-shrink: 0;
+            background: white;
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 1rem;
             }
-            
+
             .grid-2 {
                 grid-template-columns: 1fr;
             }
-            
+
             .tabs {
                 flex-direction: column;
             }
-            
+
             .tab {
                 text-align: center;
             }
-            
+
             table {
                 font-size: 0.875rem;
             }
-            
+
             th, td {
                 padding: 0.5rem;
             }
@@ -554,11 +714,34 @@
         </div>
     </div>
 
+    <!-- Abandon checkout email preview modal -->
+    <div id="reminderPreviewOverlay" class="email-preview-overlay" role="dialog" aria-modal="true" aria-labelledby="reminderPreviewTitle">
+        <div class="email-preview-panel">
+            <div class="email-preview-header">
+                <h3 id="reminderPreviewTitle">📧 Email Preview</h3>
+                <button class="email-preview-close" onclick="closeReminderPreview()" aria-label="Close">&times;</button>
+            </div>
+            <div class="email-meta" id="reminderEmailMeta">
+                <!-- filled by JS -->
+            </div>
+            <div class="email-body-scroll">
+                <div class="email-client-frame" id="reminderEmailFrame">
+                    <!-- filled by JS -->
+                </div>
+            </div>
+            <div class="email-preview-actions">
+                <button class="btn btn-secondary btn-sm" onclick="closeReminderPreview()">Cancel</button>
+                <button class="btn btn-success btn-sm" id="reminderSendBtn" onclick="confirmSendReminder()">Send Reminder</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Authentication is handled by admin-shell.js via cookie verification
 
         let currentGeneratedContent = null;
         let csrfToken = null;
+        let pendingReminderId = null;
 
         // Fetch CSRF token on page load
         async function fetchCsrfToken() {
@@ -654,7 +837,7 @@
                                         <td>${new Date(b.created_at).toLocaleDateString()}</td>
                                         <td><span class="badge badge-info">${b.reminder_count || 0} sent</span></td>
                                         <td class="actions">
-                                            <button class="btn btn-sm btn-success" onclick="sendReminder('${b.id}')">Send Reminder</button>
+                                            <button class="btn btn-sm btn-success" onclick='previewReminder(${JSON.stringify({id:b.id,guest_name:b.guest_name||"Guest",guest_email:b.guest_email||"",accommodation:b.accommodation,check_in:b.check_in,check_out:b.check_out,total_price:b.total_price||0})})'>Preview &amp; Send</button>
                                         </td>
                                     </tr>
                                 `).join('')}
@@ -674,9 +857,74 @@
             }
         }
 
-        async function sendReminder(bookingId) {
+        function previewReminder(booking) {
+            pendingReminderId = booking.id;
+
+            const esc = s => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+            const firstName = esc(booking.guest_name).split(' ')[0] || 'there';
+            const accomLabel = {
+                'dome-pinot': 'Dome Pinot',
+                'dome-rose': 'Dome Rosé',
+                'lakeside-cottage': 'Lakeside Cottage'
+            }[booking.accommodation] || esc(booking.accommodation);
+            const nights = booking.check_in && booking.check_out
+                ? Math.round((new Date(booking.check_out) - new Date(booking.check_in)) / 86400000)
+                : null;
+            const fmtDate = d => { try { return new Date(d).toLocaleDateString('en-NZ', {day:'numeric',month:'long',year:'numeric'}); } catch(e) { return d; } };
+
+            // meta bar
+            document.getElementById('reminderEmailMeta').innerHTML = `
+                <div class="email-meta-row"><span class="email-meta-label">To:</span><span>${esc(booking.guest_name)} &lt;${esc(booking.guest_email)}&gt;</span></div>
+                <div class="email-meta-row"><span class="email-meta-label">Subject:</span><span>Complete your booking at Lakeside Retreat 🏕️</span></div>
+            `;
+
+            // email body
+            document.getElementById('reminderEmailFrame').innerHTML = `
+                <div class="email-brand-bar">
+                    <h2>Lakeside Retreat</h2>
+                    <p>Cromwell, Central Otago, New Zealand</p>
+                </div>
+                <div class="email-body-content">
+                    <p>Hi ${firstName},</p>
+                    <p>We noticed you started a booking with us but didn't quite finish. We've held your details — pick up right where you left off!</p>
+                    <div class="email-booking-box">
+                        <div class="booking-row"><span>Accommodation</span><span>${accomLabel}</span></div>
+                        ${booking.check_in ? `<div class="booking-row"><span>Check-in</span><span>${fmtDate(booking.check_in)}</span></div>` : ''}
+                        ${booking.check_out ? `<div class="booking-row"><span>Check-out</span><span>${fmtDate(booking.check_out)}</span></div>` : ''}
+                        ${nights ? `<div class="booking-row"><span>Duration</span><span>${nights} night${nights !== 1 ? 's' : ''}</span></div>` : ''}
+                        <div class="booking-row"><span>Total</span><span>$${parseFloat(booking.total_price || 0).toLocaleString('en-NZ', {minimumFractionDigits:2,maximumFractionDigits:2})}</span></div>
+                    </div>
+                    <p>Availability is limited — secure your stay today before these dates are taken.</p>
+                    <div class="email-cta-wrap">
+                        <span class="email-cta-btn">Complete My Booking</span>
+                    </div>
+                    <p style="font-size:0.875rem;color:#666;">Questions? Reply to this email or visit <strong>lakesideretreat.co.nz</strong> — we'd love to have you stay with us.</p>
+                </div>
+                <div class="email-footer-strip">
+                    Lakeside Retreat · Cromwell, Central Otago, New Zealand<br>
+                    You received this because you started a booking on our website.
+                </div>
+            `;
+
+            const overlay = document.getElementById('reminderPreviewOverlay');
+            overlay.classList.add('open');
+            document.getElementById('reminderSendBtn').focus();
+        }
+
+        function closeReminderPreview() {
+            document.getElementById('reminderPreviewOverlay').classList.remove('open');
+            pendingReminderId = null;
+        }
+
+        async function confirmSendReminder() {
+            if (!pendingReminderId) return;
+            const id = pendingReminderId;
+            closeReminderPreview();
+            const btn = document.querySelector(`button[onclick*="previewReminder"][onclick*='"id":${id}']`) ||
+                        document.querySelector(`button[onclick*="${id}"]`);
+            if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
             try {
-                const data = await apiCall(`/api/admin/marketing/send-reminder/${bookingId}`, { method: 'POST' });
+                const data = await apiCall(`/api/admin/marketing/send-reminder/${id}`, { method: 'POST' });
                 if (data.success) {
                     showAlert('Reminder sent successfully!', 'success');
                     loadAbandonedCheckouts();
@@ -688,6 +936,11 @@
                 showAlert('Failed to send reminder', 'error');
             }
         }
+
+        // Close overlay on backdrop click
+        document.getElementById('reminderPreviewOverlay')?.addEventListener('click', function(e) {
+            if (e.target === this) closeReminderPreview();
+        });
 
         async function runAbandonedCheck() {
             try {
