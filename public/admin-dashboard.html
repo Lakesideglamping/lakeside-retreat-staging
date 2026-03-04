@@ -265,6 +265,13 @@
     <!-- Old header removed - now using admin-shell.js for unified navigation -->
     
     <div class="container">
+        <!-- Dashboard error banner (shown only when API calls fail) -->
+        <div id="dashboardError" style="display:none; background:#fff3cd; border:1px solid #ffc107; border-radius:8px; padding:0.85rem 1.25rem; margin-bottom:1.25rem; align-items:center; gap:0.75rem; font-size:0.92rem; color:#856404;">
+            <span style="font-size:1.2rem;">⚠️</span>
+            <span id="dashboardErrorMsg">Could not load some dashboard data.</span>
+            <button onclick="loadDashboardData()" style="margin-left:auto; background:#ffc107; border:none; border-radius:6px; padding:0.3rem 0.9rem; cursor:pointer; font-size:0.85rem; font-weight:600;">Retry</button>
+        </div>
+
         <!-- Statistics Overview -->
         <div class="stats-grid">
             <div class="stat-card">
@@ -410,85 +417,120 @@
     </div>
 
     <script>
+        function showDashboardBanner(msg) {
+            const el = document.getElementById('dashboardError');
+            document.getElementById('dashboardErrorMsg').textContent = msg;
+            el.style.display = 'flex';
+        }
+        function hideDashboardBanner() {
+            document.getElementById('dashboardError').style.display = 'none';
+        }
+
         // Load dashboard data from live APIs
         async function loadDashboardData() {
+            hideDashboardBanner();
             try {
-                // Fetch real booking stats from API and Uplisting data
+                // Fire all three requests simultaneously; tolerate individual failures
                 const [statsResult, bookingStatsResult, uplistingResult] = await Promise.allSettled([
                     fetch('/api/admin/stats', { credentials: 'same-origin' }),
                     fetch('/api/admin/booking-stats', { credentials: 'same-origin' }),
                     fetch('/api/admin/uplisting-dashboard', { credentials: 'same-origin' })
                 ]);
-                const statsResponse = statsResult.status === 'fulfilled' ? statsResult.value : null;
+
+                const statsResponse      = statsResult.status      === 'fulfilled' ? statsResult.value      : null;
                 const bookingStatsResponse = bookingStatsResult.status === 'fulfilled' ? bookingStatsResult.value : null;
-                const uplistingResponse = uplistingResult.status === 'fulfilled' ? uplistingResult.value : null;
+                const uplistingResponse  = uplistingResult.status   === 'fulfilled' ? uplistingResult.value  : null;
 
-                if (statsResponse?.ok && bookingStatsResponse?.ok) {
-                    const statsJson = await statsResponse.json();
-                    const bookingStatsJson = await bookingStatsResponse.json();
+                // Parse each response independently so a single failure doesn't blank everything
+                let statsJson        = null;
+                let bookingStatsJson = null;
+                let uplistingData    = null;
 
-                    // Unwrap nested stats objects from API responses
-                    const localStats = statsJson.stats || statsJson;
-                    const bookingStats = bookingStatsJson.stats || bookingStatsJson;
-
-                    // Get Uplisting data if available
-                    let uplistingData = null;
-                    if (uplistingResponse?.ok) {
-                        uplistingData = await uplistingResponse.json();
-                    }
-
-                    const hasLocalBookings = (localStats.total_bookings || 0) > 0;
-                    const hasUplistingData = uplistingData?.success;
-                    const uplistingBookings = uplistingData?.total_bookings || 0;
-                    const uplistingRevenue = uplistingData?.total_revenue || 0;
-
-                    // --- Stat cards: combine local + Uplisting data ---
-                    const totalBookings = (localStats.total_bookings || 0) + uplistingBookings;
-                    const totalRevenue = (localStats.total_revenue || 0) + uplistingRevenue;
-
-                    document.getElementById('totalBookings').textContent =
-                        totalBookings > 0 ? totalBookings.toLocaleString() : '0';
-
-                    document.getElementById('monthlyRevenue').textContent =
-                        totalRevenue > 0 ? `$${totalRevenue.toLocaleString()}` : '$0';
-
-                    // Occupancy rate from local booking stats or Uplisting
-                    const overview = bookingStats.overview || {};
-                    if (overview.total_bookings > 0) {
-                        const occupancyRate = Math.round(
-                            (overview.paid_bookings / overview.total_bookings) * 100
-                        );
-                        document.getElementById('occupancyRate').textContent = `${occupancyRate}%`;
-                    } else if (hasUplistingData && uplistingBookings > 0) {
-                        document.getElementById('occupancyRate').textContent = 'Via Uplisting';
-                    } else {
-                        document.getElementById('occupancyRate').textContent = 'No data';
-                    }
-
-                    // Properties / rating card
-                    document.getElementById('avgRating').textContent =
-                        hasUplistingData ? `${uplistingData.total_properties} Properties` :
-                        hasLocalBookings ? 'No reviews yet' : 'No data';
-
-                    // --- Revenue chart ---
-                    buildRevenueChart(bookingStats, uplistingData);
-
-                    // --- Recent activity ---
-                    buildRecentActivity(localStats, uplistingData);
-
-                    // --- System status (dynamic) ---
-                    updateSystemStatus(statsJson.success, bookingStatsJson.success, hasUplistingData);
-
+                if (statsResponse?.ok) {
+                    try { statsJson = await statsResponse.json(); } catch (e) { console.warn('Stats JSON parse error', e); }
                 } else {
-                    throw new Error('Failed to fetch dashboard data');
+                    console.warn('Stats endpoint unavailable:', statsResponse?.status);
                 }
+
+                if (bookingStatsResponse?.ok) {
+                    try { bookingStatsJson = await bookingStatsResponse.json(); } catch (e) { console.warn('Booking stats JSON parse error', e); }
+                } else {
+                    console.warn('Booking-stats endpoint unavailable:', bookingStatsResponse?.status);
+                }
+
+                if (uplistingResponse?.ok) {
+                    try { uplistingData = await uplistingResponse.json(); } catch (e) { /* Uplisting optional */ }
+                }
+
+                // If both primary endpoints failed show a banner but leave the page usable
+                if (!statsJson && !bookingStatsJson) {
+                    showDashboardBanner('Could not load booking data — the database may still be starting. Please retry in a moment.');
+                    document.getElementById('totalBookings').textContent = '—';
+                    document.getElementById('monthlyRevenue').textContent = '—';
+                    document.getElementById('occupancyRate').textContent = '—';
+                    document.getElementById('avgRating').textContent = '—';
+                    updateSystemStatus(false, false, !!(uplistingData?.success));
+                    return;
+                }
+
+                // Warn if only one failed
+                if (!statsJson || !bookingStatsJson) {
+                    showDashboardBanner('Some booking stats failed to load — figures below may be incomplete.');
+                }
+
+                // Safely unwrap nested stats objects
+                const localStats   = statsJson?.stats   || statsJson   || {};
+                const bookingStats = bookingStatsJson?.stats || bookingStatsJson || {};
+
+                const hasLocalBookings = (localStats.total_bookings || 0) > 0;
+                const hasUplistingData = uplistingData?.success;
+                const uplistingBookings = uplistingData?.total_bookings || 0;
+                const uplistingRevenue  = uplistingData?.total_revenue  || 0;
+
+                // --- Stat cards: combine local + Uplisting data ---
+                const totalBookings = (localStats.total_bookings || 0) + uplistingBookings;
+                const totalRevenue  = (localStats.total_revenue  || 0) + uplistingRevenue;
+
+                document.getElementById('totalBookings').textContent =
+                    statsJson ? (totalBookings > 0 ? totalBookings.toLocaleString() : '0') : '—';
+
+                document.getElementById('monthlyRevenue').textContent =
+                    statsJson ? (totalRevenue > 0 ? `$${totalRevenue.toLocaleString()}` : '$0') : '—';
+
+                // Occupancy rate from local booking stats or Uplisting
+                const overview = bookingStats.overview || {};
+                if (overview.total_bookings > 0) {
+                    const occupancyRate = Math.round(
+                        (overview.paid_bookings / overview.total_bookings) * 100
+                    );
+                    document.getElementById('occupancyRate').textContent = `${occupancyRate}%`;
+                } else if (hasUplistingData && uplistingBookings > 0) {
+                    document.getElementById('occupancyRate').textContent = 'Via Uplisting';
+                } else {
+                    document.getElementById('occupancyRate').textContent = bookingStatsJson ? 'No data' : '—';
+                }
+
+                // Properties / rating card
+                document.getElementById('avgRating').textContent =
+                    hasUplistingData ? `${uplistingData.total_properties} Properties` :
+                    hasLocalBookings ? 'No reviews yet' : 'No data';
+
+                // --- Revenue chart ---
+                buildRevenueChart(bookingStats, uplistingData);
+
+                // --- Recent activity ---
+                buildRecentActivity(localStats, uplistingData);
+
+                // --- System status (dynamic) ---
+                updateSystemStatus(statsJson?.success, bookingStatsJson?.success, hasUplistingData);
 
             } catch (error) {
                 console.error('Failed to load dashboard data:', error);
-                document.getElementById('totalBookings').textContent = 'Error';
-                document.getElementById('monthlyRevenue').textContent = 'Error';
-                document.getElementById('occupancyRate').textContent = 'Error';
-                document.getElementById('avgRating').textContent = 'Error';
+                showDashboardBanner('Unexpected error loading dashboard. Check the console for details.');
+                document.getElementById('totalBookings').textContent = '—';
+                document.getElementById('monthlyRevenue').textContent = '—';
+                document.getElementById('occupancyRate').textContent = '—';
+                document.getElementById('avgRating').textContent = '—';
             }
         }
 
