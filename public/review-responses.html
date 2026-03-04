@@ -428,23 +428,79 @@
                 const status = document.getElementById('filterStatus').value;
                 const platform = document.getElementById('filterPlatform').value;
                 let url = '/api/admin/reviews?';
-                if (status) url += `status=${status}&`;
-                if (platform) url += `platform=${platform}`;
-                
-                const response = await fetch(url, {
-                    credentials: 'same-origin'
-                });
+                if (status) url += `status=${encodeURIComponent(status)}&`;
+                if (platform) url += `platform=${encodeURIComponent(platform)}`;
+
+                const response = await fetch(url, { credentials: 'same-origin' });
                 const data = await response.json();
                 if (data.success) {
-                    // Reviews loaded successfully
-                    if (data.stats) {
-                        document.querySelectorAll('.stat-value')[0].textContent = data.stats.total;
-                        document.querySelectorAll('.stat-value')[1].textContent = data.stats.average_rating;
+                    // Update stat cards
+                    const statNumbers = document.querySelectorAll('.stat-card .number');
+                    if (data.stats && statNumbers.length >= 4) {
+                        statNumbers[0].textContent = data.stats.pending || 0;
+                        statNumbers[1].textContent = data.stats.approved || 0;
+                        statNumbers[2].textContent = data.stats.average_rating || '—';
+                        const total = data.stats.total || 0;
+                        const responded = data.stats.approved || 0;
+                        statNumbers[3].textContent = total > 0 ? Math.round(responded / total * 100) + '%' : '—';
                     }
+                    // Render review cards
+                    renderReviews(data.reviews || []);
                 }
             } catch (error) {
-                console.error('Error loading reviews:', error);
+                // Keep static content as fallback if API fails
             }
+        }
+
+        function renderReviews(reviews) {
+            if (!reviews.length) return; // Keep static content if no reviews from API
+            const container = document.querySelector('.container');
+            // Remove existing static review cards
+            container.querySelectorAll('.review-card').forEach(card => card.remove());
+            // Render dynamic review cards
+            reviews.forEach(review => {
+                const initials = (review.guest_name || 'G').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+                const stars = '★'.repeat(Math.min(review.rating || 5, 5)) + '☆'.repeat(5 - Math.min(review.rating || 5, 5));
+                const platformClass = (review.platform || 'direct').toLowerCase();
+                const card = document.createElement('div');
+                card.className = 'review-card';
+                const hasResponse = review.admin_response || review.status === 'approved';
+                card.innerHTML = `
+                    <div class="review-header">
+                        <div class="review-meta">
+                            <div class="review-avatar">${escapeHtml(initials)}</div>
+                            <div class="review-info">
+                                <h4>${escapeHtml(review.guest_name || 'Guest')}</h4>
+                                <div class="date">${review.stay_date ? 'Stayed ' + escapeHtml(review.stay_date) : escapeHtml(review.property || '')}</div>
+                            </div>
+                        </div>
+                        <span class="review-platform platform-${escapeHtml(platformClass)}">${escapeHtml(review.platform || 'Direct')}</span>
+                    </div>
+                    <div class="review-rating">${stars}</div>
+                    <div class="review-content">${escapeHtml(review.review_text || '')}</div>
+                    <div class="response-section">
+                        <h5>Your Response</h5>
+                        ${hasResponse && review.admin_response ? `
+                            <div class="existing-response">
+                                <p>${escapeHtml(review.admin_response)}</p>
+                                <div class="response-date">Responded on ${new Date(review.updated_at).toLocaleDateString()}</div>
+                            </div>
+                            <button class="btn btn-secondary" onclick="editResponse(${review.id})">Edit Response</button>
+                        ` : `
+                            <div class="template-buttons">
+                                <button class="template-btn" onclick="useTemplate('thank')">Thank You</button>
+                                <button class="template-btn" onclick="useTemplate('feedback')">Address Feedback</button>
+                            </div>
+                            <textarea class="response-textarea" id="response-${review.id}" placeholder="Write your response..."></textarea>
+                            <div class="button-group">
+                                <button class="btn btn-primary" onclick="submitResponse(${review.id})">Post Response</button>
+                                <button class="btn btn-outline" onclick="saveAsDraft(${review.id})">Save Draft</button>
+                            </div>
+                        `}
+                    </div>
+                `;
+                container.appendChild(card);
+            });
         }
 
         function useTemplate(type) {

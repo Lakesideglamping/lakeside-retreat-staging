@@ -106,6 +106,24 @@ router.post('/api/admin/cache/clear', verifyAdmin, verifyCsrf, (req, res) => {
     }
 });
 
+// Reset analytics counters (admin only)
+router.post('/api/admin/analytics/reset', verifyAdmin, verifyCsrf, (req, res) => {
+    try {
+        const sql = `UPDATE system_settings SET setting_value = '0', updated_at = datetime('now') WHERE setting_key LIKE 'analytics_%'`;
+        db().run(sql, [], function(err) {
+            if (err) {
+                log('ERROR', 'Failed to reset analytics', { error: err.message });
+                return sendError(res, 500, ERROR_CODES.INTERNAL_SERVER_ERROR, 'Failed to reset analytics');
+            }
+            log('INFO', 'Analytics counters reset by admin', { rowsAffected: this.changes });
+            res.json({ success: true, message: 'Analytics counters reset', rowsAffected: this.changes });
+        });
+    } catch (error) {
+        log('ERROR', 'Failed to reset analytics', { error: error.message });
+        return sendError(res, 500, ERROR_CODES.INTERNAL_SERVER_ERROR, 'Failed to reset analytics');
+    }
+});
+
 // Health check with detailed metrics (admin only)
 router.get('/api/admin/health-detailed', verifyAdmin, (req, res) => {
     try {

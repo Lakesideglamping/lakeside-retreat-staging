@@ -288,7 +288,7 @@
                     <p>Receive email alerts for new bookings and inquiries</p>
                 </div>
                 <label class="toggle-switch">
-                    <input type="checkbox" checked>
+                    <input type="checkbox" id="notifyEmail" checked>
                     <span class="slider"></span>
                 </label>
             </div>
@@ -298,7 +298,7 @@
                     <p>Send automatic confirmation emails to guests</p>
                 </div>
                 <label class="toggle-switch">
-                    <input type="checkbox" checked>
+                    <input type="checkbox" id="notifyBookings" checked>
                     <span class="slider"></span>
                 </label>
             </div>
@@ -308,7 +308,7 @@
                     <p>Send review request emails after checkout</p>
                 </div>
                 <label class="toggle-switch">
-                    <input type="checkbox" checked>
+                    <input type="checkbox" id="notifyReviews" checked>
                     <span class="slider"></span>
                 </label>
             </div>
@@ -318,10 +318,11 @@
                     <p>Get notified when availability is running low</p>
                 </div>
                 <label class="toggle-switch">
-                    <input type="checkbox">
+                    <input type="checkbox" id="notifyAvailability">
                     <span class="slider"></span>
                 </label>
             </div>
+            <button class="btn btn-primary" onclick="saveNotificationSettings()" style="margin-top: 1rem;">Save Notification Settings</button>
         </div>
         
         <div class="settings-section">
@@ -442,6 +443,16 @@
             }
         }
 
+        async function saveNotificationSettings() {
+            const settings = {
+                notifyEmail: document.getElementById('notifyEmail')?.checked || false,
+                notifyBookings: document.getElementById('notifyBookings')?.checked || false,
+                notifyReviews: document.getElementById('notifyReviews')?.checked || false,
+                notifyAvailability: document.getElementById('notifyAvailability')?.checked || false
+            };
+            await saveSettings(settings);
+        }
+
         async function saveGeneralSettings() {
             const settings = {
                 site_name: document.getElementById('siteName')?.value || 'Lakeside Retreat',
@@ -453,7 +464,9 @@
 
         async function saveEmailSettings() {
             const settings = {
-                email_notifications: document.querySelector('input[type="checkbox"]')?.checked || false
+                emailFrom: document.getElementById('emailFrom')?.value || '',
+                emailReply: document.getElementById('emailReply')?.value || '',
+                emailFooter: document.getElementById('emailFooter')?.value || ''
             };
             await saveSettings(settings);
         }
@@ -510,16 +523,16 @@
             try {
                 const csrfRes = await fetch('/api/csrf-token', { credentials: 'same-origin' });
                 const csrfData = await csrfRes.json();
-                const response = await fetch('/api/admin/cache/clear', {
+                const response = await fetch('/api/admin/analytics/reset', {
                     method: 'POST',
                     headers: { 'X-CSRF-Token': csrfData.csrfToken },
                     credentials: 'same-origin'
                 });
                 const data = await response.json();
                 if (data.success) {
-                    adminShell.showAlert('Analytics counters reset', 'success');
+                    showAlert('Analytics counters reset');
                 } else {
-                    adminShell.showAlert('Failed to reset analytics: ' + (data.error || 'Unknown error'), 'error');
+                    showAlert(data.error || 'Failed to reset analytics', 'error');
                 }
             } catch (err) {
                 adminShell.showAlert('Error: ' + err.message, 'error');

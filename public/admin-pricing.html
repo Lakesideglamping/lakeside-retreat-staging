@@ -418,99 +418,103 @@
         <!-- Seasonal Pricing Rules -->
         <div class="seasonal-pricing">
             <h2>📅 Seasonal Pricing Periods</h2>
-            
+
             <div class="season-row">
                 <span class="season-name">Summer Peak</span>
                 <div class="date-range">
-                    <input type="date" value="2025-12-15">
+                    <input type="date" id="season-summer-start" value="2025-12-15">
                     <span>to</span>
-                    <input type="date" value="2026-02-15">
+                    <input type="date" id="season-summer-end" value="2026-02-15">
                 </div>
                 <label class="toggle-switch">
-                    <input type="checkbox" checked>
+                    <input type="checkbox" id="season-summer-enabled" checked>
                     <span class="slider"></span>
                 </label>
             </div>
-            
+
             <div class="season-row">
                 <span class="season-name">Autumn Wine Season</span>
                 <div class="date-range">
-                    <input type="date" value="2025-03-01">
+                    <input type="date" id="season-autumn-start" value="2025-03-01">
                     <span>to</span>
-                    <input type="date" value="2025-05-31">
+                    <input type="date" id="season-autumn-end" value="2025-05-31">
                 </div>
                 <label class="toggle-switch">
-                    <input type="checkbox" checked>
+                    <input type="checkbox" id="season-autumn-enabled" checked>
                     <span class="slider"></span>
                 </label>
             </div>
-            
+
             <div class="season-row">
                 <span class="season-name">Winter Special</span>
                 <div class="date-range">
-                    <input type="date" value="2025-06-01">
+                    <input type="date" id="season-winter-start" value="2025-06-01">
                     <span>to</span>
-                    <input type="date" value="2025-08-31">
+                    <input type="date" id="season-winter-end" value="2025-08-31">
                 </div>
                 <label class="toggle-switch">
-                    <input type="checkbox">
+                    <input type="checkbox" id="season-winter-enabled">
                     <span class="slider"></span>
                 </label>
             </div>
-            
+
             <div class="season-row">
                 <span class="season-name">Spring Peak</span>
                 <div class="date-range">
-                    <input type="date" value="2025-09-15">
+                    <input type="date" id="season-spring-start" value="2025-09-15">
                     <span>to</span>
-                    <input type="date" value="2025-11-30">
+                    <input type="date" id="season-spring-end" value="2025-11-30">
                 </div>
                 <label class="toggle-switch">
-                    <input type="checkbox" checked>
+                    <input type="checkbox" id="season-spring-enabled" checked>
                     <span class="slider"></span>
                 </label>
             </div>
+
+            <button class="btn-save" onclick="saveSeasonalPricing()" style="margin-top: 1rem;">Save Seasonal Periods</button>
         </div>
-        
+
         <!-- Booking Rules -->
         <div class="rules-section">
             <h2>📋 Booking Rules</h2>
-            
+
             <div class="rule-item">
                 <span class="rule-label">Advance Booking Window</span>
-                <select>
+                <select id="rule-advance-window">
                     <option value="365">1 Year</option>
                     <option value="180" selected>6 Months</option>
                     <option value="90">3 Months</option>
                 </select>
             </div>
-            
+
             <div class="rule-item">
                 <span class="rule-label">Cancellation Policy</span>
-                <select>
+                <select id="rule-cancellation">
                     <option value="flexible">Flexible (24 hours)</option>
                     <option value="moderate" selected>Moderate (5 days)</option>
                     <option value="strict">Strict (14 days)</option>
                 </select>
             </div>
-            
+
             <div class="rule-item">
                 <span class="rule-label">Check-in Time</span>
-                <select>
+                <select id="rule-checkin">
                     <option value="14">2:00 PM</option>
                     <option value="15" selected>3:00 PM</option>
                     <option value="16">4:00 PM</option>
                 </select>
             </div>
-            
+
             <div class="rule-item">
                 <span class="rule-label">Check-out Time</span>
-                <select>
+                <select id="rule-checkout">
                     <option value="10">10:00 AM</option>
                     <option value="11" selected>11:00 AM</option>
                     <option value="12">12:00 PM</option>
                 </select>
             </div>
+
+            <button class="btn-save" onclick="saveBookingRules()" style="margin-top: 1rem;">Save Booking Rules</button>
         </div>
     </div>
 
@@ -669,6 +673,88 @@
                 showAlert(`Failed to save ${accommodationName} pricing: ${error.message}`, 'error');
             }
         }
+        async function saveSeasonalPricing() {
+            const seasons = ['summer', 'autumn', 'winter', 'spring'];
+            const seasonalData = {};
+            seasons.forEach(s => {
+                seasonalData[`season_${s}_start`] = document.getElementById(`season-${s}-start`)?.value || '';
+                seasonalData[`season_${s}_end`] = document.getElementById(`season-${s}-end`)?.value || '';
+                seasonalData[`season_${s}_enabled`] = document.getElementById(`season-${s}-enabled`)?.checked || false;
+            });
+            try {
+                const csrfRes = await fetch('/api/csrf-token', { credentials: 'same-origin' });
+                const csrfData = await csrfRes.json();
+                const response = await fetch('/api/admin/settings', {
+                    method: 'PUT',
+                    credentials: 'same-origin',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfData.csrfToken },
+                    body: JSON.stringify({ settings: seasonalData })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    showAlert('Seasonal pricing periods saved!');
+                } else {
+                    showAlert(data.error || 'Failed to save seasonal pricing', 'error');
+                }
+            } catch (error) {
+                showAlert('Error saving seasonal pricing', 'error');
+            }
+        }
+
+        async function saveBookingRules() {
+            const rules = {
+                rule_advance_window: document.getElementById('rule-advance-window')?.value || '180',
+                rule_cancellation: document.getElementById('rule-cancellation')?.value || 'moderate',
+                rule_checkin: document.getElementById('rule-checkin')?.value || '15',
+                rule_checkout: document.getElementById('rule-checkout')?.value || '11'
+            };
+            try {
+                const csrfRes = await fetch('/api/csrf-token', { credentials: 'same-origin' });
+                const csrfData = await csrfRes.json();
+                const response = await fetch('/api/admin/settings', {
+                    method: 'PUT',
+                    credentials: 'same-origin',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfData.csrfToken },
+                    body: JSON.stringify({ settings: rules })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    showAlert('Booking rules saved!');
+                } else {
+                    showAlert(data.error || 'Failed to save booking rules', 'error');
+                }
+            } catch (error) {
+                showAlert('Error saving booking rules', 'error');
+            }
+        }
+
+        async function loadSeasonalAndRules() {
+            try {
+                const response = await fetch('/api/admin/settings', { credentials: 'same-origin' });
+                const data = await response.json();
+                if (data.success && data.settings) {
+                    const s = data.settings;
+                    // Load seasonal periods
+                    ['summer', 'autumn', 'winter', 'spring'].forEach(season => {
+                        const startEl = document.getElementById(`season-${season}-start`);
+                        const endEl = document.getElementById(`season-${season}-end`);
+                        const enabledEl = document.getElementById(`season-${season}-enabled`);
+                        if (startEl && s[`season_${season}_start`]) startEl.value = s[`season_${season}_start`];
+                        if (endEl && s[`season_${season}_end`]) endEl.value = s[`season_${season}_end`];
+                        if (enabledEl && s[`season_${season}_enabled`] !== undefined) enabledEl.checked = s[`season_${season}_enabled`] === true || s[`season_${season}_enabled`] === 'true';
+                    });
+                    // Load booking rules
+                    if (s.rule_advance_window) document.getElementById('rule-advance-window').value = s.rule_advance_window;
+                    if (s.rule_cancellation) document.getElementById('rule-cancellation').value = s.rule_cancellation;
+                    if (s.rule_checkin) document.getElementById('rule-checkin').value = s.rule_checkin;
+                    if (s.rule_checkout) document.getElementById('rule-checkout').value = s.rule_checkout;
+                }
+            } catch (error) {
+                // Use defaults
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadSeasonalAndRules);
     </script>
     <script src="/admin-shell.js?v=3"></script>
 </body>

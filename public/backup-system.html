@@ -398,7 +398,7 @@
                     <p>Run automatic backups daily at 2:00 AM</p>
                 </div>
                 <label class="toggle-switch">
-                    <input type="checkbox" checked>
+                    <input type="checkbox" id="backupAutoEnabled" checked>
                     <span class="slider"></span>
                 </label>
             </div>
@@ -431,7 +431,7 @@
                     <p>Include uploaded images in backups (increases size)</p>
                 </div>
                 <label class="toggle-switch">
-                    <input type="checkbox" checked>
+                    <input type="checkbox" id="backupIncludeImages" checked>
                     <span class="slider"></span>
                 </label>
             </div>
@@ -441,10 +441,11 @@
                     <p>Send email when backup completes or fails</p>
                 </div>
                 <label class="toggle-switch">
-                    <input type="checkbox" checked>
+                    <input type="checkbox" id="backupEmailNotify" checked>
                     <span class="slider"></span>
                 </label>
             </div>
+            <button class="btn btn-primary" onclick="saveBackupSettings()" style="margin-top: 1rem;">Save Backup Settings</button>
         </div>
     </div>
 
@@ -579,7 +580,53 @@
             }
         }
 
+        async function saveBackupSettings() {
+            try {
+                const settings = {
+                    backupAutoEnabled: document.getElementById('backupAutoEnabled')?.checked || false,
+                    backupFrequency: document.getElementById('backupFrequency')?.value || 'daily',
+                    retentionPeriod: document.getElementById('retentionPeriod')?.value || '30',
+                    backupIncludeImages: document.getElementById('backupIncludeImages')?.checked || false,
+                    backupEmailNotify: document.getElementById('backupEmailNotify')?.checked || false
+                };
+                const csrfRes = await fetch('/api/csrf-token', { credentials: 'same-origin' });
+                const csrfData = await csrfRes.json();
+                const response = await fetch('/api/admin/settings', {
+                    method: 'PUT',
+                    credentials: 'same-origin',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfData.csrfToken },
+                    body: JSON.stringify({ settings })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    showAlert('Backup settings saved!');
+                } else {
+                    showAlert(data.error || 'Failed to save backup settings', 'error');
+                }
+            } catch (error) {
+                showAlert('Error saving backup settings', 'error');
+            }
+        }
+
+        async function loadBackupSettings() {
+            try {
+                const response = await fetch('/api/admin/settings', { credentials: 'same-origin' });
+                const data = await response.json();
+                if (data.success && data.settings) {
+                    const s = data.settings;
+                    if (s.backupAutoEnabled !== undefined) document.getElementById('backupAutoEnabled').checked = s.backupAutoEnabled === true || s.backupAutoEnabled === 'true';
+                    if (s.backupFrequency) document.getElementById('backupFrequency').value = s.backupFrequency;
+                    if (s.retentionPeriod) document.getElementById('retentionPeriod').value = s.retentionPeriod;
+                    if (s.backupIncludeImages !== undefined) document.getElementById('backupIncludeImages').checked = s.backupIncludeImages === true || s.backupIncludeImages === 'true';
+                    if (s.backupEmailNotify !== undefined) document.getElementById('backupEmailNotify').checked = s.backupEmailNotify === true || s.backupEmailNotify === 'true';
+                }
+            } catch (error) {
+                // Use defaults
+            }
+        }
+
         loadBackups();
+        loadBackupSettings();
     </script>
 </body>
 </html>
