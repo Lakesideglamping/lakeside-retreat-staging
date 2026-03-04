@@ -8,6 +8,7 @@
  * - Pricing management (2 endpoints)
  * - System settings (2 endpoints)
  * - Backup management (4 endpoints)
+ * - Content management (2 endpoints)
  */
 
 const express = require('express');
@@ -882,6 +883,82 @@ router.delete('/api/admin/promotions/:id', verifyAdmin, verifyCsrf, (req, res) =
         if (err) return res.status(500).json({ success: false, error: err.message });
         if (this.changes === 0) return res.status(404).json({ success: false, error: 'Promo code not found' });
         res.json({ success: true });
+    });
+});
+
+// ============================================================
+// Content Management
+// Stores each page section as a JSON blob in system_settings
+// under the key content_{section} (hero, about, accommodations,
+// contact, seo).
+// ============================================================
+
+router.get('/api/admin/content', verifyAdmin, (req, res) => {
+    db().all(
+        "SELECT setting_key, setting_value FROM system_settings WHERE setting_key LIKE 'content_%'",
+        [],
+        (err, rows) => {
+            if (err) {
+                logger.error('Error fetching content settings', { error: err.message });
+                return res.status(500).json({ success: false, error: err.message });
+            }
+            const content = {};
+            (rows || []).forEach(row => {
+                const section = row.setting_key.replace('content_', '');
+                try {
+                    content[section] = JSON.parse(row.setting_value);
+                } catch (_) {
+                    content[section] = {};
+                }
+            });
+            res.json({ success: true, content });
+        }
+    );
+});
+
+router.put('/api/admin/content', verifyAdmin, verifyCsrf, (req, res) => {
+    const VALID_SECTIONS = ['hero', 'about', 'accommodations', 'contact', 'seo'];
+    const { section, ...fields } = req.body || {};
+
+    if (!section || !VALID_SECTIONS.includes(section)) {
+        return res.status(400).json({
+            success: false,
+            error: 'Valid section required: hero, about, accommodations, contact, seo'
+        });
+    }
+
+    // Sanitize field values — strings only, max 2000 chars each
+    const sanitized = {};
+    Object.entries(fields).forEach(([key, value]) => {
+        if (typeof value === 'string') {
+            sanitized[key] = value.substring(0, 2000);
+        }
+    });
+
+    const settingKey = `content_${section}`;
+    const settingValue = JSON.stringify(sanitized);
+    const nowFunc = database.isUsingPostgres() ? 'NOW()' : "datetime('now')";
+
+    ensureSystemSettingsTable((tableErr) => {
+        if (tableErr) {
+            logger.error('Failed to ensure system_settings table', { error: tableErr.message });
+            return res.status(500).json({ success: false, error: 'Database initialization failed' });
+        }
+        db().run(
+            `INSERT INTO system_settings (setting_key, setting_value, setting_type, updated_at)
+             VALUES (?, ?, 'json', ${nowFunc})
+             ON CONFLICT(setting_key) DO UPDATE SET
+             setting_value = excluded.setting_value,
+             updated_at = ${nowFunc}`,
+            [settingKey, settingValue],
+            function(err) {
+                if (err) {
+                    logger.error('Error saving content', { section, error: err.message });
+                    return res.status(500).json({ success: false, error: err.message });
+                }
+                res.json({ success: true, message: `${section} content saved` });
+            }
+        );
     });
 });
 

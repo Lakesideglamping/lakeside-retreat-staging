@@ -208,7 +208,7 @@
     
     <div class="container">
         <!-- Hero Section -->
-        <div class="content-section">
+        <div class="content-section" id="section-hero">
             <div class="section-header">
                 <h2>🏔️ Hero Section</h2>
                 <span class="section-status status-published">Published</span>
@@ -233,7 +233,7 @@
         </div>
         
         <!-- About Section -->
-        <div class="content-section">
+        <div class="content-section" id="section-about">
             <div class="section-header">
                 <h2>ℹ️ About Section</h2>
                 <span class="section-status status-published">Published</span>
@@ -257,7 +257,7 @@
         </div>
         
         <!-- Accommodations -->
-        <div class="content-section">
+        <div class="content-section" id="section-accommodations">
             <div class="section-header">
                 <h2>🏠 Accommodations</h2>
                 <span class="section-status status-published">Published</span>
@@ -315,7 +315,7 @@
         </div>
         
         <!-- Contact Information -->
-        <div class="content-section">
+        <div class="content-section" id="section-contact">
             <div class="section-header">
                 <h2>📞 Contact Information</h2>
                 <span class="section-status status-published">Published</span>
@@ -342,7 +342,7 @@
         </div>
         
         <!-- SEO Settings -->
-        <div class="content-section">
+        <div class="content-section" id="section-seo">
             <div class="section-header">
                 <h2>🔍 SEO Settings</h2>
                 <span class="section-status status-draft">Needs Review</span>
@@ -371,18 +371,75 @@
         // Authentication is handled by admin-shell.js via cookie verification
 
         function switchTab(tabName, evt) {
-            // Remove active class from all tabs and content
             document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-
-            // Add active class to clicked tab and corresponding content
             if (evt && evt.target) evt.target.classList.add('active');
             document.getElementById(tabName + '-content').classList.add('active');
         }
 
+        // ── Load saved content from backend on page load ──────────────────
+
+        function populateSectionFields(sectionEl, data) {
+            if (!sectionEl || !data) return;
+            sectionEl.querySelectorAll('input, textarea').forEach(el => {
+                const label = el.closest('.form-group')?.querySelector('label')?.textContent?.trim() || '';
+                if (label && data[label] !== undefined) {
+                    el.value = data[label];
+                    el.dispatchEvent(new Event('input')); // refresh character counts
+                }
+            });
+        }
+
+        async function loadContent() {
+            try {
+                const res = await fetch('/api/admin/content', { credentials: 'same-origin' });
+                if (!res.ok) return; // silently fall back to hardcoded defaults
+                const data = await res.json();
+                if (!data.success || !data.content) return;
+                const content = data.content;
+
+                // Hero, About, Contact, SEO — simple label → value mapping
+                [
+                    { key: 'hero',    id: 'section-hero'    },
+                    { key: 'about',   id: 'section-about'   },
+                    { key: 'contact', id: 'section-contact' },
+                    { key: 'seo',     id: 'section-seo'     }
+                ].forEach(({ key, id }) => {
+                    if (content[key]) {
+                        populateSectionFields(document.getElementById(id), content[key]);
+                    }
+                });
+
+                // Accommodations — tab-prefixed keys (pinot_Description, rose_Description, …)
+                if (content.accommodations) {
+                    [
+                        { name: 'pinot',   id: 'pinot-content'   },
+                        { name: 'rose',    id: 'rose-content'    },
+                        { name: 'cottage', id: 'cottage-content' }
+                    ].forEach(({ name, id }) => {
+                        const tabEl = document.getElementById(id);
+                        if (!tabEl) return;
+                        tabEl.querySelectorAll('input, textarea').forEach(el => {
+                            const label = el.closest('.form-group')?.querySelector('label')?.textContent?.trim() || '';
+                            const key = `${name}_${label}`;
+                            if (key && content.accommodations[key] !== undefined) {
+                                el.value = content.accommodations[key];
+                                el.dispatchEvent(new Event('input'));
+                            }
+                        });
+                    });
+                }
+            } catch (_) {
+                // silently fail — hardcoded defaults remain visible
+            }
+        }
+
+        // ── Save content to backend ───────────────────────────────────────
+
         async function saveContent(section, evt) {
             const sectionEl = evt.target.closest('.content-section');
             const btn = evt.target;
+            const origText = btn.textContent;
             btn.disabled = true;
             btn.textContent = 'Saving...';
 
@@ -390,13 +447,23 @@
                 const csrfRes = await fetch('/api/csrf-token', { credentials: 'same-origin' });
                 const csrfData = await csrfRes.json();
 
-                // Gather field values from this section
-                const inputs = sectionEl.querySelectorAll('input, textarea');
                 const payload = { section };
-                inputs.forEach((el, i) => {
-                    const label = el.closest('.form-group')?.querySelector('label')?.textContent?.trim() || `field_${i}`;
-                    payload[label] = el.value;
-                });
+
+                if (section === 'accommodations') {
+                    // Use tab-prefixed keys to avoid label collisions across the three tabs
+                    document.querySelectorAll('.tab-content').forEach(tab => {
+                        const tabName = tab.id.replace('-content', '');
+                        tab.querySelectorAll('input, textarea').forEach(el => {
+                            const label = el.closest('.form-group')?.querySelector('label')?.textContent?.trim() || '';
+                            if (label) payload[`${tabName}_${label}`] = el.value;
+                        });
+                    });
+                } else {
+                    sectionEl.querySelectorAll('input, textarea').forEach((el, i) => {
+                        const label = el.closest('.form-group')?.querySelector('label')?.textContent?.trim() || `field_${i}`;
+                        payload[label] = el.value;
+                    });
+                }
 
                 const response = await fetch('/api/admin/content', {
                     method: 'PUT',
@@ -409,27 +476,28 @@
                 });
 
                 if (response.ok) {
-                    adminShell.showAlert(`${section.charAt(0).toUpperCase() + section.slice(1)} content saved successfully!`, 'info');
+                    adminShell.showAlert(
+                        `${section.charAt(0).toUpperCase() + section.slice(1)} content saved successfully!`,
+                        'success'
+                    );
+                    const statusEl = sectionEl.querySelector('.section-status');
+                    if (statusEl) {
+                        statusEl.textContent = 'Published';
+                        statusEl.className = 'section-status status-published';
+                    }
                 } else {
-                    adminShell.showAlert('Content backend is not yet connected. Changes saved locally only.', 'warning');
+                    const errData = await response.json().catch(() => ({}));
+                    adminShell.showAlert(errData.error || 'Failed to save content.', 'danger');
                 }
-            } catch {
-                adminShell.showAlert('Content backend is not yet available. This feature is coming soon.', 'warning');
-            }
-
-            // Update status badge
-            const statusElement = sectionEl.querySelector('.section-status');
-            if (statusElement) {
-                statusElement.textContent = 'Published';
-                statusElement.className = 'section-status status-published';
+            } catch (_) {
+                adminShell.showAlert('Failed to save content. Please try again.', 'danger');
             }
 
             btn.disabled = false;
-            btn.textContent = 'Save Changes';
+            btn.textContent = origText;
         }
 
         function previewContent(section) {
-            // Map sections to their public-facing pages
             const previewUrls = {
                 'hero': '/',
                 'about': '/#about',
@@ -443,24 +511,25 @@
         }
 
         function analyzeSEO() {
-            const titleInput = document.querySelector('.content-section:last-child input[maxlength="60"]');
-            const descInput = document.querySelector('.content-section:last-child textarea[maxlength="160"]');
+            const seoSection = document.getElementById('section-seo');
+            const titleInput = seoSection?.querySelector('input[maxlength="60"]');
+            const descInput  = seoSection?.querySelector('textarea[maxlength="160"]');
 
             const titleLen = titleInput?.value?.length || 0;
-            const descLen = descInput?.value?.length || 0;
+            const descLen  = descInput?.value?.length  || 0;
 
             const results = [];
             if (titleLen <= 60) {
-                results.push('Title length: Good (' + titleLen + '/60)');
+                results.push(`Title length: Good (${titleLen}/60)`);
             } else {
-                results.push('Title length: Too long (' + titleLen + '/60) - trim to 60 chars');
+                results.push(`Title length: Too long (${titleLen}/60) — trim to 60 chars`);
             }
-            if (descLen <= 160 && descLen >= 120) {
-                results.push('Meta description: Good (' + descLen + '/160)');
+            if (descLen >= 120 && descLen <= 160) {
+                results.push(`Meta description: Good (${descLen}/160)`);
             } else if (descLen > 160) {
-                results.push('Meta description: Too long (' + descLen + '/160)');
+                results.push(`Meta description: Too long (${descLen}/160)`);
             } else {
-                results.push('Meta description: Could be longer (' + descLen + '/160)');
+                results.push(`Meta description: Could be longer (${descLen}/160)`);
             }
             results.push('Keywords: Check Google Search Console for opportunities');
             results.push('Headings: Verify H1-H6 structure on public pages');
@@ -468,16 +537,14 @@
             adminShell.showAlert('SEO Analysis: ' + results.join(' | '), 'info');
         }
 
-        // Update character counts
+        // Update character counts live
         document.querySelectorAll('input[maxlength], textarea[maxlength]').forEach(element => {
             element.addEventListener('input', function() {
                 const maxLength = parseInt(this.getAttribute('maxlength'), 10);
                 const currentLength = this.value.length;
                 const countElement = this.parentNode.querySelector('.character-count');
-
                 if (countElement) {
                     countElement.textContent = `${currentLength}/${maxLength} characters`;
-
                     if (currentLength > maxLength) {
                         countElement.style.color = '#dc3545';
                         countElement.textContent += ' (too long)';
@@ -489,6 +556,9 @@
                 }
             });
         });
+
+        // Load saved content (DOM is ready at this point — script runs after all HTML)
+        loadContent();
     </script>
     <script src="/admin-shell.js?v=3"></script>
 </body>
