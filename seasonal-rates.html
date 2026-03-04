@@ -6,425 +6,648 @@
     <title>Seasonal Rates - Lakeside Retreat Admin</title>
     <link rel="stylesheet" href="/admin-shell.css?v=2">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: #f5f5f5;
             min-height: 100vh;
         }
-        
+
         .container {
             max-width: 1200px;
             margin: 2rem auto;
             padding: 0 2rem;
         }
-        
-        .page-header {
-            margin-bottom: 2rem;
-        }
-        
-        .page-header h2 {
-            color: #2d5a5a;
-            font-size: 1.5rem;
-        }
-        
-        .page-header p {
-            color: #666;
-            margin-top: 0.5rem;
-        }
-        
+
+        .page-header { margin-bottom: 2rem; }
+        .page-header h2 { color: #2d5a5a; font-size: 1.5rem; }
+        .page-header p { color: #666; margin-top: 0.5rem; }
+
         .rates-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 1.5rem;
             margin-bottom: 2rem;
         }
-        
+
         .rate-card {
             background: white;
             border-radius: 12px;
             padding: 1.5rem;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border-left: 4px solid #ccc;
         }
-        
-        .rate-card.summer {
-            border-left: 4px solid #ff6b6b;
-        }
-        
-        .rate-card.autumn {
-            border-left: 4px solid #ffa94d;
-        }
-        
-        .rate-card.winter {
-            border-left: 4px solid #74c0fc;
-        }
-        
-        .rate-card.spring {
-            border-left: 4px solid #69db7c;
-        }
-        
+
         .rate-card h3 {
             color: #2d5a5a;
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
         }
-        
+
         .rate-card .dates {
             color: #666;
-            font-size: 0.9rem;
-            margin-bottom: 1rem;
+            font-size: 0.875rem;
+            margin-bottom: 0.75rem;
         }
-        
-        .rate-card .status {
-            display: inline-block;
-            padding: 0.25rem 0.75rem;
-            border-radius: 20px;
+
+        .rate-card .multiplier-badge {
             font-size: 0.8rem;
             font-weight: 600;
-            margin-bottom: 1rem;
+            color: #555;
+            margin-bottom: 0.75rem;
         }
-        
-        .status.active {
-            background: #d4edda;
-            color: #155724;
-        }
-        
-        .status.inactive {
-            background: #f8d7da;
-            color: #721c24;
-        }
-        
-        .status.upcoming {
-            background: #fff3cd;
-            color: #856404;
-        }
-        
-        .price-table {
-            width: 100%;
-            margin-bottom: 1rem;
-        }
-        
-        .price-table td {
-            padding: 0.5rem 0;
-            border-bottom: 1px solid #eee;
-        }
-        
-        .price-table td:last-child {
-            text-align: right;
+
+        .status {
+            display: inline-block;
+            padding: 0.2rem 0.65rem;
+            border-radius: 20px;
+            font-size: 0.78rem;
             font-weight: 600;
-        }
-        
-        .form-group {
             margin-bottom: 1rem;
         }
-        
-        .form-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 500;
-            color: #333;
+        .status.active   { background: #d4edda; color: #155724; }
+        .status.inactive { background: #f8d7da; color: #721c24; }
+        .status.upcoming { background: #fff3cd; color: #856404; }
+
+        .price-table { width: 100%; margin-bottom: 1rem; }
+        .price-table td {
+            padding: 0.4rem 0;
+            border-bottom: 1px solid #eee;
+            font-size: 0.9rem;
         }
-        
-        .form-group input,
-        .form-group select {
-            width: 100%;
-            padding: 0.5rem;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-        
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem;
-        }
-        
+        .price-table td:last-child { text-align: right; font-weight: 600; }
+
+        .button-group { display: flex; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap; }
+
         .btn {
-            padding: 0.5rem 1rem;
+            padding: 0.45rem 0.9rem;
             border: none;
             border-radius: 4px;
             cursor: pointer;
             font-weight: 600;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
+            transition: opacity 0.15s;
         }
-        
-        .btn-primary {
-            background: #2d5a5a;
-            color: white;
-        }
-        
-        .btn-primary:hover {
-            background: #1e4040;
-        }
-        
-        .btn-secondary {
-            background: #6c757d;
-            color: white;
-        }
-        
-        .btn-success {
-            background: #28a745;
-            color: white;
-        }
-        
-        .btn-danger {
-            background: #dc3545;
-            color: white;
-        }
-        
-        .button-group {
-            display: flex;
-            gap: 0.5rem;
-            margin-top: 1rem;
-        }
-        
-        .add-season-card {
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        .btn-primary   { background: #2d5a5a; color: white; }
+        .btn-primary:hover:not(:disabled)   { background: #1e4040; }
+        .btn-secondary { background: #6c757d; color: white; }
+        .btn-secondary:hover:not(:disabled) { background: #545b62; }
+        .btn-success   { background: #28a745; color: white; }
+        .btn-success:hover:not(:disabled)   { background: #1e7e34; }
+        .btn-danger    { background: #dc3545; color: white; }
+        .btn-danger:hover:not(:disabled)    { background: #b02a37; }
+        .btn-sm        { padding: 0.3rem 0.65rem; font-size: 0.8rem; }
+
+        /* Add / Edit form card */
+        .form-card {
             background: white;
             border-radius: 12px;
             padding: 2rem;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             margin-bottom: 2rem;
         }
-        
-        .add-season-card h3 {
-            color: #2d5a5a;
-            margin-bottom: 1.5rem;
+        .form-card h3 { color: #2d5a5a; margin-bottom: 1.5rem; }
+
+        .form-group { margin-bottom: 1rem; }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.4rem;
+            font-weight: 500;
+            color: #333;
+            font-size: 0.9rem;
         }
-        
-        .alert {
-            padding: 1rem;
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #ddd;
             border-radius: 4px;
-            margin-bottom: 1rem;
+            font-size: 0.95rem;
         }
-        
-        .alert-success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #2d5a5a;
+            box-shadow: 0 0 0 2px rgba(45,90,90,0.15);
         }
-        
-        .multiplier-input {
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .multiplier-wrap {
             display: flex;
             align-items: center;
             gap: 0.5rem;
         }
-        
-        .multiplier-input input {
-            width: 80px;
+        .multiplier-wrap input { width: 90px; }
+        .multiplier-preview {
+            font-size: 0.82rem;
+            color: #666;
+            margin-top: 0.3rem;
         }
+
+        /* Alert */
+        .alert {
+            padding: 0.85rem 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+        .alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .alert-error   { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .alert-warning { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #888;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+            margin-bottom: 2rem;
+        }
+        .empty-state .empty-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.45);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            width: 100%;
+            max-width: 520px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        .modal-header h3 { color: #2d5a5a; font-size: 1.15rem; }
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.4rem;
+            cursor: pointer;
+            color: #888;
+            line-height: 1;
+        }
+        .modal-close:hover { color: #333; }
+
+        .loading-text { color: #888; font-style: italic; font-size: 0.9rem; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div id="alertBox"></div>
-        
-        <div class="page-header">
-            <h2>Seasonal Rates Management</h2>
-            <p>Configure pricing multipliers for different seasons throughout the year</p>
-        </div>
-        
-        <div class="rates-grid">
-            <div class="rate-card summer">
-                <h3>Summer Peak</h3>
-                <div class="dates">December 15 - February 15</div>
-                <span class="status active">Active</span>
-                <table class="price-table">
-                    <tr>
-                        <td>Dome Pinot</td>
-                        <td>$350/night (+19%)</td>
-                    </tr>
-                    <tr>
-                        <td>Dome Rose</td>
-                        <td>$350/night (+19%)</td>
-                    </tr>
-                    <tr>
-                        <td>Lakeside Cottage</td>
-                        <td>$300/night (+22%)</td>
-                    </tr>
-                </table>
-                <div class="button-group">
-                    <button class="btn btn-primary" onclick="editSeason('summer')">Edit</button>
-                    <button class="btn btn-secondary" onclick="toggleSeason('summer')">Deactivate</button>
-                </div>
-            </div>
-            
-            <div class="rate-card autumn">
-                <h3>Autumn Wine Season</h3>
-                <div class="dates">March 1 - May 31</div>
-                <span class="status upcoming">Upcoming</span>
-                <table class="price-table">
-                    <tr>
-                        <td>Dome Pinot</td>
-                        <td>$325/night (+10%)</td>
-                    </tr>
-                    <tr>
-                        <td>Dome Rose</td>
-                        <td>$325/night (+10%)</td>
-                    </tr>
-                    <tr>
-                        <td>Lakeside Cottage</td>
-                        <td>$275/night (+12%)</td>
-                    </tr>
-                </table>
-                <div class="button-group">
-                    <button class="btn btn-primary" onclick="editSeason('autumn')">Edit</button>
-                    <button class="btn btn-secondary" onclick="toggleSeason('autumn')">Deactivate</button>
-                </div>
-            </div>
-            
-            <div class="rate-card winter">
-                <h3>Winter Special</h3>
-                <div class="dates">June 1 - August 31</div>
-                <span class="status inactive">Inactive</span>
-                <table class="price-table">
-                    <tr>
-                        <td>Dome Pinot</td>
-                        <td>$250/night (-15%)</td>
-                    </tr>
-                    <tr>
-                        <td>Dome Rose</td>
-                        <td>$250/night (-15%)</td>
-                    </tr>
-                    <tr>
-                        <td>Lakeside Cottage</td>
-                        <td>$200/night (-18%)</td>
-                    </tr>
-                </table>
-                <div class="button-group">
-                    <button class="btn btn-primary" onclick="editSeason('winter')">Edit</button>
-                    <button class="btn btn-success" onclick="toggleSeason('winter')">Activate</button>
-                </div>
-            </div>
-            
-            <div class="rate-card spring">
-                <h3>Spring Peak</h3>
-                <div class="dates">September 15 - November 30</div>
-                <span class="status upcoming">Upcoming</span>
-                <table class="price-table">
-                    <tr>
-                        <td>Dome Pinot</td>
-                        <td>$325/night (+10%)</td>
-                    </tr>
-                    <tr>
-                        <td>Dome Rose</td>
-                        <td>$325/night (+10%)</td>
-                    </tr>
-                    <tr>
-                        <td>Lakeside Cottage</td>
-                        <td>$275/night (+12%)</td>
-                    </tr>
-                </table>
-                <div class="button-group">
-                    <button class="btn btn-primary" onclick="editSeason('spring')">Edit</button>
-                    <button class="btn btn-secondary" onclick="toggleSeason('spring')">Deactivate</button>
-                </div>
-            </div>
-        </div>
-        
-        <div class="add-season-card">
-            <h3>Add New Seasonal Rate</h3>
-            <form id="addSeasonForm">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="seasonName">Season Name</label>
-                        <input type="text" id="seasonName" placeholder="e.g., Easter Weekend">
-                    </div>
-                    <div class="form-group">
-                        <label for="multiplier">Price Multiplier</label>
-                        <div class="multiplier-input">
-                            <input type="number" id="multiplier" value="1.0" step="0.05" min="0.5" max="2.0">
-                            <span>x base rate</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="startDate">Start Date</label>
-                        <input type="date" id="startDate">
-                    </div>
-                    <div class="form-group">
-                        <label for="endDate">End Date</label>
-                        <input type="date" id="endDate">
-                    </div>
-                </div>
-                <div class="button-group">
-                    <button type="submit" class="btn btn-primary">Add Season</button>
-                </div>
-            </form>
-        </div>
+<div class="container">
+    <div id="alertBox"></div>
+
+    <div class="page-header">
+        <h2>Seasonal Rates</h2>
+        <p>Configure pricing multipliers for different seasons. Changes take effect immediately.</p>
     </div>
 
-    <script src="/admin-shell.js?v=2"></script>
-    <script>
-        // Authentication is handled by admin-shell.js via cookie verification
+    <!-- Dynamic season cards rendered here -->
+    <div id="ratesGrid" class="rates-grid">
+        <p class="loading-text">Loading seasonal rates…</p>
+    </div>
 
-        function showAlert(message, type = 'success') {
-            const alertBox = document.getElementById('alertBox');
-            alertBox.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
-            setTimeout(() => { alertBox.innerHTML = ''; }, 3000);
-        }
+    <!-- Add new season -->
+    <div class="form-card">
+        <h3>➕ Add New Seasonal Rate</h3>
+        <form id="addSeasonForm">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="seasonName">Season Name</label>
+                    <input type="text" id="seasonName" placeholder="e.g., Easter Weekend" required>
+                </div>
+                <div class="form-group">
+                    <label for="multiplier">Price Multiplier</label>
+                    <div class="multiplier-wrap">
+                        <input type="number" id="multiplier" value="1.0" step="0.05" min="0.3" max="3.0"
+                               oninput="updateMultiplierPreview('multiplier','multiplierPreview')">
+                        <span>× base rate</span>
+                    </div>
+                    <div class="multiplier-preview" id="multiplierPreview">= no change from base price</div>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="startDate">Start Date</label>
+                    <input type="date" id="startDate" required>
+                </div>
+                <div class="form-group">
+                    <label for="endDate">End Date</label>
+                    <input type="date" id="endDate" required>
+                </div>
+            </div>
+            <div class="button-group">
+                <button type="submit" class="btn btn-primary" id="addBtn">Add Season</button>
+            </div>
+        </form>
+    </div>
+</div>
 
-        async function loadSeasonalRates() {
-            try {
-                const response = await fetch('/api/admin/seasonal-rates', {
-                    credentials: 'same-origin'
-                });
-                const data = await response.json();
-                if (data.success && data.rates.length > 0) {
-                    console.log('Loaded seasonal rates:', data.rates);
-                }
-            } catch (error) {
-                console.error('Error loading seasonal rates:', error);
-            }
-        }
+<!-- Edit Modal -->
+<div class="modal-overlay" id="editModal" role="dialog" aria-modal="true" aria-labelledby="editModalTitle">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 id="editModalTitle">Edit Season</h3>
+            <button class="modal-close" onclick="closeModal()" aria-label="Close">×</button>
+        </div>
+        <form id="editSeasonForm">
+            <input type="hidden" id="editId">
+            <div class="form-group">
+                <label for="editName">Season Name</label>
+                <input type="text" id="editName" required>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="editStart">Start Date</label>
+                    <input type="date" id="editStart" required>
+                </div>
+                <div class="form-group">
+                    <label for="editEnd">End Date</label>
+                    <input type="date" id="editEnd" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="editMultiplier">Price Multiplier</label>
+                <div class="multiplier-wrap">
+                    <input type="number" id="editMultiplier" step="0.05" min="0.3" max="3.0"
+                           oninput="updateMultiplierPreview('editMultiplier','editMultiplierPreview')">
+                    <span>× base rate</span>
+                </div>
+                <div class="multiplier-preview" id="editMultiplierPreview"></div>
+            </div>
+            <div class="form-group">
+                <label for="editActive">Status</label>
+                <select id="editActive">
+                    <option value="1">Active</option>
+                    <option value="0">Inactive</option>
+                </select>
+            </div>
+            <div class="button-group" style="margin-top:1.5rem;">
+                <button type="submit" class="btn btn-primary" id="saveEditBtn">Save Changes</button>
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
 
-        async function editSeason(season) {
-            showAlert(`Editing ${season} season rates...`);
-        }
+<script src="/admin-shell.js?v=2"></script>
+<script>
+    // Base prices from /api/accommodations (fallback if API unavailable)
+    const BASE_PRICES = {
+        'Dome Pinot':       530,
+        'Dome Rosé':        510,
+        'Lakeside Cottage': 295
+    };
 
-        async function toggleSeason(season) {
-            showAlert(`Toggled ${season} season status`);
-        }
+    let csrfToken = null;
 
-        document.getElementById('addSeasonForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const name = document.getElementById('seasonName').value;
-            const multiplier = parseFloat(document.getElementById('multiplier').value);
-            const startDate = document.getElementById('startDate').value;
-            const endDate = document.getElementById('endDate').value;
-            
-            if (!name || !startDate || !endDate) {
-                showAlert('Please fill in all fields', 'error');
-                return;
-            }
-            
-            try {
-                const response = await fetch('/api/admin/seasonal-rates', {
-                    method: 'POST',
-                    credentials: 'same-origin',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, start_date: startDate, end_date: endDate, multiplier, is_active: true })
-                });
-                const data = await response.json();
-                if (data.success) {
-                    showAlert(`Season "${name}" added successfully!`);
-                    this.reset();
-                } else {
-                    showAlert(data.error || 'Failed to add season', 'error');
-                }
-            } catch (error) {
-                showAlert('Error adding season', 'error');
-            }
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    function esc(str) {
+        return String(str ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    function showAlert(message, type = 'success') {
+        const box = document.getElementById('alertBox');
+        box.innerHTML = `<div class="alert alert-${type}">${esc(message)}</div>`;
+        setTimeout(() => { box.innerHTML = ''; }, 4000);
+    }
+
+    function updateMultiplierPreview(inputId, previewId) {
+        const val = parseFloat(document.getElementById(inputId).value);
+        const el  = document.getElementById(previewId);
+        if (isNaN(val)) { el.textContent = ''; return; }
+        const pct = Math.round((val - 1) * 100);
+        if (pct === 0)      el.textContent = '= no change from base price';
+        else if (pct > 0)   el.textContent = `= +${pct}% above base price`;
+        else                el.textContent = `= ${pct}% below base price`;
+    }
+
+    function computeStatus(rate) {
+        if (!rate.is_active) return 'inactive';
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        const start = new Date(rate.start_date);
+        const end   = new Date(rate.end_date);
+        if (today > end)   return 'inactive';
+        if (today < start) return 'upcoming';
+        return 'active';
+    }
+
+    function formatDateRange(start, end) {
+        const fmt = (d) => new Date(d).toLocaleDateString('en-NZ', { day: 'numeric', month: 'long' });
+        return `${fmt(start)} – ${fmt(end)}`;
+    }
+
+    function formatPrice(basePrice, multiplier) {
+        const price = Math.round(basePrice * multiplier);
+        const pct   = Math.round((multiplier - 1) * 100);
+        const sign  = pct >= 0 ? '+' : '';
+        return `$${price}/night (${sign}${pct}%)`;
+    }
+
+    function cardAccentColour(multiplier) {
+        if (multiplier > 1.1) return '#ff6b6b';  // high season — red
+        if (multiplier > 1.0) return '#ffa94d';  // moderate — orange
+        if (multiplier < 0.9) return '#74c0fc';  // low season — blue
+        return '#69db7c';                          // near-standard — green
+    }
+
+    // ── CSRF ─────────────────────────────────────────────────────────────────
+
+    async function getCsrfToken() {
+        if (csrfToken) return csrfToken;
+        const res  = await fetch('/api/csrf-token', { credentials: 'same-origin' });
+        const data = await res.json();
+        csrfToken  = data.csrfToken;
+        return csrfToken;
+    }
+
+    async function apiMutate(method, url, body) {
+        const token = await getCsrfToken();
+        const res   = await fetch(url, {
+            method,
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': token },
+            body: body ? JSON.stringify(body) : undefined
         });
+        // CSRF token is single-use on some configs — clear so next call re-fetches
+        csrfToken = null;
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.error || `Request failed (${res.status})`);
+        }
+        return res.json();
+    }
 
-        loadSeasonalRates();
-    </script>
+    // ── Render ────────────────────────────────────────────────────────────────
+
+    function renderCards(rates) {
+        const grid = document.getElementById('ratesGrid');
+
+        if (!rates.length) {
+            grid.innerHTML = `
+                <div class="empty-state" style="grid-column:1/-1">
+                    <div class="empty-icon">📆</div>
+                    <p>No seasonal rates configured yet.</p>
+                    <p style="margin-top:0.5rem;font-size:0.875rem;">Use the form below to add your first season.</p>
+                </div>`;
+            return;
+        }
+
+        grid.innerHTML = rates.map(rate => {
+            const status   = computeStatus(rate);
+            const mult     = parseFloat(rate.multiplier) || 1;
+            const accent   = cardAccentColour(mult);
+            const pct      = Math.round((mult - 1) * 100);
+            const pctLabel = pct === 0 ? 'Base rate' : (pct > 0 ? `+${pct}% peak` : `${pct}% off`);
+
+            const priceRows = Object.entries(BASE_PRICES).map(([name, base]) =>
+                `<tr><td>${esc(name)}</td><td>${formatPrice(base, mult)}</td></tr>`
+            ).join('');
+
+            const toggleLabel = (rate.is_active && status !== 'inactive')
+                ? 'Deactivate'
+                : 'Activate';
+            const toggleClass = (rate.is_active && status !== 'inactive')
+                ? 'btn-secondary'
+                : 'btn-success';
+
+            return `
+                <div class="rate-card" style="border-left-color:${accent}">
+                    <h3>${esc(rate.name)}</h3>
+                    <div class="dates">${formatDateRange(rate.start_date, rate.end_date)}</div>
+                    <div class="multiplier-badge">Multiplier: ${mult.toFixed(2)}× — ${esc(pctLabel)}</div>
+                    <span class="status ${status}">${status.charAt(0).toUpperCase() + status.slice(1)}</span>
+                    <table class="price-table">${priceRows}</table>
+                    <div class="button-group">
+                        <button class="btn btn-primary btn-sm"
+                            onclick="openEditModal(${rate.id})">Edit</button>
+                        <button class="btn ${toggleClass} btn-sm"
+                            onclick="toggleSeason(${rate.id}, ${rate.is_active ? 0 : 1}, this)"
+                            >${toggleLabel}</button>
+                        <button class="btn btn-danger btn-sm"
+                            onclick="deleteSeason(${rate.id}, '${esc(rate.name)}', this)">Delete</button>
+                    </div>
+                </div>`;
+        }).join('');
+    }
+
+    // ── Load ──────────────────────────────────────────────────────────────────
+
+    async function loadSeasonalRates() {
+        try {
+            // Load base prices and seasons in parallel
+            const [accRes, ratesRes] = await Promise.all([
+                fetch('/api/accommodations', { credentials: 'same-origin' }),
+                fetch('/api/admin/seasonal-rates', { credentials: 'same-origin' })
+            ]);
+
+            if (accRes.ok) {
+                const accData = await accRes.json();
+                if (accData.accommodations) {
+                    accData.accommodations.forEach(a => {
+                        if (a.basePrice) BASE_PRICES[a.name] = a.basePrice;
+                    });
+                }
+            }
+
+            if (!ratesRes.ok) throw new Error('Failed to load seasonal rates');
+            const data = await ratesRes.json();
+            renderCards(data.rates || []);
+        } catch (err) {
+            document.getElementById('ratesGrid').innerHTML =
+                `<p style="color:#dc3545">Error loading seasonal rates: ${esc(err.message)}</p>`;
+        }
+    }
+
+    // ── Toggle ────────────────────────────────────────────────────────────────
+
+    async function toggleSeason(id, newActive, btn) {
+        btn.disabled = true;
+        btn.textContent = '…';
+        try {
+            // Fetch current data first so we send a complete PUT body
+            const getRes = await fetch(`/api/admin/seasonal-rates`, { credentials: 'same-origin' });
+            const getData = await getRes.json();
+            const rate = (getData.rates || []).find(r => r.id === id);
+            if (!rate) throw new Error('Season not found');
+
+            await apiMutate('PUT', `/api/admin/seasonal-rates/${id}`, {
+                name:       rate.name,
+                start_date: rate.start_date,
+                end_date:   rate.end_date,
+                multiplier: rate.multiplier,
+                is_active:  newActive
+            });
+
+            showAlert(`Season ${newActive ? 'activated' : 'deactivated'} successfully.`);
+            await loadSeasonalRates();
+        } catch (err) {
+            showAlert(err.message, 'error');
+            btn.disabled = false;
+        }
+    }
+
+    // ── Delete ────────────────────────────────────────────────────────────────
+
+    async function deleteSeason(id, name, btn) {
+        if (!confirm(`Delete the "${name}" season? This cannot be undone.`)) return;
+        btn.disabled = true;
+        try {
+            await apiMutate('DELETE', `/api/admin/seasonal-rates/${id}`);
+            showAlert(`"${name}" deleted.`);
+            await loadSeasonalRates();
+        } catch (err) {
+            showAlert(err.message, 'error');
+            btn.disabled = false;
+        }
+    }
+
+    // ── Edit modal ────────────────────────────────────────────────────────────
+
+    async function openEditModal(id) {
+        try {
+            const res  = await fetch('/api/admin/seasonal-rates', { credentials: 'same-origin' });
+            const data = await res.json();
+            const rate = (data.rates || []).find(r => r.id === id);
+            if (!rate) { showAlert('Season not found', 'error'); return; }
+
+            document.getElementById('editId').value         = rate.id;
+            document.getElementById('editName').value       = rate.name;
+            document.getElementById('editStart').value      = rate.start_date.split('T')[0];
+            document.getElementById('editEnd').value        = rate.end_date.split('T')[0];
+            document.getElementById('editMultiplier').value = parseFloat(rate.multiplier).toFixed(2);
+            document.getElementById('editActive').value     = rate.is_active ? '1' : '0';
+            updateMultiplierPreview('editMultiplier', 'editMultiplierPreview');
+
+            document.getElementById('editModal').classList.add('open');
+            document.getElementById('editName').focus();
+        } catch (err) {
+            showAlert('Failed to load season data: ' + err.message, 'error');
+        }
+    }
+
+    function closeModal() {
+        document.getElementById('editModal').classList.remove('open');
+    }
+
+    // Close modal on overlay click
+    document.getElementById('editModal').addEventListener('click', function(e) {
+        if (e.target === this) closeModal();
+    });
+
+    // Close modal on Escape
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeModal();
+    });
+
+    // Edit form submit
+    document.getElementById('editSeasonForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const id         = document.getElementById('editId').value;
+        const name       = document.getElementById('editName').value.trim();
+        const start_date = document.getElementById('editStart').value;
+        const end_date   = document.getElementById('editEnd').value;
+        const multiplier = parseFloat(document.getElementById('editMultiplier').value);
+        const is_active  = parseInt(document.getElementById('editActive').value);
+
+        if (!name || !start_date || !end_date) {
+            showAlert('Please fill in all fields.', 'error'); return;
+        }
+        if (start_date >= end_date) {
+            showAlert('End date must be after start date.', 'error'); return;
+        }
+        if (isNaN(multiplier) || multiplier < 0.3 || multiplier > 3.0) {
+            showAlert('Multiplier must be between 0.30 and 3.00.', 'error'); return;
+        }
+
+        const btn = document.getElementById('saveEditBtn');
+        btn.disabled = true;
+        btn.textContent = 'Saving…';
+
+        try {
+            await apiMutate('PUT', `/api/admin/seasonal-rates/${id}`, {
+                name, start_date, end_date, multiplier, is_active
+            });
+            closeModal();
+            showAlert('Season updated successfully.');
+            await loadSeasonalRates();
+        } catch (err) {
+            showAlert(err.message, 'error');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Save Changes';
+        }
+    });
+
+    // ── Add form ──────────────────────────────────────────────────────────────
+
+    document.getElementById('addSeasonForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const name       = document.getElementById('seasonName').value.trim();
+        const multiplier = parseFloat(document.getElementById('multiplier').value);
+        const start_date = document.getElementById('startDate').value;
+        const end_date   = document.getElementById('endDate').value;
+
+        if (!name || !start_date || !end_date) {
+            showAlert('Please fill in all fields.', 'error'); return;
+        }
+        if (start_date >= end_date) {
+            showAlert('End date must be after start date.', 'error'); return;
+        }
+        if (isNaN(multiplier) || multiplier < 0.3 || multiplier > 3.0) {
+            showAlert('Multiplier must be between 0.30 and 3.00.', 'error'); return;
+        }
+
+        const btn = document.getElementById('addBtn');
+        btn.disabled = true;
+        btn.textContent = 'Adding…';
+
+        try {
+            await apiMutate('POST', '/api/admin/seasonal-rates', {
+                name, start_date, end_date, multiplier, is_active: true
+            });
+            showAlert(`"${name}" added successfully.`);
+            this.reset();
+            document.getElementById('multiplierPreview').textContent = '= no change from base price';
+            await loadSeasonalRates();
+        } catch (err) {
+            showAlert(err.message, 'error');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Add Season';
+        }
+    });
+
+    // ── Init ──────────────────────────────────────────────────────────────────
+    loadSeasonalRates();
+    updateMultiplierPreview('multiplier', 'multiplierPreview');
+</script>
 </body>
 </html>
