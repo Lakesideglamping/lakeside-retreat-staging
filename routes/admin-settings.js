@@ -992,6 +992,64 @@ router.put('/api/admin/content', verifyAdmin, verifyCsrf, (req, res) => {
     });
 });
 
+// ── Blocked Dates ──────────────────────────────────────────────────────────────
+
+router.get('/api/admin/blocked-dates', verifyAdmin, (req, res) => {
+    const { dateFrom, dateTo } = req.query;
+    let sql = 'SELECT * FROM blocked_dates';
+    const params = [];
+    if (dateFrom && dateTo) {
+        sql += ' WHERE end_date >= ? AND start_date <= ?';
+        params.push(dateFrom, dateTo);
+    }
+    sql += ' ORDER BY start_date ASC';
+    db().all(sql, params, (err, rows) => {
+        if (err) {
+            logger.error('Error fetching blocked dates', { error: err.message });
+            return res.status(500).json({ success: false, error: err.message });
+        }
+        res.json({ success: true, blocked: rows || [] });
+    });
+});
+
+router.post('/api/admin/blocked-dates', verifyAdmin, verifyCsrf, (req, res) => {
+    const { property, start_date, end_date, reason = 'maintenance', notes = '' } = req.body || {};
+    if (!property || !start_date || !end_date) {
+        return res.status(400).json({ success: false, error: 'property, start_date, and end_date are required' });
+    }
+    if (start_date > end_date) {
+        return res.status(400).json({ success: false, error: 'start_date must be on or before end_date' });
+    }
+    const VALID_REASONS = ['maintenance', 'personal', 'cleaning', 'other'];
+    const safeReason = VALID_REASONS.includes(reason) ? reason : 'other';
+    const nowFunc = database.isUsingPostgres() ? 'NOW()' : "datetime('now')";
+    db().run(
+        `INSERT INTO blocked_dates (property, start_date, end_date, reason, notes, created_at)
+         VALUES (?, ?, ?, ?, ?, ${nowFunc})`,
+        [property, start_date, end_date, safeReason, String(notes).substring(0, 500)],
+        function(err) {
+            if (err) {
+                logger.error('Error creating blocked date', { error: err.message });
+                return res.status(500).json({ success: false, error: err.message });
+            }
+            res.json({ success: true, id: this.lastID });
+        }
+    );
+});
+
+router.delete('/api/admin/blocked-dates/:id', verifyAdmin, verifyCsrf, (req, res) => {
+    const id = parseInt(req.params.id, 10);
+    if (!id) return res.status(400).json({ success: false, error: 'Invalid id' });
+    db().run('DELETE FROM blocked_dates WHERE id=?', [id], function(err) {
+        if (err) {
+            logger.error('Error deleting blocked date', { id, error: err.message });
+            return res.status(500).json({ success: false, error: err.message });
+        }
+        if (this.changes === 0) return res.status(404).json({ success: false, error: 'Blocked date not found' });
+        res.json({ success: true });
+    });
+});
+
     return router;
 }
 

@@ -394,6 +394,23 @@
             color: #666;
         }
         
+        /* ── Blocked dates ───────────────────────────────────────── */
+        .blocked-date-cell { background: repeating-linear-gradient(45deg, #f8f8f8, #f8f8f8 5px, #ececec 5px, #ececec 10px) !important; }
+        .blocked-indicator { width: 100%; padding: 0.2rem 0.4rem; border-radius: 4px; font-size: 0.7rem; color: #666; background: repeating-linear-gradient(45deg, #f8f8f8, #f8f8f8 5px, #ececec 5px, #ececec 10px); cursor: pointer; border: 1px solid #ccc; text-align: center; }
+        .blocked-indicator:hover { border-color: #dc3545; color: #dc3545; }
+        .monthly-blocked { border-radius: 3px; font-size: 0.65rem; color: #888; padding: 1px 4px; margin-top: 2px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: repeating-linear-gradient(45deg, #f5f5f5, #f5f5f5 3px, #e8e8e8 3px, #e8e8e8 6px); }
+        .monthly-blocked:hover { color: #dc3545; }
+        .legend-color.blocked-legend { background: repeating-linear-gradient(45deg, #f8f8f8, #f8f8f8 4px, #ececec 4px, #ececec 8px); border: 1px solid #ccc; }
+        .btn-block { background: #6c757d; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.9rem; }
+        .btn-block:hover { background: #5a6268; }
+        /* Block modal form */
+        .block-form-group { margin-bottom: 1rem; }
+        .block-form-group label { display: block; font-weight: 600; margin-bottom: 0.4rem; color: #333; font-size: 0.9rem; }
+        .block-form-group select, .block-form-group input[type="date"], .block-form-group textarea { width: 100%; padding: 0.6rem 0.75rem; border: 1px solid #ddd; border-radius: 6px; font-size: 0.9rem; box-sizing: border-box; }
+        .block-form-group textarea { resize: vertical; min-height: 60px; font-family: inherit; }
+        .block-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        @media (max-width: 600px) { .block-form-row { grid-template-columns: 1fr; } }
+
         @media (max-width: 1024px) {
             .calendar-row {
                 grid-template-columns: 100px repeat(7, 1fr);
@@ -448,6 +465,7 @@
                 <button class="view-btn active" onclick="setView('monthly')" id="monthlyBtn">Monthly</button>
                 <button class="view-btn" onclick="setView('weekly')" id="weeklyBtn">Weekly</button>
                 <button class="view-btn" onclick="goToToday()">Today</button>
+                <button class="btn-block" onclick="openBlockModal()">🔒 Block Dates</button>
             </div>
         </div>
         
@@ -468,6 +486,10 @@
             <div class="legend-item">
                 <div class="legend-color available"></div>
                 <span>Available</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color blocked-legend"></div>
+                <span>Blocked / Maintenance</span>
             </div>
         </div>
         
@@ -494,11 +516,60 @@
         </div>
     </div>
 
+    <!-- Block Dates Modal -->
+    <div class="modal" id="blockModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🔒 Block Dates</h3>
+                <button class="modal-close" onclick="closeBlockModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="block-form-group">
+                    <label>Property</label>
+                    <select id="blockProperty">
+                        <option value="All">All Properties</option>
+                        <option value="Dome Pinot">Dome Pinot</option>
+                        <option value="Dome Rosé">Dome Rosé</option>
+                        <option value="Lakeside Cottage">Lakeside Cottage</option>
+                    </select>
+                </div>
+                <div class="block-form-row">
+                    <div class="block-form-group">
+                        <label>Start Date</label>
+                        <input type="date" id="blockStart">
+                    </div>
+                    <div class="block-form-group">
+                        <label>End Date</label>
+                        <input type="date" id="blockEnd">
+                    </div>
+                </div>
+                <div class="block-form-group">
+                    <label>Reason</label>
+                    <select id="blockReason">
+                        <option value="maintenance">Maintenance</option>
+                        <option value="personal">Personal Use</option>
+                        <option value="cleaning">Deep Clean</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="block-form-group">
+                    <label>Notes (optional)</label>
+                    <textarea id="blockNotes" placeholder="Any additional details…"></textarea>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-outline" onclick="closeBlockModal()">Cancel</button>
+                <button class="btn" onclick="saveBlockedDate()">Save Block</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // State
         let currentDate = new Date();
         let currentView = 'monthly';
         let bookings = [];
+        let blockedDates = [];
         const properties = ['Dome Pinot', 'Dome Rose', 'Lakeside Cottage'];
         const propertyClasses = {
             'Dome Pinot': 'dome-pinot',
@@ -536,31 +607,32 @@
             return dateStr.split('T')[0].split(' ')[0];
         }
 
-        // Load bookings from API
+        // Load bookings and blocked dates from API
         async function loadBookings() {
-            try {
-                const year = currentDate.getFullYear();
-                const month = currentDate.getMonth();
-                
-                // Get bookings for current month +/- 1 month
-                const startDate = new Date(year, month - 1, 1).toISOString().split('T')[0];
-                const endDate = new Date(year, month + 2, 0).toISOString().split('T')[0];
-                
-                const response = await fetch(`/api/admin/bookings?limit=200&dateFrom=${startDate}&dateTo=${endDate}`, {
-                    credentials: 'same-origin'
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    bookings = data.bookings || [];
-                } else {
-                    bookings = [];
-                }
-            } catch (error) {
-                console.error('Error loading bookings:', error);
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            const startDate = new Date(year, month - 1, 1).toISOString().split('T')[0];
+            const endDate   = new Date(year, month + 2, 0).toISOString().split('T')[0];
+
+            const [bookingsResult, blockedResult] = await Promise.allSettled([
+                fetch(`/api/admin/bookings?limit=200&dateFrom=${startDate}&dateTo=${endDate}`, { credentials: 'same-origin' }),
+                fetch(`/api/admin/blocked-dates?dateFrom=${startDate}&dateTo=${endDate}`, { credentials: 'same-origin' })
+            ]);
+
+            if (bookingsResult.status === 'fulfilled' && bookingsResult.value.ok) {
+                const data = await bookingsResult.value.json().catch(() => ({}));
+                bookings = data.bookings || [];
+            } else {
                 bookings = [];
             }
-            
+
+            if (blockedResult.status === 'fulfilled' && blockedResult.value.ok) {
+                const data = await blockedResult.value.json().catch(() => ({}));
+                blockedDates = data.blocked || [];
+            } else {
+                blockedDates = [];
+            }
+
             renderCalendar();
         }
 
@@ -630,21 +702,27 @@
         function renderMonthlyCell(date, isOtherMonth, isToday = false) {
             const dateStr = date.toISOString().split('T')[0];
             const dayBookings = getBookingsForDate(dateStr);
-            
+            const dayBlocked  = isOtherMonth ? [] : getBlocksForDate(dateStr);
+
             let classes = 'monthly-cell';
             if (isOtherMonth) classes += ' other-month';
             if (isToday) classes += ' today';
-            
+
             let html = `<div class="${classes}">`;
             html += `<div class="date">${date.getDate()}</div>`;
             html += '<div class="bookings">';
-            
+
             dayBookings.forEach(booking => {
                 const propClass = getPropertyClass(booking.accommodation);
                 const guestName = booking.guest_name ? booking.guest_name.split(' ')[0] : 'Guest';
                 html += `<div class="monthly-booking ${propClass}" onclick="showBookingDetails('${booking.id}')" title="${escapeHtml(booking.guest_name)} - ${escapeHtml(booking.accommodation)}">${escapeHtml(guestName)}</div>`;
             });
-            
+
+            dayBlocked.forEach(b => {
+                const propLabel = b.property === 'All' ? 'All props' : b.property.split(' ').pop();
+                html += `<div class="monthly-blocked" onclick="showBlockDetails(${b.id})" title="${escapeHtml(capitalize(b.reason))}: ${escapeHtml(b.property)} — click to remove">🔒 ${escapeHtml(propLabel)}</div>`;
+            });
+
             html += '</div></div>';
             return html;
         }
@@ -683,26 +761,29 @@
                     const isPast = date < today && !isToday;
                     
                     const booking = getBookingForPropertyAndDate(property, dateStr);
-                    
+                    const block   = getBlocksForDate(dateStr, property)[0] || null;
+
                     let cellClass = 'calendar-cell';
                     if (isToday) cellClass += ' today-cell';
                     if (isPast) cellClass += ' past-cell';
-                    if (!booking) cellClass += ' available-cell';
-                    
+                    if (block) cellClass += ' blocked-date-cell';
+                    else if (!booking) cellClass += ' available-cell';
+
                     html += `<div class="${cellClass}">`;
-                    
-                    if (booking) {
+
+                    if (block) {
+                        html += `<div class="blocked-indicator" onclick="showBlockDetails(${block.id})" title="${escapeHtml(capitalize(block.reason))}: ${escapeHtml(block.property)} — click to remove">🔒 ${escapeHtml(capitalize(block.reason))}</div>`;
+                    } else if (booking) {
                         const propClass = getPropertyClass(booking.accommodation);
-                        const isCheckin = normalizeDate(booking.check_in) === dateStr;
+                        const isCheckin  = normalizeDate(booking.check_in)  === dateStr;
                         const isCheckout = normalizeDate(booking.check_out) === dateStr;
                         let indicatorClass = `booking-indicator ${propClass}`;
-                        if (isCheckin) indicatorClass += ' checkin';
+                        if (isCheckin)  indicatorClass += ' checkin';
                         if (isCheckout) indicatorClass += ' checkout';
-                        
                         const guestName = booking.guest_name ? booking.guest_name.split(' ')[0] : 'Guest';
                         html += `<div class="${indicatorClass}" onclick="showBookingDetails('${booking.id}')" title="${escapeHtml(booking.guest_name)}">${escapeHtml(guestName)}</div>`;
                     }
-                    
+
                     html += '</div>';
                 }
                 
@@ -850,6 +931,97 @@
             });
         }
 
+        // ── Blocked dates helpers ─────────────────────────────────────────────
+
+        function getBlocksForDate(dateStr, property) {
+            return blockedDates.filter(b => {
+                if (b.start_date > dateStr || b.end_date < dateStr) return false;
+                if (property === undefined || property === null) return true;
+                return b.property === 'All' || b.property === property;
+            });
+        }
+
+        async function getCSRF() {
+            const r = await fetch('/api/csrf-token', { credentials: 'same-origin' });
+            const d = await r.json();
+            return d.csrfToken;
+        }
+
+        function openBlockModal() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('blockStart').value = today;
+            document.getElementById('blockEnd').value   = today;
+            document.getElementById('blockNotes').value  = '';
+            document.getElementById('blockModal').classList.add('active');
+        }
+
+        function closeBlockModal() {
+            document.getElementById('blockModal').classList.remove('active');
+        }
+
+        async function saveBlockedDate() {
+            const property   = document.getElementById('blockProperty').value;
+            const start_date = document.getElementById('blockStart').value;
+            const end_date   = document.getElementById('blockEnd').value;
+            const reason     = document.getElementById('blockReason').value;
+            const notes      = document.getElementById('blockNotes').value;
+
+            if (!start_date || !end_date) {
+                alert('Please select both a start and end date.');
+                return;
+            }
+            if (start_date > end_date) {
+                alert('Start date must be on or before end date.');
+                return;
+            }
+
+            try {
+                const csrf = await getCSRF();
+                const res = await fetch('/api/admin/blocked-dates', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
+                    body: JSON.stringify({ property, start_date, end_date, reason, notes })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (res.ok && data.success) {
+                    closeBlockModal();
+                    loadBookings(); // reload calendar
+                } else {
+                    alert(data.error || 'Failed to save blocked date.');
+                }
+            } catch (err) {
+                alert('Error: ' + err.message);
+            }
+        }
+
+        function showBlockDetails(id) {
+            const block = blockedDates.find(b => b.id === id);
+            if (!block) return;
+            const label = block.property === 'All' ? 'All Properties' : block.property;
+            const msg = `Blocked: ${label}\nDates: ${block.start_date} → ${block.end_date}\nReason: ${capitalize(block.reason)}${block.notes ? '\nNotes: ' + block.notes : ''}\n\nRemove this block?`;
+            if (confirm(msg)) removeBlockedDate(id);
+        }
+
+        async function removeBlockedDate(id) {
+            try {
+                const csrf = await getCSRF();
+                const res = await fetch(`/api/admin/blocked-dates/${id}`, {
+                    method: 'DELETE',
+                    credentials: 'same-origin',
+                    headers: { 'X-CSRF-Token': csrf }
+                });
+                const data = await res.json().catch(() => ({}));
+                if (res.ok && data.success) {
+                    loadBookings();
+                } else {
+                    alert(data.error || 'Failed to remove block.');
+                }
+            } catch (err) {
+                alert('Error: ' + err.message);
+            }
+        }
+
         // escapeHtml() provided globally by admin-shell.js
 
         // Close modal on outside click
@@ -859,10 +1031,16 @@
             }
         });
 
-        // Close modal on Escape key
+        // Close block modal on outside click
+        document.getElementById('blockModal').addEventListener('click', function(e) {
+            if (e.target === this) closeBlockModal();
+        });
+
+        // Close modals on Escape key
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
                 closeModal();
+                closeBlockModal();
             }
         });
 
