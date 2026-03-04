@@ -359,6 +359,21 @@
             color: #2d5a5a;
         }
         
+        /* ── Usage analytics ──────────────────────────────────────── */
+        .usage-bar-wrap { margin-top: 0.5rem; }
+        .usage-bar-track { background: #e9ecef; border-radius: 4px; height: 6px; overflow: hidden; }
+        .usage-bar-fill { height: 100%; border-radius: 4px; background: #28a745; transition: width 0.4s ease; }
+        .usage-bar-fill.warn { background: #ffc107; }
+        .usage-bar-fill.danger { background: #dc3545; }
+        .usage-bar-label { font-size: 0.72rem; color: #888; margin-top: 0.25rem; text-align: right; }
+        .analytics-panel { display: none; border-top: 1px dashed #e0e0e0; margin-top: 1rem; padding-top: 1rem; }
+        .analytics-panel.open { display: block; }
+        .analytics-label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #aaa; margin-bottom: 0.75rem; }
+        .analytics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.75rem; }
+        .analytics-kpi { background: #f8f9fa; border-radius: 6px; padding: 0.75rem; text-align: center; }
+        .analytics-kpi .kpi-val { font-size: 1.3rem; font-weight: 700; color: #2d5a5a; }
+        .analytics-kpi .kpi-lbl { font-size: 0.72rem; color: #888; margin-top: 0.2rem; }
+
         @media (max-width: 768px) {
             .filters {
                 flex-direction: column;
@@ -596,11 +611,37 @@
         }
 
         function updateStatsBar(stats) {
-            const el = (id) => document.getElementById(id);
-            if (el('totalCodes'))   el('totalCodes').textContent   = stats.active   ?? '0';
+            const el = id => document.getElementById(id);
+
+            // Compute derived stats from the loaded allCodes array
+            let fixedSavings = 0, hasPercent = false;
+            let topCode = null, topUses = -1;
+            allCodes.forEach(c => {
+                const uses = parseInt(c.usage_count) || 0;
+                const val  = parseFloat(c.discount_value) || 0;
+                if (c.discount_type === 'fixed') fixedSavings += uses * val;
+                else hasPercent = true;
+                if (uses > topUses) { topUses = uses; topCode = c; }
+            });
+
+            if (el('totalCodes'))   el('totalCodes').textContent   = stats.active ?? '0';
             if (el('totalUses'))    el('totalUses').textContent    = stats.total_uses ?? '0';
-            if (el('totalSavings')) el('totalSavings').textContent = '—';
-            if (el('avgDiscount'))  el('avgDiscount').textContent  = stats.total + ' total';
+            if (el('totalSavings')) {
+                el('totalSavings').textContent = fixedSavings > 0
+                    ? `$${fixedSavings.toLocaleString('en-NZ', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}${hasPercent ? '+' : ''}`
+                    : (hasPercent ? 'See codes' : '$0');
+            }
+            if (el('avgDiscount')) {
+                if (topCode && topUses > 0) {
+                    el('avgDiscount').textContent = topUses;
+                    const lbl = el('avgDiscount').closest('.stat-card')?.querySelector('.stat-label');
+                    if (lbl) lbl.textContent = `"${topCode.code}" uses`;
+                } else {
+                    el('avgDiscount').textContent = '—';
+                    const lbl = el('avgDiscount').closest('.stat-card')?.querySelector('.stat-label');
+                    if (lbl) lbl.textContent = 'Top Code Uses';
+                }
+            }
         }
 
         function renderCodes(codes) {
@@ -626,6 +667,35 @@
                 ? `${c.discount_value}%`
                 : `$${parseFloat(c.discount_value).toFixed(2)}`;
 
+            // ── Usage bar ────────────────────────────────────────────────
+            const usageCount = parseInt(c.usage_count) || 0;
+            const usageLimit = c.usage_limit ? parseInt(c.usage_limit) : null;
+            const usagePct   = usageLimit ? Math.min(100, Math.round(usageCount / usageLimit * 100)) : null;
+            const barClass   = usagePct >= 90 ? 'danger' : usagePct >= 70 ? 'warn' : '';
+            const usageBarHtml = usageLimit ? `
+                <div class="usage-bar-wrap">
+                    <div class="usage-bar-track"><div class="usage-bar-fill ${barClass}" style="width:${usagePct}%"></div></div>
+                    <div class="usage-bar-label">${usagePct}% of limit</div>
+                </div>` : '';
+
+            // ── Analytics panel KPIs ─────────────────────────────────────
+            const discountVal = parseFloat(c.discount_value) || 0;
+            const savingsKpi = c.discount_type === 'fixed'
+                ? `<div class="analytics-kpi"><div class="kpi-val">$${(usageCount * discountVal).toLocaleString('en-NZ', { maximumFractionDigits: 0 })}</div><div class="kpi-lbl">Savings Given</div></div>`
+                : `<div class="analytics-kpi"><div class="kpi-val">${discountVal}%</div><div class="kpi-lbl">Discount Rate</div></div>`;
+
+            let daysKpi = '', rateKpi = '';
+            if (c.valid_from) {
+                const startMs    = new Date(c.valid_from).getTime();
+                const endMs      = c.valid_until ? new Date(c.valid_until).getTime() : Date.now();
+                const daysTotal  = Math.max(1, Math.round((endMs - startMs) / 86400000));
+                const daysElapsed = Math.max(1, Math.round((Math.min(Date.now(), endMs) - startMs) / 86400000));
+                daysKpi = `<div class="analytics-kpi"><div class="kpi-val">${daysTotal}</div><div class="kpi-lbl">Campaign Days</div></div>`;
+                rateKpi = `<div class="analytics-kpi"><div class="kpi-val">${(usageCount / daysElapsed).toFixed(1)}</div><div class="kpi-lbl">Uses / Day</div></div>`;
+            }
+            const limitKpi = `<div class="analytics-kpi"><div class="kpi-val">${usageLimit ? usagePct + '%' : '∞'}</div><div class="kpi-lbl">Limit Used</div></div>`;
+
+            // ── Action buttons ────────────────────────────────────────────
             const actionButtons = [];
             actionButtons.push(`<button class="btn btn-primary" onclick="editCode(${c.id})">Edit</button>`);
             if (status === 'active') {
@@ -636,6 +706,7 @@
                 actionButtons.push(`<button class="btn btn-success" onclick="setPaused(${c.id}, false)">Activate Early</button>`);
             }
             actionButtons.push(`<button class="btn btn-secondary" onclick="duplicateCode(${c.id})">Duplicate</button>`);
+            actionButtons.push(`<button class="btn btn-info btn-analytics" onclick="toggleAnalytics(${c.id})">View Analytics</button>`);
             actionButtons.push(`<button class="btn btn-danger" onclick="deleteCode(${c.id})">Delete</button>`);
 
             return `
@@ -649,16 +720,39 @@
                         <span class="status-badge status-${escapeHtml(status)}">${capitalize(status)}</span>
                     </div>
                     <div class="code-stats">
-                        <div class="stat-item"><div class="number">${c.usage_count || 0}${c.usage_limit ? '/' + c.usage_limit : ''}</div><div class="label">Uses</div></div>
+                        <div class="stat-item">
+                            <div class="number">${usageCount}${usageLimit ? '/' + usageLimit : ''}</div>
+                            <div class="label">Uses</div>
+                            ${usageBarHtml}
+                        </div>
                         <div class="stat-item"><div class="number">${escapeHtml(discountDisplay)}</div><div class="label">Discount</div></div>
                         <div class="stat-item"><div class="number" style="font-size:0.9rem;">${escapeHtml(validPeriod)}</div><div class="label">Valid Period</div></div>
                         <div class="stat-item"><div class="number">${escapeHtml(c.partner_info || '—')}</div><div class="label">Partner</div></div>
                     </div>
                     <div class="code-actions">${actionButtons.join('')}</div>
+                    <div class="analytics-panel" id="analytics-${c.id}">
+                        <div class="analytics-label">📊 Usage Analytics</div>
+                        <div class="analytics-grid">
+                            ${savingsKpi}
+                            ${daysKpi}
+                            ${rateKpi}
+                            ${limitKpi}
+                        </div>
+                    </div>
                 </div>`;
         }
 
         function capitalize(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
+
+        function toggleAnalytics(id) {
+            const card = document.querySelector(`.promo-code[data-id="${id}"]`);
+            if (!card) return;
+            const panel = card.querySelector('.analytics-panel');
+            const btn   = card.querySelector('.btn-analytics');
+            if (!panel) return;
+            const isOpen = panel.classList.toggle('open');
+            if (btn) btn.textContent = isOpen ? 'Hide Analytics' : 'View Analytics';
+        }
 
         // ── Filter ────────────────────────────────────────────────────────
         function filterCodes() {
