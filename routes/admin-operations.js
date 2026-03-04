@@ -167,10 +167,13 @@ router.get('/api/admin/health-detailed', verifyAdmin, (req, res) => {
 
 // Notifications summary endpoint for admin dashboard
 router.get('/api/admin/notifications', verifyAdmin, (req, res) => {
+    const conn = db();
+    if (!conn) return res.status(503).json({ success: false, error: 'Database not ready' });
+
     const today = new Date().toISOString().split('T')[0];
     // Calculate yesterday's date for "last 24 hours" query (works in both SQLite and PostgreSQL)
     const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    
+
     const queries = {
         // Critical: Failed payments
         failedPayments: `SELECT COUNT(*) as count FROM bookings WHERE payment_status = 'failed'`,
@@ -193,7 +196,7 @@ router.get('/api/admin/notifications', verifyAdmin, (req, res) => {
     const totalQueries = Object.keys(queries).length;
     
     const runQuery = (key, sql, params = []) => {
-        db().get(sql, params, (err, row) => {
+        conn.get(sql, params, (err, row) => {
             if (err) {
                 results[key] = 0;
             } else {

@@ -239,6 +239,30 @@
 
         // Set up keyboard event listeners for accessibility
         setupKeyboardHandlers();
+
+        // Start notification badge polling
+        startNotificationPolling();
+    }
+
+    // Fetch notification count and update the sidebar badge
+    function fetchNotificationCount() {
+        fetch('/api/admin/notifications', { credentials: 'same-origin' })
+            .then(function(res) { return res.ok ? res.json() : null; })
+            .then(function(data) {
+                if (!data || !data.success) return;
+                const s = data.summary || {};
+                // Badge = critical (failed payments/sync) + pending (pending bookings, today check-ins/outs)
+                // Warnings (abandoned checkouts) are informational — visible on the Notifications page
+                const actionable = (s.critical || 0) + (s.pending || 0);
+                adminShell.setNotificationBadge(actionable);
+            })
+            .catch(function() { /* non-fatal — badge just stays as-is */ });
+    }
+
+    // Poll every 5 minutes; also fetch once immediately on load
+    function startNotificationPolling() {
+        fetchNotificationCount();
+        setInterval(fetchNotificationCount, 5 * 60 * 1000);
     }
 
     // Set up keyboard event handlers for accessibility
