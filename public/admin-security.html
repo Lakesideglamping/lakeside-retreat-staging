@@ -498,6 +498,34 @@
     <script>
         // Authentication is handled by admin-shell.js via cookie verification
 
+        // Inline alert helper — replaces native alert() throughout this page
+        function showAlert(message, type = 'info') {
+            const container = document.querySelector('.container');
+            if (!container) return;
+            const old = document.getElementById('securityAlert');
+            if (old) old.remove();
+            const colors = {
+                success: { bg: '#d4edda', color: '#155724', border: '#c3e6cb' },
+                danger:  { bg: '#f8d7da', color: '#721c24', border: '#f5c6cb' },
+                warning: { bg: '#fff3cd', color: '#856404', border: '#ffeeba' },
+                info:    { bg: '#d1ecf1', color: '#0c5460', border: '#bee5eb' }
+            };
+            const c = colors[type] || colors.info;
+            const div = document.createElement('div');
+            div.id = 'securityAlert';
+            div.style.cssText = `background:${c.bg};color:${c.color};border:1px solid ${c.border};padding:0.75rem 1rem;border-radius:4px;margin-bottom:1rem;display:flex;justify-content:space-between;align-items:center;`;
+            const msgSpan = document.createElement('span');
+            msgSpan.textContent = message;
+            const closeBtn = document.createElement('button');
+            closeBtn.innerHTML = '&times;';
+            closeBtn.style.cssText = 'background:none;border:none;cursor:pointer;font-size:1.2rem;color:inherit;margin-left:1rem;';
+            closeBtn.onclick = () => div.remove();
+            div.appendChild(msgSpan);
+            div.appendChild(closeBtn);
+            container.insertBefore(div, container.firstChild);
+            setTimeout(() => { if (div.parentElement) div.remove(); }, 5000);
+        }
+
         // State
         let twoFASecret = null;
         let recoveryCodes = [];
@@ -566,7 +594,7 @@
 
                 if (!response.ok) {
                     const err = await response.json().catch(() => ({}));
-                    alert('Failed to start 2FA setup: ' + (err.error || response.statusText));
+                    showAlert('Failed to start 2FA setup: ' + (err.error || response.statusText), 'danger');
                     return;
                 }
 
@@ -591,7 +619,7 @@
                 document.getElementById('setupSection').classList.remove('hidden');
             } catch (error) {
                 console.error('Error starting 2FA setup:', error);
-                alert('Unable to start 2FA setup. Please check your connection and try again.');
+                showAlert('Unable to start 2FA setup. Please check your connection and try again.', 'danger');
             } finally {
                 document.getElementById('enableBtn').disabled = false;
                 document.getElementById('enableBtn').textContent = 'Enable 2FA';
@@ -644,7 +672,7 @@
             const code = getFullCode();
 
             if (code.length !== 6) {
-                alert('Please enter all 6 digits');
+                showAlert('Please enter all 6 digits', 'warning');
                 return;
             }
 
@@ -671,12 +699,12 @@
                     showRecoveryCodes();
                 } else {
                     const errorData = await response.json().catch(() => ({}));
-                    alert(errorData.error || 'Verification failed. Check your code and try again.');
+                    showAlert(errorData.error || 'Verification failed. Check your code and try again.', 'danger');
                     clearCodeInputs();
                 }
             } catch (error) {
                 console.error('Error verifying 2FA:', error);
-                alert('Unable to verify code. Please check your connection and try again.');
+                showAlert('Unable to verify code. Please check your connection and try again.', 'danger');
             } finally {
                 if (verifyBtn) { verifyBtn.disabled = false; verifyBtn.textContent = 'Verify & Enable 2FA'; }
             }
@@ -764,21 +792,21 @@ If you lose access to your authenticator app, use one of these codes to log in.
                 if (response.ok) {
                     is2FAEnabled = false;
                     updateStatusDisplay();
-                    alert('Two-factor authentication has been disabled.');
+                    showAlert('Two-factor authentication has been disabled.', 'success');
                 } else {
                     const errorData = await response.json().catch(() => ({}));
-                    alert('Failed to disable 2FA: ' + (errorData.error || 'Please check your password and try again.'));
+                    showAlert('Failed to disable 2FA: ' + (errorData.error || 'Please check your password and try again.'), 'danger');
                 }
             } catch (error) {
                 console.error('Error disabling 2FA:', error);
-                alert('Unable to disable 2FA. Please check your connection and try again.');
+                showAlert('Unable to disable 2FA. Please check your connection and try again.', 'danger');
             }
         }
 
         function copySecret() {
             const secret = document.getElementById('secretKey').textContent;
             navigator.clipboard.writeText(secret).then(() => {
-                alert('Secret key copied to clipboard!');
+                showAlert('Secret key copied to clipboard!', 'success');
             }).catch(() => {
                 // Fallback
                 const textarea = document.createElement('textarea');
@@ -787,7 +815,7 @@ If you lose access to your authenticator app, use one of these codes to log in.
                 textarea.select();
                 document.execCommand('copy');
                 document.body.removeChild(textarea);
-                alert('Secret key copied to clipboard!');
+                showAlert('Secret key copied to clipboard!', 'success');
             });
         }
 
@@ -799,12 +827,12 @@ If you lose access to your authenticator app, use one of these codes to log in.
             const confirmPassword = document.getElementById('confirmPassword').value;
             
             if (newPassword !== confirmPassword) {
-                alert('New passwords do not match');
+                showAlert('New passwords do not match', 'danger');
                 return;
             }
             
             if (newPassword.length < 8) {
-                alert('Password must be at least 8 characters');
+                showAlert('Password must be at least 8 characters', 'danger');
                 return;
             }
             
@@ -821,15 +849,15 @@ If you lose access to your authenticator app, use one of these codes to log in.
                 });
                 
                 if (response.ok) {
-                    alert('Password changed successfully!');
+                    showAlert('Password changed successfully!', 'success');
                     document.getElementById('passwordForm').reset();
                 } else {
                     const data = await response.json();
-                    alert(data.error || 'Failed to change password');
+                    showAlert(data.error || 'Failed to change password', 'danger');
                 }
             } catch (error) {
                 console.error('Error changing password:', error);
-                alert('Error changing password. Please try again.');
+                showAlert('Error changing password. Please try again.', 'danger');
             }
         }
 
@@ -839,7 +867,7 @@ If you lose access to your authenticator app, use one of these codes to log in.
             }
             
             // In production, this would invalidate all other JWT tokens
-            alert('All other sessions have been logged out.');
+            showAlert('All other sessions have been logged out.', 'success');
         }
 
         // Check 2FA status from server on load — source of truth is always server-side

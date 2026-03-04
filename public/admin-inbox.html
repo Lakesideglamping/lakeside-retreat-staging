@@ -634,6 +634,34 @@
     <script>
         // Authentication is handled by admin-shell.js via cookie verification
 
+        // Inline alert helper — replaces native alert() throughout this page
+        function showAlert(message, type = 'info') {
+            const container = document.querySelector('.container') || document.querySelector('.inbox-layout');
+            if (!container) return;
+            const old = document.getElementById('inboxAlert');
+            if (old) old.remove();
+            const colors = {
+                success: { bg: '#d4edda', color: '#155724', border: '#c3e6cb' },
+                danger:  { bg: '#f8d7da', color: '#721c24', border: '#f5c6cb' },
+                warning: { bg: '#fff3cd', color: '#856404', border: '#ffeeba' },
+                info:    { bg: '#d1ecf1', color: '#0c5460', border: '#bee5eb' }
+            };
+            const c = colors[type] || colors.info;
+            const div = document.createElement('div');
+            div.id = 'inboxAlert';
+            div.style.cssText = `background:${c.bg};color:${c.color};border:1px solid ${c.border};padding:0.75rem 1rem;border-radius:4px;margin:0 0 1rem;display:flex;justify-content:space-between;align-items:center;position:fixed;top:1rem;right:1rem;left:auto;max-width:400px;z-index:9999;box-shadow:0 2px 8px rgba(0,0,0,0.15);`;
+            const msgSpan = document.createElement('span');
+            msgSpan.textContent = message;
+            const closeBtn = document.createElement('button');
+            closeBtn.innerHTML = '&times;';
+            closeBtn.style.cssText = 'background:none;border:none;cursor:pointer;font-size:1.2rem;color:inherit;margin-left:1rem;';
+            closeBtn.onclick = () => div.remove();
+            div.appendChild(msgSpan);
+            div.appendChild(closeBtn);
+            document.body.appendChild(div);
+            setTimeout(() => { if (div.parentElement) div.remove(); }, 4000);
+        }
+
         // State
         let currentFolder = 'inbox';
         let messages = [];
@@ -1020,7 +1048,7 @@ The Lakeside Retreat Team`
             
             updateBadges();
             closeCompose();
-            alert('Draft saved!');
+            showAlert('Draft saved!', 'success');
         }
 
         async function sendEmail() {
@@ -1029,7 +1057,7 @@ The Lakeside Retreat Team`
             const body = document.getElementById('composeBody').value;
             
             if (!to || !subject || !body) {
-                alert('Please fill in all fields');
+                showAlert('Please fill in all fields', 'warning');
                 return;
             }
             
@@ -1048,13 +1076,13 @@ The Lakeside Retreat Team`
                 });
                 
                 if (response.ok) {
-                    alert('Email sent successfully!');
+                    showAlert('Email sent successfully!', 'success');
                     closeCompose();
                 } else {
                     // Fallback - save as draft and show mailto link
                     const mailtoLink = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
                     window.open(mailtoLink, '_blank');
-                    alert('Email client opened. If email sending is not configured, please send manually.');
+                    showAlert('Email client opened. If email sending is not configured, please send manually.', 'info');
                     closeCompose();
                 }
             } catch (error) {
@@ -1062,7 +1090,7 @@ The Lakeside Retreat Team`
                 // Fallback to mailto
                 const mailtoLink = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
                 window.open(mailtoLink, '_blank');
-                alert('Email client opened. Please send manually.');
+                showAlert('Email client opened. Please send manually.', 'info');
                 closeCompose();
             }
         }
@@ -1093,7 +1121,7 @@ The Lakeside Retreat Team`
         }
 
         function createTemplate() {
-            alert('Template creation coming soon! For now, templates are pre-configured.');
+            showAlert('Template creation coming soon! For now, templates are pre-configured.', 'info');
         }
 
         // Utility functions
