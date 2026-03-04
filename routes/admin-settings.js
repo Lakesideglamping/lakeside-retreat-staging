@@ -289,6 +289,36 @@ router.delete('/api/admin/gallery/:filename', verifyAdmin, verifyCsrf, (req, res
     });
 });
 
+// Lightweight review summary — returns counts + average rating without the full payload
+router.get('/api/admin/reviews/summary', verifyAdmin, (req, res) => {
+    const conn = db();
+    if (!conn) return res.status(503).json({ success: false, error: 'Database not ready' });
+
+    conn.get(
+        `SELECT
+            COUNT(*) as total,
+            COUNT(CASE WHEN status = 'approved' THEN 1 END) as approved,
+            COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending,
+            ROUND(AVG(CASE WHEN status = 'approved' THEN rating END), 1) as average_rating
+         FROM reviews`,
+        (err, row) => {
+            if (err) {
+                logger.error('Reviews summary error', { error: err.message });
+                return res.status(500).json({ success: false, error: 'Failed to load review summary' });
+            }
+            res.json({
+                success: true,
+                summary: {
+                    total: row?.total || 0,
+                    approved: row?.approved || 0,
+                    pending: row?.pending || 0,
+                    average_rating: row?.average_rating ? parseFloat(row.average_rating) : null
+                }
+            });
+        }
+    );
+});
+
 router.get('/api/admin/reviews', verifyAdmin, (req, res) => {
     const { status, platform, property } = req.query;
     let sql = 'SELECT * FROM reviews WHERE 1=1';

@@ -430,21 +430,24 @@
         async function loadDashboardData() {
             hideDashboardBanner();
             try {
-                // Fire all three requests simultaneously; tolerate individual failures
-                const [statsResult, bookingStatsResult, uplistingResult] = await Promise.allSettled([
+                // Fire all four requests simultaneously; tolerate individual failures
+                const [statsResult, bookingStatsResult, uplistingResult, reviewsResult] = await Promise.allSettled([
                     fetch('/api/admin/stats', { credentials: 'same-origin' }),
                     fetch('/api/admin/booking-stats', { credentials: 'same-origin' }),
-                    fetch('/api/admin/uplisting-dashboard', { credentials: 'same-origin' })
+                    fetch('/api/admin/uplisting-dashboard', { credentials: 'same-origin' }),
+                    fetch('/api/admin/reviews/summary', { credentials: 'same-origin' })
                 ]);
 
-                const statsResponse      = statsResult.status      === 'fulfilled' ? statsResult.value      : null;
+                const statsResponse        = statsResult.status        === 'fulfilled' ? statsResult.value        : null;
                 const bookingStatsResponse = bookingStatsResult.status === 'fulfilled' ? bookingStatsResult.value : null;
-                const uplistingResponse  = uplistingResult.status   === 'fulfilled' ? uplistingResult.value  : null;
+                const uplistingResponse    = uplistingResult.status    === 'fulfilled' ? uplistingResult.value    : null;
+                const reviewsResponse      = reviewsResult.status      === 'fulfilled' ? reviewsResult.value      : null;
 
                 // Parse each response independently so a single failure doesn't blank everything
                 let statsJson        = null;
                 let bookingStatsJson = null;
                 let uplistingData    = null;
+                let reviewsSummary   = null;
 
                 if (statsResponse?.ok) {
                     try { statsJson = await statsResponse.json(); } catch (e) { console.warn('Stats JSON parse error', e); }
@@ -462,13 +465,18 @@
                     try { uplistingData = await uplistingResponse.json(); } catch (e) { /* Uplisting optional */ }
                 }
 
+                if (reviewsResponse?.ok) {
+                    try { const r = await reviewsResponse.json(); reviewsSummary = r.summary || null; } catch (e) { /* non-fatal */ }
+                }
+
                 // If both primary endpoints failed show a banner but leave the page usable
                 if (!statsJson && !bookingStatsJson) {
                     showDashboardBanner('Could not load booking data — the database may still be starting. Please retry in a moment.');
                     document.getElementById('totalBookings').textContent = '—';
                     document.getElementById('monthlyRevenue').textContent = '—';
                     document.getElementById('occupancyRate').textContent = '—';
-                    document.getElementById('avgRating').textContent = '—';
+                    document.getElementById('avgRating').textContent =
+                        reviewsSummary?.average_rating ? `${reviewsSummary.average_rating.toFixed(1)} ★` : '—';
                     updateSystemStatus(false, false, !!(uplistingData?.success));
                     return;
                 }
@@ -510,10 +518,15 @@
                     document.getElementById('occupancyRate').textContent = bookingStatsJson ? 'No data' : '—';
                 }
 
-                // Properties / rating card
-                document.getElementById('avgRating').textContent =
-                    hasUplistingData ? `${uplistingData.total_properties} Properties` :
-                    hasLocalBookings ? 'No reviews yet' : 'No data';
+                // Average rating — use real review data from the summary endpoint
+                const avgRatingEl = document.getElementById('avgRating');
+                if (reviewsSummary?.average_rating) {
+                    avgRatingEl.textContent = `${reviewsSummary.average_rating.toFixed(1)} ★`;
+                } else if (reviewsSummary?.total === 0 || reviewsSummary?.approved === 0) {
+                    avgRatingEl.textContent = 'No reviews yet';
+                } else {
+                    avgRatingEl.textContent = '—';
+                }
 
                 // --- Revenue chart ---
                 buildRevenueChart(bookingStats, uplistingData);

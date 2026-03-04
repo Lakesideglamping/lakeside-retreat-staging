@@ -642,8 +642,12 @@
                 `<span>${kpis.avgValueChange > 0 ? '↑' : '↓'}</span> ${kpis.avgValueChange > 0 ? '+' : ''}${kpis.avgValueChange}% vs last period`;
             document.getElementById('avgValueChange').className = `kpi-change ${kpis.avgValueChange > 0 ? 'positive' : 'negative'}`;
             
-            document.getElementById('avgRating').textContent = kpis.avgRating.toFixed(1);
-            document.getElementById('ratingChange').innerHTML = 
+            // avgRating is populated by fetchRealAnalytics from /api/admin/reviews/summary
+            // Only set it here if fetchRealAnalytics hasn't run yet (kpis.avgRating > 0)
+            if (kpis.avgRating > 0) {
+                document.getElementById('avgRating').textContent = `${kpis.avgRating.toFixed(1)} ★`;
+            }
+            document.getElementById('ratingChange').innerHTML =
                 `<span>${kpis.ratingChange > 0 ? '↑' : '↓'}</span> ${kpis.ratingChange > 0 ? '+' : ''}${kpis.ratingChange} vs last period`;
             
             document.getElementById('repeatRate').textContent = kpis.repeatRate + '%';
@@ -820,17 +824,39 @@
         // Fetch real analytics data from server including Uplisting
         async function fetchRealAnalytics(dateRange = 'month') {
             try {
-                // Fetch both analytics and Uplisting data
-                const [analyticsResult, uplistingResult] = await Promise.allSettled([
+                // Fetch analytics, Uplisting, and review summary in parallel
+                const [analyticsResult, uplistingResult, reviewsResult] = await Promise.allSettled([
                     fetch(`/api/admin/analytics?dateRange=${encodeURIComponent(dateRange)}`, {
                         credentials: 'same-origin'
                     }),
                     fetch('/api/admin/uplisting-dashboard', {
                         credentials: 'same-origin'
+                    }),
+                    fetch('/api/admin/reviews/summary', {
+                        credentials: 'same-origin'
                     })
                 ]);
                 const analyticsResponse = analyticsResult.status === 'fulfilled' ? analyticsResult.value : null;
                 const uplistingResponse = uplistingResult.status === 'fulfilled' ? uplistingResult.value : null;
+                const reviewsResponse   = reviewsResult.status   === 'fulfilled' ? reviewsResult.value   : null;
+
+                // Parse review summary (non-fatal)
+                let reviewsSummary = null;
+                if (reviewsResponse?.ok) {
+                    try { const r = await reviewsResponse.json(); reviewsSummary = r.summary || null; } catch (e) { /* non-fatal */ }
+                }
+
+                // Update avgRating KPI from real review data
+                const avgRatingEl = document.getElementById('avgRating');
+                if (avgRatingEl) {
+                    if (reviewsSummary?.average_rating) {
+                        avgRatingEl.textContent = `${parseFloat(reviewsSummary.average_rating).toFixed(1)} ★`;
+                        uplistingAnalyticsData.kpis.avgRating = parseFloat(reviewsSummary.average_rating);
+                    } else {
+                        avgRatingEl.textContent = reviewsSummary?.total === 0 ? 'No reviews yet' : '—';
+                        uplistingAnalyticsData.kpis.avgRating = 0;
+                    }
+                }
                 
                 // Handle Uplisting data
                 let uplistingData = null;
