@@ -555,9 +555,13 @@
                     const a = document.createElement('a');
                     a.href = url;
                     a.download = filename;
+                    document.body.appendChild(a);
                     a.click();
+                    document.body.removeChild(a);
                     window.URL.revokeObjectURL(url);
                     showAlert('Download started!');
+                } else {
+                    showAlert('Download failed: ' + response.statusText, 'error');
                 }
             } catch (error) {
                 showAlert('Error downloading backup', 'error');
@@ -565,9 +569,9 @@
         }
 
         async function restoreBackup(filename) {
-            if (!confirm('Are you sure you want to restore from backup: ' + filename + '? This will overwrite current data.')) return;
+            if (!confirm('Are you sure you want to restore from backup: ' + filename + '?\nThis will overwrite current data.')) return;
             if (!confirm('This action cannot be undone. Are you absolutely sure?')) return;
-            adminShell.showAlert('Restoring backup... Please do not close this page.', 'info');
+            showAlert('Restoring backup… Please do not close this page.', 'info');
             try {
                 const csrfRes = await fetch('/api/csrf-token', { credentials: 'same-origin' });
                 const csrfData = await csrfRes.json();
@@ -582,12 +586,12 @@
                 });
                 const data = await response.json();
                 if (data.success) {
-                    adminShell.showAlert('Backup restored successfully! Please refresh the page.', 'success');
+                    showAlert('✅ ' + data.message);
                 } else {
-                    adminShell.showAlert('Restore failed: ' + (data.error || 'Unknown error'), 'error');
+                    showAlert('Restore failed: ' + (data.error || 'Unknown error'), 'error');
                 }
             } catch (err) {
-                adminShell.showAlert('Restore error: ' + err.message, 'error');
+                showAlert('Restore error: ' + err.message, 'error');
             }
         }
 
