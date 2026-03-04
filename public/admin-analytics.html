@@ -668,16 +668,17 @@
             }
             
             tbody.innerHTML = uplistingAnalyticsData.propertyPerformance.map(property => {
-                const badgeClass = property.name.includes('Pinot') ? 'badge-pinot' : 
+                const safeName = escapeHtml(property.name);
+                const badgeClass = property.name.includes('Pinot') ? 'badge-pinot' :
                                   property.name.includes('Rosé') ? 'badge-rose' : 'badge-cottage';
                 return `
                     <tr>
-                        <td><span class="property-badge ${badgeClass}">${property.name}</span></td>
-                        <td>${property.bookings || 'Connected'}</td>
-                        <td>${property.revenue ? '$' + property.revenue.toLocaleString() : 'Uplisting Data'}</td>
-                        <td>${property.occupancy ? property.occupancy + '%' : 'Live Sync'}</td>
-                        <td>${property.avgRate ? '$' + property.avgRate : property.currency || 'NZD'}</td>
-                        <td>${property.rating ? '⭐ ' + property.rating : 'Channel Manager'}</td>
+                        <td><span class="property-badge ${badgeClass}">${safeName}</span></td>
+                        <td>${escapeHtml(String(property.bookings || 'Connected'))}</td>
+                        <td>${property.revenue ? '$' + Number(property.revenue).toLocaleString() : 'Uplisting Data'}</td>
+                        <td>${property.occupancy ? Number(property.occupancy) + '%' : 'Live Sync'}</td>
+                        <td>${property.avgRate ? '$' + escapeHtml(String(property.avgRate)) : escapeHtml(String(property.currency || 'NZD'))}</td>
+                        <td>${property.rating ? '⭐ ' + escapeHtml(String(property.rating)) : 'Channel Manager'}</td>
                     </tr>
                 `;
             }).join('');

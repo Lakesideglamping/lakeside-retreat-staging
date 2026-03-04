@@ -544,20 +544,35 @@
             }
         }
 
+        // Fetch a fresh CSRF token before any mutating request
+        async function getCsrfToken() {
+            const res = await fetch('/api/csrf-token', { credentials: 'same-origin' });
+            const data = await res.json();
+            return data.csrfToken;
+        }
+
         // Start 2FA setup
         async function startSetup() {
             try {
+                const csrf = await getCsrfToken();
                 const response = await fetch('/api/admin/2fa/setup', {
                     method: 'POST',
-                    credentials: 'same-origin'
+                    credentials: 'same-origin',
+                    headers: { 'X-CSRF-Token': csrf }
                 });
                 
                 if (response.ok) {
                     const data = await response.json();
                     twoFASecret = data.secret;
                     
-                    // Display QR code
-                    document.getElementById('qrCode').innerHTML = `<img src="${data.qrCode}" alt="QR Code" style="width: 200px; height: 200px;">`;
+                    // Display QR code (sanitise server-supplied URL)
+                    const qrImg = document.createElement('img');
+                    qrImg.src = data.qrCode;
+                    qrImg.alt = 'QR Code';
+                    qrImg.style.cssText = 'width: 200px; height: 200px;';
+                    const qrContainer = document.getElementById('qrCode');
+                    qrContainer.innerHTML = '';
+                    qrContainer.appendChild(qrImg);
                     document.getElementById('secretKey').textContent = data.secret;
                     
                     // Show setup section
@@ -647,11 +662,13 @@
             }
             
             try {
+                const csrf = await getCsrfToken();
                 const response = await fetch('/api/admin/2fa/verify', {
                     method: 'POST',
                     credentials: 'same-origin',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': csrf
                     },
                     body: JSON.stringify({ code, secret: twoFASecret })
                 });
@@ -685,9 +702,13 @@
 
         function showRecoveryCodes() {
             const container = document.getElementById('recoveryCodes');
-            container.innerHTML = recoveryCodes.map(code => 
-                `<div class="recovery-code">${code}</div>`
-            ).join('');
+            container.innerHTML = '';
+            recoveryCodes.forEach(code => {
+                const div = document.createElement('div');
+                div.className = 'recovery-code';
+                div.textContent = code;
+                container.appendChild(div);
+            });
             
             document.getElementById('setupSection').classList.add('hidden');
             document.getElementById('recoverySection').classList.remove('hidden');
@@ -735,11 +756,13 @@ If you lose access to your authenticator app, use one of these codes to log in.
             if (!code) return;
             
             try {
+                const csrf = await getCsrfToken();
                 const response = await fetch('/api/admin/2fa/disable', {
                     method: 'POST',
                     credentials: 'same-origin',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': csrf
                     },
                     body: JSON.stringify({ code })
                 });
@@ -800,11 +823,13 @@ If you lose access to your authenticator app, use one of these codes to log in.
             }
             
             try {
+                const csrf = await getCsrfToken();
                 const response = await fetch('/api/admin/change-password', {
                     method: 'POST',
                     credentials: 'same-origin',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': csrf
                     },
                     body: JSON.stringify({ currentPassword, newPassword })
                 });

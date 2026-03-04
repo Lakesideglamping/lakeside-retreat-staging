@@ -460,10 +460,12 @@
 
         async function saveSettings(settings) {
             try {
+                const csrfRes = await fetch('/api/csrf-token', { credentials: 'same-origin' });
+                const csrfData = await csrfRes.json();
                 const response = await fetch('/api/admin/settings', {
                     method: 'PUT',
                     credentials: 'same-origin',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfData.csrfToken },
                     body: JSON.stringify({ settings })
                 });
                 const data = await response.json();

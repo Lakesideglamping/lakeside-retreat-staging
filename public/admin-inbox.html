@@ -990,11 +990,14 @@ The Lakeside Retreat Team`
             
             try {
                 // In production, this would call an email sending API
+                const csrfRes = await fetch('/api/csrf-token', { credentials: 'same-origin' });
+                const csrfData = await csrfRes.json();
                 const response = await fetch('/api/admin/send-email', {
                     method: 'POST',
                     credentials: 'same-origin',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': csrfData.csrfToken
                     },
                     body: JSON.stringify({ to, subject, body })
                 });

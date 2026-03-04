@@ -462,12 +462,14 @@
                 alert('Please write a response before posting.');
                 return;
             }
-            
+
             try {
+                const csrfRes = await fetch('/api/csrf-token', { credentials: 'same-origin' });
+                const csrfData = await csrfRes.json();
                 const res = await fetch(`/api/admin/reviews/${id}`, {
                     method: 'PUT',
                     credentials: 'same-origin',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfData.csrfToken },
                     body: JSON.stringify({ admin_response: response, status: 'approved' })
                 });
                 const data = await res.json();

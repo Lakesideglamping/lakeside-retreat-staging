@@ -563,7 +563,7 @@
         // Fetch CSRF token on page load
         async function fetchCsrfToken() {
             try {
-                const res = await fetch('/api/admin/csrf-token', { credentials: 'same-origin' });
+                const res = await fetch('/api/csrf-token', { credentials: 'same-origin' });
                 const data = await res.json();
                 csrfToken = data.csrfToken;
             } catch (error) {
@@ -928,8 +928,8 @@
             
             try {
                 const [calendarData, weekendsData] = await Promise.all([
-                    fetch(`/api/availability-calendar?accommodation=${accommodation}&month=${month}`).then(r => r.json()),
-                    fetch(`/api/availability-weekends?accommodation=${accommodation}&count=4`).then(r => r.json())
+                    fetch(`/api/availability-calendar?accommodation=${encodeURIComponent(accommodation)}&month=${encodeURIComponent(month)}`, { credentials: 'same-origin' }).then(r => r.json()),
+                    fetch(`/api/availability-weekends?accommodation=${encodeURIComponent(accommodation)}&count=4`, { credentials: 'same-origin' }).then(r => r.json())
                 ]);
                 
                 if (calendarData.success) {
@@ -941,7 +941,7 @@
                     if (weekendsData.weekends.length > 0) {
                         container.innerHTML = weekendsData.weekends.map(w => `
                             <div style="padding: 0.5rem; background: #e8f5e8; border-radius: 4px; margin-bottom: 0.5rem;">
-                                <strong>${w.friday}</strong> - ${w.sunday}
+                                <strong>${escapeHtml(w.friday)}</strong> - ${escapeHtml(w.sunday)}
                             </div>
                         `).join('');
                     } else {
