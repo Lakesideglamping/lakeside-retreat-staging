@@ -879,35 +879,74 @@
                 // Handle analytics data (prioritize real booking data over Uplisting placeholders)
                 if (analyticsResponse && analyticsResponse.ok) {
                     const result = await analyticsResponse.json();
-                    // Update with real analytics data if available
-                    if (result.data) {
-                        // Update KPIs with real data
-                        if (result.data.totalRevenue !== undefined) {
-                            document.getElementById('totalRevenue').textContent = '$' + (result.data.totalRevenue || 0).toLocaleString();
-                            uplistingAnalyticsData.kpis.totalRevenue = result.data.totalRevenue || 0;
+                    // API returns result.analytics.summary / .trends / .accommodations
+                    if (result.success && result.analytics) {
+                        const summary = result.analytics.summary || {};
+                        const trends = result.analytics.trends || [];
+                        const accommodations = result.analytics.accommodations || [];
+
+                        // Update KPI: Revenue
+                        const revenue = parseFloat(summary.revenue) || 0;
+                        document.getElementById('totalRevenue').textContent = '$' + Math.round(revenue).toLocaleString();
+                        uplistingAnalyticsData.kpis.totalRevenue = revenue;
+
+                        // Update KPI: Total Bookings (skip if Uplisting already set it)
+                        if (!hasUplistingData) {
+                            const totalBookings = parseInt(summary.total_bookings) || 0;
+                            document.getElementById('totalBookings').textContent = totalBookings;
+                            uplistingAnalyticsData.kpis.totalBookings = totalBookings;
                         }
-                        if (result.data.totalBookings !== undefined) {
-                            const bookingText = hasUplistingData ? 
-                                `${result.data.totalBookings} (${uplistingData.total_properties} properties)` : 
-                                result.data.totalBookings.toString();
-                            document.getElementById('totalBookings').textContent = bookingText;
-                            uplistingAnalyticsData.kpis.totalBookings = result.data.totalBookings || 0;
-                        }
-                        if (result.data.occupancyRate !== undefined) {
-                            document.getElementById('occupancyRate').textContent = (result.data.occupancyRate || 0) + '%';
-                            uplistingAnalyticsData.kpis.occupancyRate = result.data.occupancyRate || 0;
-                        }
-                        if (result.data.avgRating !== undefined) {
-                            document.getElementById('avgRating').textContent = (result.data.avgRating || 0).toFixed(1);
-                            uplistingAnalyticsData.kpis.avgRating = result.data.avgRating || 0;
-                        }
-                        
-                        // Update revenue chart with real data if available
-                        if (result.data.revenueData) {
-                            uplistingAnalyticsData.revenueData = result.data.revenueData;
+
+                        // Update KPI: Avg Booking Value
+                        const avgVal = parseFloat(summary.avg_booking_value) || 0;
+                        document.getElementById('avgBookingValue').textContent = '$' + Math.round(avgVal).toLocaleString();
+                        uplistingAnalyticsData.kpis.avgBookingValue = avgVal;
+
+                        // Build revenue chart from monthly trends (sorted ascending)
+                        if (trends.length > 0) {
+                            const sortedTrends = [...trends].sort((a, b) => a.month.localeCompare(b.month));
+                            const revenueData = {
+                                labels: sortedTrends.map(t => t.month),
+                                datasets: [{
+                                    label: 'Revenue',
+                                    data: sortedTrends.map(t => parseFloat(t.revenue) || 0),
+                                    borderColor: '#2d5a5a',
+                                    backgroundColor: 'rgba(45, 90, 90, 0.1)',
+                                    tension: 0.4
+                                }]
+                            };
+                            uplistingAnalyticsData.revenueData = revenueData;
                             if (revenueChart) {
-                                revenueChart.data = result.data.revenueData;
+                                revenueChart.data = revenueData;
                                 revenueChart.update();
+                            }
+                        }
+
+                        // Populate property table from real booking data (if no Uplisting)
+                        if (!hasUplistingData && accommodations.length > 0) {
+                            uplistingAnalyticsData.propertyPerformance = accommodations.map(a => ({
+                                name: a.accommodation || 'Unknown',
+                                bookings: a.bookings,
+                                revenue: a.revenue,
+                                occupancy: null,
+                                avgRate: a.avg_price ? Math.round(a.avg_price) : null,
+                                rating: null
+                            }));
+                            loadPropertyTable();
+
+                            // Update occupancy chart with booking counts by property
+                            const occupancyData = {
+                                labels: accommodations.map(a => a.accommodation || 'Unknown'),
+                                datasets: [{
+                                    label: 'Bookings',
+                                    data: accommodations.map(a => parseInt(a.bookings) || 0),
+                                    backgroundColor: ['#2d5a5a', '#8fbc8f', '#be185d']
+                                }]
+                            };
+                            uplistingAnalyticsData.occupancyData = occupancyData;
+                            if (occupancyChart) {
+                                occupancyChart.data = occupancyData;
+                                occupancyChart.update();
                             }
                         }
                     }
