@@ -509,10 +509,11 @@
                 const response = await fetch('/api/admin/2fa/status', {
                     credentials: 'same-origin'
                 });
-                
+
                 if (response.ok) {
                     const data = await response.json();
-                    is2FAEnabled = data.enabled;
+                    // Server returns twoFactorEnabled (not data.enabled)
+                    is2FAEnabled = data.twoFactorEnabled === true;
                     updateStatusDisplay();
                 }
             } catch (error) {
@@ -553,6 +554,8 @@
 
         // Start 2FA setup
         async function startSetup() {
+            document.getElementById('enableBtn').disabled = true;
+            document.getElementById('enableBtn').textContent = 'Setting up…';
             try {
                 const csrf = await getCsrfToken();
                 const response = await fetch('/api/admin/2fa/setup', {
@@ -560,55 +563,39 @@
                     credentials: 'same-origin',
                     headers: { 'X-CSRF-Token': csrf }
                 });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    twoFASecret = data.secret;
-                    
-                    // Display QR code (sanitise server-supplied URL)
-                    const qrImg = document.createElement('img');
-                    qrImg.src = data.qrCode;
-                    qrImg.alt = 'QR Code';
-                    qrImg.style.cssText = 'width: 200px; height: 200px;';
-                    const qrContainer = document.getElementById('qrCode');
-                    qrContainer.innerHTML = '';
-                    qrContainer.appendChild(qrImg);
-                    document.getElementById('secretKey').textContent = data.secret;
-                    
-                    // Show setup section
-                    document.getElementById('statusSection').classList.add('hidden');
-                    document.getElementById('setupSection').classList.remove('hidden');
-                } else {
-                    // Fallback: generate client-side (demo mode)
-                    generateDemoSetup();
+
+                if (!response.ok) {
+                    const err = await response.json().catch(() => ({}));
+                    alert('Failed to start 2FA setup: ' + (err.error || response.statusText));
+                    return;
                 }
+
+                const data = await response.json();
+                twoFASecret = data.secret;
+
+                // Build QR code image using the otpauthUri returned by the server
+                // qrserver.com is a free public QR generation API — no dependency needed
+                const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data='
+                    + encodeURIComponent(data.otpauthUri);
+                const qrContainer = document.getElementById('qrCode');
+                qrContainer.innerHTML = '';
+                const qrImg = document.createElement('img');
+                qrImg.src = qrUrl;
+                qrImg.alt = 'Scan this QR code in your authenticator app';
+                qrImg.style.cssText = 'width: 200px; height: 200px; display: block;';
+                qrContainer.appendChild(qrImg);
+
+                document.getElementById('secretKey').textContent = data.secret;
+
+                document.getElementById('statusSection').classList.add('hidden');
+                document.getElementById('setupSection').classList.remove('hidden');
             } catch (error) {
                 console.error('Error starting 2FA setup:', error);
-                generateDemoSetup();
+                alert('Unable to start 2FA setup. Please check your connection and try again.');
+            } finally {
+                document.getElementById('enableBtn').disabled = false;
+                document.getElementById('enableBtn').textContent = 'Enable 2FA';
             }
-        }
-
-        function generateDemoSetup() {
-            // Generate a demo secret for UI demonstration
-            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-            let secret = '';
-            for (let i = 0; i < 16; i++) {
-                secret += chars.charAt(Math.floor(Math.random() * chars.length));
-            }
-            twoFASecret = secret;
-            
-            // Display placeholder QR code
-            document.getElementById('qrCode').innerHTML = `
-                <div style="width: 200px; height: 200px; background: #f0f0f0; display: flex; align-items: center; justify-content: center; flex-direction: column; text-align: center; padding: 1rem;">
-                    <span style="font-size: 2rem;">&#x1F4F1;</span>
-                    <p style="font-size: 0.75rem; color: #666; margin-top: 0.5rem;">QR Code<br>(Server setup required)</p>
-                </div>
-            `;
-            document.getElementById('secretKey').textContent = secret;
-            
-            // Show setup section
-            document.getElementById('statusSection').classList.add('hidden');
-            document.getElementById('setupSection').classList.remove('hidden');
         }
 
         function cancelSetup() {
@@ -655,14 +642,18 @@
 
         async function verifyAndEnable() {
             const code = getFullCode();
-            
+
             if (code.length !== 6) {
                 alert('Please enter all 6 digits');
                 return;
             }
-            
+
+            const verifyBtn = document.querySelector('#setupSection .btn');
+            if (verifyBtn) { verifyBtn.disabled = true; verifyBtn.textContent = 'Verifying…'; }
+
             try {
                 const csrf = await getCsrfToken();
+                // Server reads the secret from its DB — only the 6-digit code is needed
                 const response = await fetch('/api/admin/2fa/verify', {
                     method: 'POST',
                     credentials: 'same-origin',
@@ -670,20 +661,24 @@
                         'Content-Type': 'application/json',
                         'X-CSRF-Token': csrf
                     },
-                    body: JSON.stringify({ code, secret: twoFASecret })
+                    body: JSON.stringify({ code })
                 });
-                
+
                 if (response.ok) {
-                    const data = await response.json();
-                    recoveryCodes = data.recoveryCodes || [];
+                    // Server has enabled 2FA. Show recovery codes section.
+                    // Note: this server doesn't return recovery codes, but the UI shows a success message.
+                    recoveryCodes = [];
                     showRecoveryCodes();
                 } else {
                     const errorData = await response.json().catch(() => ({}));
-                    alert(errorData.error || 'Verification failed. Please check your code and try again.');
+                    alert(errorData.error || 'Verification failed. Check your code and try again.');
+                    clearCodeInputs();
                 }
             } catch (error) {
                 console.error('Error verifying 2FA:', error);
                 alert('Unable to verify code. Please check your connection and try again.');
+            } finally {
+                if (verifyBtn) { verifyBtn.disabled = false; verifyBtn.textContent = 'Verify & Enable 2FA'; }
             }
         }
 
@@ -737,24 +732,23 @@ If you lose access to your authenticator app, use one of these codes to log in.
         }
 
         function finishSetup() {
+            // 2FA is already enabled server-side (verified by /api/admin/2fa/verify).
+            // Just update the local display state and return to the status section.
             is2FAEnabled = true;
             updateStatusDisplay();
-            
             document.getElementById('recoverySection').classList.add('hidden');
             document.getElementById('statusSection').classList.remove('hidden');
-            
-            // Store 2FA status locally (in production, this would be server-side)
-            localStorage.setItem('2faEnabled', 'true');
         }
 
         async function disable2FA() {
             if (!confirm('Are you sure you want to disable two-factor authentication? This will make your account less secure.')) {
                 return;
             }
-            
-            const code = prompt('Enter your current 2FA code to confirm:');
-            if (!code) return;
-            
+
+            // Server requires the admin PASSWORD (not a TOTP code) to disable 2FA
+            const currentPassword = prompt('Enter your admin password to confirm disabling 2FA:');
+            if (!currentPassword) return;
+
             try {
                 const csrf = await getCsrfToken();
                 const response = await fetch('/api/admin/2fa/disable', {
@@ -764,28 +758,20 @@ If you lose access to your authenticator app, use one of these codes to log in.
                         'Content-Type': 'application/json',
                         'X-CSRF-Token': csrf
                     },
-                    body: JSON.stringify({ code })
+                    body: JSON.stringify({ currentPassword })
                 });
-                
+
                 if (response.ok) {
                     is2FAEnabled = false;
                     updateStatusDisplay();
-                    localStorage.removeItem('2faEnabled');
                     alert('Two-factor authentication has been disabled.');
                 } else {
-                    // Demo mode
-                    is2FAEnabled = false;
-                    updateStatusDisplay();
-                    localStorage.removeItem('2faEnabled');
-                    alert('Two-factor authentication has been disabled.');
+                    const errorData = await response.json().catch(() => ({}));
+                    alert('Failed to disable 2FA: ' + (errorData.error || 'Please check your password and try again.'));
                 }
             } catch (error) {
                 console.error('Error disabling 2FA:', error);
-                // Demo mode
-                is2FAEnabled = false;
-                updateStatusDisplay();
-                localStorage.removeItem('2faEnabled');
-                alert('Two-factor authentication has been disabled.');
+                alert('Unable to disable 2FA. Please check your connection and try again.');
             }
         }
 
@@ -856,14 +842,8 @@ If you lose access to your authenticator app, use one of these codes to log in.
             alert('All other sessions have been logged out.');
         }
 
-        // Check status on load
+        // Check 2FA status from server on load — source of truth is always server-side
         check2FAStatus();
-        
-        // Check localStorage for demo mode
-        if (localStorage.getItem('2faEnabled') === 'true') {
-            is2FAEnabled = true;
-            updateStatusDisplay();
-        }
     </script>
     <script src="/admin-shell.js?v=3"></script>
 </body>
