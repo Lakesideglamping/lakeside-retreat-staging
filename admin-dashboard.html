@@ -182,7 +182,7 @@
             </div>
             <div class="stat-card">
                 <div class="stat-value" id="monthlyRevenue">Loading...</div>
-                <div class="stat-label">Monthly Revenue</div>
+                <div class="stat-label">This Month's Revenue</div>
             </div>
             <div class="stat-card">
                 <div class="stat-value" id="occupancyRate">Loading...</div>
@@ -192,6 +192,20 @@
                 <div class="stat-value" id="avgRating">Loading...</div>
                 <div class="stat-label">Average Rating</div>
             </div>
+        </div>
+
+        <!-- Today's Activity -->
+        <div id="todayActivity" style="display:none; background:#fff; border:1px solid #e0e0e0; border-radius:12px; padding:1.25rem 1.5rem; margin-bottom:1.5rem; display:flex; align-items:center; gap:2rem; flex-wrap:wrap;">
+            <div style="font-weight:600; color:#2d5a5a; min-width:120px;">📅 Today</div>
+            <div id="todayCheckins" style="display:flex; align-items:center; gap:0.5rem;">
+                <span style="font-size:1.3rem;">✈️</span>
+                <span><strong id="checkinCount">0</strong> Check-in<span id="checkinPlural">s</span></span>
+            </div>
+            <div id="todayCheckouts" style="display:flex; align-items:center; gap:0.5rem;">
+                <span style="font-size:1.3rem;">🚪</span>
+                <span><strong id="checkoutCount">0</strong> Check-out<span id="checkoutPlural">s</span></span>
+            </div>
+            <a href="/admin-bookings.html" style="margin-left:auto; font-size:0.875rem; color:#2d5a5a; text-decoration:underline;">View all bookings →</a>
         </div>
         
         <!-- Admin Sections -->
@@ -325,67 +339,71 @@
                 ]);
 
                 if (statsResponse.ok && bookingStatsResponse.ok) {
-                    const stats = await statsResponse.json();
+                    const statsData = await statsResponse.json();
                     const bookingStats = await bookingStatsResponse.json();
-                    
+                    const stats = statsData.stats || statsData; // handle both {stats:{}} and flat response
+
                     // Get Uplisting data if available
                     let uplistingData = null;
                     if (uplistingResponse && uplistingResponse.ok) {
                         uplistingData = await uplistingResponse.json();
                     }
-                    
-                    // Check if we have actual booking data (local or Uplisting)
-                    const hasLocalBookings = stats.total_bookings > 0;
+
+                    const hasLocalBookings = (stats.total_bookings || 0) > 0;
                     const hasUplistingData = uplistingData && uplistingData.success;
-                    
-                    // Update dashboard with Uplisting-enhanced data
-                    if (hasUplistingData) {
-                        // Show Uplisting integration status
-                        document.getElementById('totalBookings').textContent = 
-                            `${stats.total_bookings} (Uplisting: ${uplistingData.total_properties} properties)`;
-                        
-                        // Show connection status in revenue field for now
-                        document.getElementById('monthlyRevenue').textContent = 
-                            hasLocalBookings ? `$${(stats.total_revenue || 0).toLocaleString()}` : 'Uplisting Connected';
-                        
-                        document.getElementById('occupancyRate').textContent = 'Connected to Uplisting';
-                        document.getElementById('avgRating').textContent = `${uplistingData.total_properties} Properties`;
-                        
-                        // Update recent activity with Uplisting info
+
+                    // Helper: format currency as NZD whole-dollar amount
+                    const formatNZD = (amount) =>
+                        '$' + Math.round(amount || 0).toLocaleString('en-NZ');
+
+                    // --- Total bookings ---
+                    document.getElementById('totalBookings').textContent = stats.total_bookings || '0';
+
+                    // --- Monthly revenue (current month's check-ins with completed payment) ---
+                    document.getElementById('monthlyRevenue').textContent =
+                        formatNZD(stats.monthly_revenue);
+
+                    // --- Occupancy rate ---
+                    if (hasLocalBookings && bookingStats.overview && bookingStats.overview.total_bookings > 0) {
+                        const occ = Math.round((bookingStats.overview.paid_bookings / bookingStats.overview.total_bookings) * 100);
+                        document.getElementById('occupancyRate').textContent = `${occ}%`;
+                    } else {
+                        document.getElementById('occupancyRate').textContent = '—';
+                    }
+
+                    // --- Average rating ---
+                    document.getElementById('avgRating').textContent = 'No reviews yet';
+
+                    // --- Today's check-ins / check-outs banner ---
+                    const checkins = stats.today_checkins || 0;
+                    const checkouts = stats.today_checkouts || 0;
+                    if (checkins > 0 || checkouts > 0) {
+                        const banner = document.getElementById('todayActivity');
+                        if (banner) {
+                            banner.style.display = 'flex';
+                            document.getElementById('checkinCount').textContent = checkins;
+                            document.getElementById('checkinPlural').textContent = checkins === 1 ? '' : 's';
+                            document.getElementById('checkoutCount').textContent = checkouts;
+                            document.getElementById('checkoutPlural').textContent = checkouts === 1 ? '' : 's';
+                        }
+                    }
+
+                    // --- Uplisting recent activity ---
+                    if (hasUplistingData && uplistingData.properties?.length) {
                         const activityDiv = document.getElementById('recentActivity');
+                        const names = uplistingData.properties
+                            .map(p => p.name.replace('Lakeside Glamping - ', ''))
+                            .join(', ');
                         activityDiv.innerHTML = `
                             <div class="activity-item">
-                                <span>✅ Connected to Uplisting channel manager</span>
-                                <span class="activity-time">Properties: ${uplistingData.total_properties}</span>
+                                <span>✅ Uplisting channel manager connected</span>
+                                <span class="activity-time">${uplistingData.total_properties} properties</span>
                             </div>
                             <div class="activity-item">
-                                <span>🏠 Properties found: ${uplistingData.properties.map(p => escapeHtml(p.name)).join(', ')}</span>
-                                <span class="activity-time">Ready for live data</span>
+                                <span>🏠 ${names}</span>
+                                <span class="activity-time">Live sync active</span>
                             </div>
                         `;
-                        
-                    } else {
-                        // Fallback to local data only
-                        document.getElementById('totalBookings').textContent = stats.total_bookings || '0';
-                        
-                        if (hasLocalBookings) {
-                            document.getElementById('monthlyRevenue').textContent = `$${(stats.total_revenue || 0).toLocaleString()}`;
-                        } else {
-                            document.getElementById('monthlyRevenue').textContent = '$0';
-                        }
-                        
-                        if (hasLocalBookings && bookingStats.overview && bookingStats.overview.total_bookings > 0) {
-                            const occupancyRate = Math.round((bookingStats.overview.paid_bookings / bookingStats.overview.total_bookings) * 100);
-                            document.getElementById('occupancyRate').textContent = `${occupancyRate}%`;
-                        } else {
-                            document.getElementById('occupancyRate').textContent = 'No data';
-                        }
-                        
-                        if (hasLocalBookings) {
-                            document.getElementById('avgRating').textContent = 'No reviews yet';
-                        } else {
-                            document.getElementById('avgRating').textContent = 'No data';
-                        }
                     }
                 } else {
                     // Fallback if API fails

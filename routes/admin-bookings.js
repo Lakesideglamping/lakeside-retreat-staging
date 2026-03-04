@@ -515,7 +515,10 @@ router.get('/api/admin/stats', verifyAdmin, (req, res) => {
             COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_bookings,
             COUNT(CASE WHEN status = 'confirmed' THEN 1 END) as confirmed_bookings,
             COALESCE(SUM(CASE WHEN payment_status = 'completed' THEN total_price ELSE 0 END), 0) as total_revenue,
-            COUNT(CASE WHEN DATE(created_at) = DATE('now') THEN 1 END) as today_bookings
+            COALESCE(SUM(CASE WHEN payment_status = 'completed' AND strftime('%Y-%m', check_in) = strftime('%Y-%m', 'now') THEN total_price ELSE 0 END), 0) as monthly_revenue,
+            COUNT(CASE WHEN DATE(created_at) = DATE('now') THEN 1 END) as today_bookings,
+            COUNT(CASE WHEN DATE(check_in) = DATE('now') THEN 1 END) as today_checkins,
+            COUNT(CASE WHEN DATE(check_out) = DATE('now') THEN 1 END) as today_checkouts
         FROM bookings
         WHERE deleted_at IS NULL
     `;
@@ -533,7 +536,10 @@ router.get('/api/admin/stats', verifyAdmin, (req, res) => {
                 pending_bookings: stats.pending_bookings || 0,
                 confirmed_bookings: stats.confirmed_bookings || 0,
                 total_revenue: stats.total_revenue || 0,
-                today_bookings: stats.today_bookings || 0
+                monthly_revenue: stats.monthly_revenue || 0,
+                today_bookings: stats.today_bookings || 0,
+                today_checkins: stats.today_checkins || 0,
+                today_checkouts: stats.today_checkouts || 0
             }
         });
     });
