@@ -317,10 +317,9 @@ app.use(helmet({
         preload: true
     },
     
-    // SECURITY: Content Security Policy — hardened in Phase 5
-    // Inline event handlers (onclick etc.) removed via data-attribute delegation.
-    // 'unsafe-inline' required for script-src because app logic lives in inline <script> blocks.
-    // scriptSrcAttr 'none' still blocks inline event handlers (onclick="...").
+    // SECURITY: Content Security Policy
+    // 'unsafe-inline' required for both script-src (inline <script> blocks) and
+    // script-src-attr (onclick/onchange attributes used throughout admin and public pages).
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
@@ -331,7 +330,7 @@ app.use(helmet({
                 "https://www.googletagmanager.com",
                 "https://www.google-analytics.com"
             ],
-            scriptSrcAttr: ["'none'"],
+            scriptSrcAttr: ["'unsafe-inline'"],
             styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
             imgSrc: ["'self'", "data:", "https:", "blob:"],
             fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com", "data:"],
