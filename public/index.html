@@ -7471,15 +7471,20 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 })();
 
-// Open booking modal when URL hash is #booking (e.g. /#booking links from standalone pages)
+// Open booking modal when URL hash is #booking (e.g. /#booking links from standalone pages).
+// Capture hash at parse time before SPA history management can clear it.
 (function handleBookingHash() {
-    function tryOpenModal() {
+    const initialHash = window.location.hash;
+    document.addEventListener('DOMContentLoaded', function() {
+        if (initialHash === '#booking' && typeof openBookingModal === 'function') {
+            openBookingModal();
+        }
+    });
+    window.addEventListener('hashchange', function() {
         if (window.location.hash === '#booking' && typeof openBookingModal === 'function') {
             openBookingModal();
         }
-    }
-    document.addEventListener('DOMContentLoaded', tryOpenModal);
-    window.addEventListener('hashchange', tryOpenModal);
+    });
 })();
 
 </script>
