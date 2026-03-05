@@ -7471,6 +7471,16 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 })();
 
+// Open booking modal when URL hash is #booking (e.g. /#booking links from standalone pages)
+(function handleBookingHash() {
+    function tryOpenModal() {
+        if (window.location.hash === '#booking' && typeof openBookingModal === 'function') {
+            openBookingModal();
+        }
+    }
+    document.addEventListener('DOMContentLoaded', tryOpenModal);
+    window.addEventListener('hashchange', tryOpenModal);
+})();
 
 </script>
 </body>
