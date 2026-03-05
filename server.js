@@ -1970,6 +1970,11 @@ function ensureSystemSettingsTable(callback) {
 app.use(errorMiddleware);
 
 // ==========================================
+// Redirect bare /favicon.ico to the versioned asset path so browsers
+// that auto-request this path (regardless of <link rel="icon">) get a
+// proper response instead of falling through to the 404 handler.
+app.get('/favicon.ico', (req, res) => res.redirect(301, '/images/favicon.ico'));
+
 // SPA FALLBACK (Must be last route)
 // ==========================================
 // SEO routes and SPA catch-all moved to routes/public.js
