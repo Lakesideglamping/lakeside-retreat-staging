@@ -519,7 +519,7 @@ class MarketingAutomation {
             `;
             this.db.get(sql, [accommodation, checkOut, checkIn], (err, row) => {
                 if (err) reject(err);
-                else resolve(row.count === 0);
+                else resolve(Number(row.count) === 0);
             });
         });
     }

@@ -200,16 +200,17 @@ router.get('/api/admin/notifications', verifyAdmin, (req, res) => {
             if (err) {
                 results[key] = 0;
             } else {
-                results[key] = row ? row.count : 0;
+                // Use Number() to handle PostgreSQL COUNT(*) returning BigInt strings
+                results[key] = row ? Number(row.count) : 0;
             }
             completed++;
-            
+
             if (completed === totalQueries) {
-                // Calculate totals
-                const critical = results.failedPayments + results.syncFailures;
-                const warnings = results.abandonedCheckouts;
-                const pending = results.pendingBookings + results.todayCheckins + results.todayCheckouts;
-                const resolved = results.recentConfirmed;
+                // Calculate totals (Number() guards against PG string concatenation)
+                const critical = Number(results.failedPayments) + Number(results.syncFailures);
+                const warnings = Number(results.abandonedCheckouts);
+                const pending = Number(results.pendingBookings) + Number(results.todayCheckins) + Number(results.todayCheckouts);
+                const resolved = Number(results.recentConfirmed);
                 
                 res.json({
                     success: true,
