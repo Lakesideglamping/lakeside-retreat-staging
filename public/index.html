@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="en-NZ">
 <head>
+    <!-- Capture hash before SPA history management can clear it -->
+    <script>window.__initialHash = window.location.hash;</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
     <meta name="description" content="Luxury glamping domes and lakefront cottage on Lake Dunstan, Central Otago. Private spas, vineyard views, 300m to cycle trail. From $295/night. Book direct and save.">
@@ -7472,11 +7474,10 @@ document.addEventListener('DOMContentLoaded', () => {
 })();
 
 // Open booking modal when URL hash is #booking (e.g. /#booking links from standalone pages).
-// Capture hash at parse time before SPA history management can clear it.
+// Uses window.__initialHash captured in <head> before SPA history management clears the hash.
 (function handleBookingHash() {
-    const initialHash = window.location.hash;
     document.addEventListener('DOMContentLoaded', function() {
-        if (initialHash === '#booking' && typeof openBookingModal === 'function') {
+        if (window.__initialHash === '#booking' && typeof openBookingModal === 'function') {
             openBookingModal();
         }
     });
