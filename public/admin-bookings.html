@@ -1010,7 +1010,7 @@
         }
 
         async function cancelBooking(id) {
-            if (!confirm('Are you sure you want to cancel this booking? This action cannot be undone.')) {
+            if (!confirm('Cancel this booking?\n\nThis will update the status to Cancelled, trigger a Stripe refund, cancel any Uplisting booking, and send the guest a cancellation email.\n\nPress OK to proceed.')) {
                 return;
             }
 
@@ -1018,20 +1018,22 @@
                 const csrfRes = await fetch('/api/csrf-token', { credentials: 'same-origin' });
                 const csrfData = await csrfRes.json();
 
-                const response = await fetch(`/api/admin/booking/${id}`, {
-                    method: 'DELETE',
+                const response = await fetch(`/api/admin/booking/${id}/status`, {
+                    method: 'PUT',
                     credentials: 'same-origin',
                     headers: {
+                        'Content-Type': 'application/json',
                         'X-CSRF-Token': csrfData.csrfToken
-                    }
+                    },
+                    body: JSON.stringify({ status: 'cancelled' })
                 });
-                
+
                 if (!response.ok) {
                     const data = await response.json();
                     throw new Error(data.error?.message || 'Failed to cancel booking');
                 }
-                
-                adminShell.showAlert('Booking cancelled successfully.');
+
+                adminShell.showAlert('Booking cancelled successfully. A refund and cancellation email have been triggered.');
                 closeBookingModal();
                 loadBookings();
             } catch (error) {
