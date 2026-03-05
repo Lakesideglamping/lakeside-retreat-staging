@@ -17,6 +17,7 @@ const router = express.Router();
 const rateLimit = require('express-rate-limit');
 const { body, validationResult } = require('express-validator');
 const path = require('path');
+const fs = require('fs');
 
 const accommodationsConfig = require('../config/accommodations');
 const database = require('../database');
@@ -488,6 +489,7 @@ function createPublicRoutes(deps) {
 
     // SPA catch-all — MUST be registered last in server.js
     router.spaFallback = (req, res) => {
+        // Let static asset requests fall through to a plain 404 text response
         if (req.path.startsWith('/api/') ||
             req.path.startsWith('/images/') ||
             req.path === '/sw.js' ||
@@ -500,7 +502,24 @@ function createPublicRoutes(deps) {
             req.path.includes('.webp')) {
             return res.status(404).send('Not Found');
         }
-        res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
+
+        const publicDir = path.join(__dirname, '..', 'public');
+
+        // Root path → index.html
+        if (req.path === '/') {
+            return res.sendFile(path.join(publicDir, 'index.html'));
+        }
+
+        // Strip leading/trailing slashes and check for a matching HTML file
+        const slug = req.path.replace(/^\/+|\/+$/g, '');
+        const htmlFile = path.join(publicDir, `${slug}.html`);
+
+        if (fs.existsSync(htmlFile)) {
+            return res.sendFile(htmlFile);
+        }
+
+        // No matching page — serve the 404 page with the correct HTTP status
+        res.status(404).sendFile(path.join(publicDir, '404.html'));
     };
 
     return router;

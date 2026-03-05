@@ -1984,10 +1984,7 @@ app.get('*', publicRouter({
     database
 }).spaFallback);
 
-// 404 handler
-app.use((req, res) => {
-    res.status(404).sendFile(path.join(__dirname, 'public', '404.html'));
-});
+// Note: 404 handling is done inside spaFallback in routes/public.js
 
 const server = app.listen(PORT, () => {
     logger.info(`🚀 Server running on port ${PORT}`);
