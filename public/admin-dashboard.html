@@ -634,8 +634,9 @@
                 const uplistingRevenue  = uplistingData?.total_revenue  || 0;
 
                 // --- Stat cards: combine local + Uplisting data ---
-                const totalBookings = (localStats.total_bookings || 0) + uplistingBookings;
-                const totalRevenue  = (localStats.total_revenue  || 0) + uplistingRevenue;
+                // parseInt() needed: API returns counts as strings, causing "4" + 0 = "40" without it
+                const totalBookings = (parseInt(localStats.total_bookings) || 0) + uplistingBookings;
+                const totalRevenue  = (parseInt(localStats.total_revenue)  || 0) + uplistingRevenue;
 
                 document.getElementById('totalBookings').textContent =
                     statsJson ? (totalBookings > 0 ? totalBookings.toLocaleString() : '0') : '—';
