@@ -340,7 +340,7 @@ app.use(helmet({
                 "https://www.google-analytics.com",
                 "https://connect.uplisting.io"
             ],
-            frameSrc: ["'self'", "https://js.stripe.com", "https://hooks.stripe.com"],
+            frameSrc: ["'self'", "https://js.stripe.com", "https://hooks.stripe.com", "https://maps.google.com", "https://www.google.com"],
             objectSrc: ["'none'"],
             baseUri: ["'self'"],
             formAction: ["'self'"],
