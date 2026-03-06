@@ -651,6 +651,10 @@ app.use(express.static(path.join(__dirname, 'public'), {
         } else if (filePath.endsWith('.html')) {
             // HTML: short cache so deploys take effect quickly
             res.setHeader('Cache-Control', 'public, max-age=60');
+        } else if (filePath.endsWith('sw.js')) {
+            // Service worker: must never be cached so browsers always fetch the latest
+            // version and propagate SW updates immediately on the next page load.
+            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
         } else if (filePath.endsWith('.js')) {
             // JS: cache for 1 day — versioned with ?v= query param for cache-busting on deploy
             // Longer cache prevents Render cold-start 503s from breaking admin-shell.js
@@ -1905,19 +1909,7 @@ const escapeHtml = escapeHtmlUtil;
 const executeDbOperation = executeDbOpUtil;
 
 
-app.get('/sw.js', (req, res) => {
-    const swPath = path.join(__dirname, 'sw.js');
-    logger.debug('🔧 SW request - Path:', { path: swPath });
-    res.setHeader('Content-Type', 'application/javascript');
-    res.sendFile(swPath, (err) => {
-        if (err) {
-            logger.error('❌ Error serving sw.js:', { error: err?.message });
-            res.status(404).send('Service worker not found');
-        } else {
-            logger.debug('✅ SW served successfully');
-        }
-    });
-});
+// Note: sw.js is served by express.static above with no-cache headers.
 
 // Enhanced Admin API Endpoints for Stripe/Uplisting Integration
 // IMPORTANT: These must be defined BEFORE the catch-all route
